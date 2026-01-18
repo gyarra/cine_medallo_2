@@ -1,0 +1,70 @@
+# --- Claude Code ---
+.claude/settings.local.json
+settings.local.json
+
+# --- Python & Django ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+*.cover
+*.pot
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Environment variables
+*.env
+*.env.*
+
+# Django
+*.log
+*.log.*
+db.sqlite3
+db.sqllite
+media/
+staticfiles/
+django.*
+.browser_state/
+
+# Django migrations
+**/migrations/*.pyc
+!**/migrations/__init__.py
+
+# Runtime files
+.run/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# IDE
+.vscode/
+.idea/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Swap/backup files
+*.swp
+*.swo
+*.bak
+
+# macOS
+.DS_Store
+
+# Redis
+dump.rdb
+
+# Celery
+celerybeat-schedule
+celerybeat-schedule-shm
+celerybeat-schedule-wal
