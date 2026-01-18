@@ -1,0 +1,74 @@
+[project]
+name = "cine-medallo-2"
+version = "0.1.0"
+description = "Django-based backend service for Cine Medallo"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "amqp>=5.3.1",
+    "asgiref>=3.10.0",
+    "beautifulsoup4>=4.14.2",
+    "celery>=5.4.0",
+    "Django>=5.2.7",
+    "django-cors-headers>=4.7.0",
+    "djangorestframework>=3.16.0",
+    "gunicorn>=23.0.0",
+    "lxml>=6.0.2",
+    "playwright>=1.55.0",
+    "psycopg>=3.2.12",
+    "psycopg2-binary>=2.9.11",
+    "python-dateutil>=2.9.0.post0",
+    "python-dotenv>=1.2.1",
+    "requests>=2.32.5",
+]
+
+[project.optional-dependencies]
+dev = [
+    "django-stubs>=5.1.1",
+    "pyright>=1.1.389",
+    "pytest>=8.4.2",
+    "pytest-cov>=6.1.1",
+    "pytest-django>=4.11.1",
+    "ruff>=0.14.9",
+]
+
+[tool.ruff]
+# Target Python 3.13+
+target-version = "py313"
+line-length = 120
+
+# Exclude auto-generated files
+exclude = [
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    "*.pyc",
+    "**/migrations/*.py",
+]
+
+[tool.ruff.lint]
+# Enable common rule sets
+select = [
+    "E",   # pycodestyle errors
+    "F",   # Pyflakes
+    "W",   # pycodestyle warnings
+]
+
+# Ignore specific rules
+ignore = [
+    "E501",  # Line too long - let formatter handle this
+]
+
+# Allow unused variables when underscore-prefixed
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.per-file-ignores]
+# Allow unused imports in __init__.py files (re-exports)
+"__init__.py" = ["F401"]
+# Allow late imports in conftest and test files
+"conftest.py" = ["E402"]
+"**/tests/*.py" = ["E402", "F841"]
+"**/tests/**/*.py" = ["E402", "F841"]
+# Allow late imports and unused variables in scripts
+"scripts/*.py" = ["E402", "F841"]
