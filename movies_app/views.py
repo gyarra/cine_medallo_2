@@ -1,6 +1,6 @@
 from django.http import HttpResponse
 
-from movies_app.models import Movie, Theater
+from movies_app.models import Movie, Showtime, Theater
 
 
 def theater_list(request):
@@ -101,10 +101,17 @@ def movie_list(request):
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Movies</title>
+        <title>Cine Medallo</title>
         <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 40px; background: #f5f5f5; }
-            h1 { color: #333; }
+            body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; background: #f5f5f5; }
+            .banner { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: white; padding: 24px 40px; margin-bottom: 24px; }
+            .banner h1 { margin: 0; font-size: 32px; }
+            .banner .subtitle { color: #aaa; margin-top: 4px; }
+            .banner nav { margin-top: 16px; }
+            .banner nav a { color: #f5c518; text-decoration: none; margin-right: 24px; font-weight: 500; }
+            .banner nav a:hover { text-decoration: underline; }
+            .content { padding: 0 40px 40px 40px; }
+            h2 { color: #333; margin-top: 0; }
             .movies { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
             .movie { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
             .movie-poster { width: 100%; height: 400px; object-fit: cover; background: #ddd; }
@@ -121,8 +128,17 @@ def movie_list(request):
         </style>
     </head>
     <body>
-        <h1>🎬 Movies (""" + str(movies.count()) + """)</h1>
-        <div class="movies">
+        <div class="banner">
+            <h1>🎬 Cine Medallo</h1>
+            <div class="subtitle">Movie showtimes in Medellín</div>
+            <nav>
+                <a href="/">Movies</a>
+                <a href="/theaters/">Theaters Near You</a>
+            </nav>
+        </div>
+        <div class="content">
+            <h2>Now Showing (""" + str(movies.count()) + """ movies)</h2>
+            <div class="movies">
     """
 
     for m in movies:
@@ -143,11 +159,14 @@ def movie_list(request):
             links.append(f'<a href="{m.imdb_url}" target="_blank">IMDB</a>')
         links_html = f'<div class="movie-links">{" ".join(links)}</div>' if links else ""
 
+        movie_id = m.id  # pyright: ignore[reportAttributeAccessIssue]
         html += f"""
         <div class="movie">
-            {poster_html}
+            <a href="/movies/{movie_id}/" style="text-decoration: none; color: inherit;">
+                {poster_html}
+            </a>
             <div class="movie-info">
-                <h2 class="movie-title">{m.title_es}</h2>
+                <h2 class="movie-title"><a href="/movies/{movie_id}/" style="text-decoration: none; color: inherit;">{m.title_es}</a></h2>
                 {original_title}
                 <div class="movie-year">{year_str}</div>
                 <div class="movie-rating">{rating_str}</div>
@@ -157,6 +176,137 @@ def movie_list(request):
         </div>
         """
 
-    html += "</div></body></html>"
+    html += "</div></div></body></html>"
+    return HttpResponse(html)
+
+
+def movie_detail(request, movie_id):
+    """Return details for a single movie with all showtimes."""
+    try:
+        movie = Movie.objects.get(id=movie_id)
+    except Movie.DoesNotExist:
+        return HttpResponse("<h1>Movie not found</h1>", status=404)
+
+    showtimes = (
+        Showtime.objects.filter(movie=movie)
+        .select_related("theater")
+        .order_by("start_date", "theater__name", "start_time")
+    )
+
+    year_str = f"({movie.year})" if movie.year else ""
+    rating_str = f"⭐ {movie.tmdb_rating}/10" if movie.tmdb_rating else ""
+    duration_str = f"{movie.duration_minutes} min" if movie.duration_minutes else ""
+    original_title = f"<p><em>{movie.original_title}</em></p>" if movie.original_title and movie.original_title != movie.title_es else ""
+
+    if movie.poster_url:
+        poster_html = f'<img class="poster" src="{movie.poster_url}" alt="{movie.title_es}">'
+    else:
+        poster_html = '<div class="poster-placeholder">🎬</div>'
+
+    links = []
+    if movie.tmdb_url:
+        links.append(f'<a href="{movie.tmdb_url}" target="_blank">TMDB</a>')
+    if movie.imdb_url:
+        links.append(f'<a href="{movie.imdb_url}" target="_blank">IMDB</a>')
+    links_html = f'<div class="links">{" ".join(links)}</div>' if links else ""
+
+    # Group showtimes by date, then by theater
+    showtimes_by_date: dict[str, dict[str, list[Showtime]]] = {}
+    for st in showtimes:
+        date_key = st.start_date.strftime("%A, %B %d, %Y")
+        theater_name = st.theater.name
+        if date_key not in showtimes_by_date:
+            showtimes_by_date[date_key] = {}
+        if theater_name not in showtimes_by_date[date_key]:
+            showtimes_by_date[date_key][theater_name] = []
+        showtimes_by_date[date_key][theater_name].append(st)
+
+    showtimes_html = ""
+    if showtimes_by_date:
+        for date_str, theaters in showtimes_by_date.items():
+            showtimes_html += f'<h3 class="date-header">{date_str}</h3>'
+            for theater_name, times in theaters.items():
+                times_list = []
+                for st in times:
+                    time_str = st.start_time.strftime("%I:%M %p").lstrip("0")
+                    format_str = f' <span class="format">({st.format})</span>' if st.format else ""
+                    times_list.append(f'<span class="time">{time_str}{format_str}</span>')
+                showtimes_html += f'''
+                <div class="theater-showtimes">
+                    <div class="theater-name">{theater_name}</div>
+                    <div class="times">{" ".join(times_list)}</div>
+                </div>
+                '''
+    else:
+        showtimes_html = '<p class="no-showtimes">No showtimes available</p>'
+
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>{movie.title_es} - Cine Medallo</title>
+        <style>
+            body {{ font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; background: #f5f5f5; }}
+            .banner {{ background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: white; padding: 24px 40px; margin-bottom: 24px; }}
+            .banner h1 {{ margin: 0; font-size: 32px; }}
+            .banner .subtitle {{ color: #aaa; margin-top: 4px; }}
+            .banner nav {{ margin-top: 16px; }}
+            .banner nav a {{ color: #f5c518; text-decoration: none; margin-right: 24px; font-weight: 500; }}
+            .banner nav a:hover {{ text-decoration: underline; }}
+            .container {{ max-width: 1000px; margin: 0 auto; padding: 0 40px 40px 40px; }}
+            .movie-header {{ display: flex; gap: 32px; background: white; padding: 24px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+            .poster {{ width: 300px; height: 450px; object-fit: cover; border-radius: 8px; }}
+            .poster-placeholder {{ width: 300px; height: 450px; background: #e0e0e0; display: flex; align-items: center; justify-content: center; color: #999; font-size: 72px; border-radius: 8px; }}
+            .movie-info h1 {{ margin: 0 0 8px 0; color: #333; }}
+            .movie-info p {{ margin: 0 0 8px 0; color: #666; }}
+            .meta {{ color: #888; font-size: 14px; margin-bottom: 16px; }}
+            .synopsis {{ color: #444; line-height: 1.6; margin-top: 16px; }}
+            .links {{ margin-top: 16px; }}
+            .links a {{ color: #0066cc; text-decoration: none; margin-right: 16px; }}
+            .links a:hover {{ text-decoration: underline; }}
+            .showtimes-section {{ background: white; padding: 24px; border-radius: 8px; margin-top: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+            .showtimes-section h2 {{ margin: 0 0 16px 0; color: #333; }}
+            .date-header {{ color: #555; font-size: 16px; margin: 24px 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid #eee; }}
+            .date-header:first-child {{ margin-top: 0; }}
+            .theater-showtimes {{ margin-bottom: 16px; }}
+            .theater-name {{ font-weight: 600; color: #333; margin-bottom: 8px; }}
+            .times {{ display: flex; flex-wrap: wrap; gap: 8px; }}
+            .time {{ background: #0066cc; color: white; padding: 6px 12px; border-radius: 4px; font-size: 14px; }}
+            .format {{ font-size: 11px; opacity: 0.8; }}
+            .no-showtimes {{ color: #888; font-style: italic; }}
+        </style>
+    </head>
+    <body>
+        <div class="banner">
+            <h1>🎬 Cine Medallo</h1>
+            <div class="subtitle">Movie showtimes in Medellín</div>
+            <nav>
+                <a href="/">Movies</a>
+                <a href="/theaters/">Theaters Near You</a>
+            </nav>
+        </div>
+        <div class="container">
+            <div class="movie-header">
+                {poster_html}
+                <div class="movie-info">
+                    <h1>{movie.title_es}</h1>
+                    {original_title}
+                    <div class="meta">
+                        {year_str} {f"· {duration_str}" if duration_str else ""} {f"· {movie.genre}" if movie.genre else ""} {f"· {movie.age_rating}" if movie.age_rating else ""}
+                    </div>
+                    <div>{rating_str}</div>
+                    <div class="synopsis">{movie.synopsis or ""}</div>
+                    {links_html}
+                </div>
+            </div>
+
+            <div class="showtimes-section">
+                <h2>🎬 Showtimes</h2>
+                {showtimes_html}
+            </div>
+        </div>
+    </body>
+    </html>
+    """
     return HttpResponse(html)
 
