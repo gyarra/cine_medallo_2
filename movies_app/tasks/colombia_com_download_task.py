@@ -61,7 +61,7 @@ async def _scrape_theater_movies_async(theater: Theater) -> list[str]:
     }
 
     async with AsyncCamoufox(**browser_options) as browser:
-        context = await browser.new_context()
+        context = await browser.new_context()  # pyright: ignore[reportAttributeAccessIssue]
         page = await context.new_page()
 
         try:

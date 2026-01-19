@@ -93,7 +93,8 @@ class Command(BaseCommand):
         existing = Movie.objects.filter(tmdb_id=selected_movie.id).first()
         if existing:
             self.stdout.write(
-                self.style.WARNING(f"\nMovie already exists in database: {existing} (ID: {existing.id})")
+                self.style.WARNING(f"\nMovie already exists in database: {existing} (ID: {existing.id})"  # pyright: ignore[reportAttributeAccessIssue]
+                )
             )
             return
 
@@ -101,7 +102,7 @@ class Command(BaseCommand):
         movie = Movie.create_from_tmdb(selected_movie)
 
         self.stdout.write(self.style.SUCCESS(f"\nSuccessfully imported: {movie}"))
-        self.stdout.write(f"  Database ID: {movie.id}")
+        self.stdout.write(f"  Database ID: {movie.id}")  # pyright: ignore[reportAttributeAccessIssue]
         self.stdout.write(f"  TMDB ID: {movie.tmdb_id}")
         self.stdout.write(f"  Original Title: {movie.original_title}")
         self.stdout.write(f"  Year: {movie.year}")
