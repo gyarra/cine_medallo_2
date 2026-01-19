@@ -98,9 +98,8 @@ class Movie(models.Model):
 
     @property
     def tmdb_url(self) -> str | None:
-        """Get the TMDB URL for this movie."""
         if self.tmdb_id:
-            return f"https://www.themoviedb.org/movie/{self.tmdb_id}"
+            return f"https://www.themoviedb.org/movie/{self.tmdb_id}?language=es-MX"
         return None
 
     @property

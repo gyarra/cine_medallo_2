@@ -14,9 +14,11 @@ from bs4 import BeautifulSoup
 from camoufox.async_api import AsyncCamoufox
 
 from config.celery_app import app
+from movies_app.models import Movie, Theater
+from movies_app.services.tmdb_service import TMDBService, TMDBServiceError
 
 if TYPE_CHECKING:
-    from movies_app.models import Theater
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -99,9 +101,6 @@ def save_movies_for_theater(theater: Theater) -> list[str]:
     Returns:
         List of movie names that were successfully saved
     """
-    from movies_app.models import Movie
-    from movies_app.services.tmdb_service import TMDBService, TMDBServiceError
-
     movie_names = asyncio.run(_scrape_theater_movies_async(theater))
     saved_movies: list[str] = []
 
@@ -139,6 +138,41 @@ def colombia_com_download_task():
     """
     Celery task to download movie showtime data from colombia.com.
 
+    Iterates through all theaters with a colombia_dot_com_url,
+    scrapes movie names, fetches TMDB data, and saves to the database.
+
     Scheduled to run every 10 minutes.
     """
     logger.info("Starting colombia_com_download_task")
+
+    theaters = Theater.objects.exclude(colombia_dot_com_url__isnull=True).exclude(
+        colombia_dot_com_url=""
+    )
+
+    theater_count = theaters.count()
+    if theater_count == 0:
+        logger.warning("No theaters found with colombia_dot_com_url")
+        return
+
+    logger.info(f"Found {theater_count} theaters with colombia_dot_com_url")
+
+    total_saved = 0
+    failed_theaters: list[str] = []
+
+    for theater in theaters:
+        try:
+            logger.info(f"Processing theater: {theater.name}")
+            saved_movies = save_movies_for_theater(theater)
+            total_saved += len(saved_movies)
+        except Exception as e:
+            logger.error(f"Failed to process theater '{theater.name}': {e}")
+            failed_theaters.append(theater.name)
+            continue
+
+    logger.info(
+        f"colombia_com_download_task completed: "
+        f"{total_saved} movies saved, {len(failed_theaters)} theaters failed"
+    )
+
+    if failed_theaters:
+        logger.warning(f"Failed theaters: {failed_theaters}")

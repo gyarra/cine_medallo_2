@@ -24,7 +24,7 @@ pytest
 * No default values in method parameters
 * Never swallow exceptions—log errors properly
 * Keep comments minimal
-* Imports at top of file (inline only for circular dependencies)
+* **NO inline imports**—all imports at top of file, no exceptions
 * Avoid synchronous calls in asynchronous code (use await for all I/O operations)
 * Always run `ruff check .`, `pyright`, `pytest` before committing and pushing
 * Generate migrations before pushing a PR
@@ -33,11 +33,10 @@ pytest
 
 ## Comments and Docstrings
 
-* Write comments only for intent, constraints, or non-obvious behavior
-* Short, obvious methods require no comments
-* Do not write verbose explanations
-* Do not document obvious behavior
-* Exceptions: Command documentation should be verbose, with examples at the top of the file
+* Most methods need no docstring—code should be self-explanatory
+* Write comments only for non-obvious behavior or important constraints
+* Do not describe what the code does; describe why if unclear
+* Exceptions: Management command files should have verbose docs with examples at the top
 
 
 ## Command Line Conventions
