@@ -1,6 +1,6 @@
 from django.http import HttpResponse
 
-from movies_app.models import Theater
+from movies_app.models import Movie, Theater
 
 
 def theater_list(request):
@@ -90,5 +90,73 @@ def theater_detail(request, slug):
     </body>
     </html>
     """
+    return HttpResponse(html)
+
+
+def movie_list(request):
+    """Return a list of all movies."""
+    movies = Movie.objects.all().order_by("-year", "title_es")
+
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Movies</title>
+        <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 40px; background: #f5f5f5; }
+            h1 { color: #333; }
+            .movies { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+            .movie { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+            .movie-poster { width: 100%; height: 400px; object-fit: cover; background: #ddd; }
+            .movie-poster-placeholder { width: 100%; height: 400px; background: #e0e0e0; display: flex; align-items: center; justify-content: center; color: #999; font-size: 48px; }
+            .movie-info { padding: 16px; }
+            .movie-title { font-size: 18px; font-weight: 600; margin: 0 0 4px 0; color: #333; }
+            .movie-original { font-size: 14px; color: #666; margin-bottom: 8px; font-style: italic; }
+            .movie-year { font-size: 14px; color: #888; margin-bottom: 8px; }
+            .movie-rating { font-size: 14px; color: #f5c518; margin-bottom: 8px; }
+            .movie-synopsis { font-size: 13px; color: #555; line-height: 1.4; }
+            .movie-links { margin-top: 12px; font-size: 13px; }
+            .movie-links a { color: #0066cc; text-decoration: none; margin-right: 12px; }
+            .movie-links a:hover { text-decoration: underline; }
+        </style>
+    </head>
+    <body>
+        <h1>🎬 Movies (""" + str(movies.count()) + """)</h1>
+        <div class="movies">
+    """
+
+    for m in movies:
+        year_str = f"({m.year})" if m.year else ""
+        rating_str = f"⭐ {m.tmdb_rating}/10" if m.tmdb_rating else ""
+        original_title = f'<div class="movie-original">{m.original_title}</div>' if m.original_title and m.original_title != m.title_es else ""
+        synopsis = m.synopsis[:200] + "..." if m.synopsis and len(m.synopsis) > 200 else (m.synopsis or "")
+
+        if m.poster_url:
+            poster_html = f'<img class="movie-poster" src="{m.poster_url}" alt="{m.title_es}">'
+        else:
+            poster_html = '<div class="movie-poster-placeholder">🎬</div>'
+
+        links = []
+        if m.tmdb_url:
+            links.append(f'<a href="{m.tmdb_url}" target="_blank">TMDB</a>')
+        if m.imdb_url:
+            links.append(f'<a href="{m.imdb_url}" target="_blank">IMDB</a>')
+        links_html = f'<div class="movie-links">{" ".join(links)}</div>' if links else ""
+
+        html += f"""
+        <div class="movie">
+            {poster_html}
+            <div class="movie-info">
+                <h2 class="movie-title">{m.title_es}</h2>
+                {original_title}
+                <div class="movie-year">{year_str}</div>
+                <div class="movie-rating">{rating_str}</div>
+                <div class="movie-synopsis">{synopsis}</div>
+                {links_html}
+            </div>
+        </div>
+        """
+
+    html += "</div></body></html>"
     return HttpResponse(html)
 
