@@ -41,12 +41,12 @@ app.conf.update(
     },
     task_default_queue='celery',
     task_routes={
-        'movies_app.tasks.download_from_colombia_dot_com.*': {'queue': 'scraping'},
+        'movies_app.tasks.colombia_com_download_task.*': {'queue': 'scraping'},
     },
     result_expires=3600,
     beat_schedule={
-        'download-from-colombia-dot-com': {
-            'task': 'movies_app.tasks.download_from_colombia_dot_com.download_from_colombia_dot_com_task',
+        'colombia-com-download': {
+            'task': 'movies_app.tasks.colombia_com_download_task.colombia_com_download_task',
             'schedule': 600.0,  # Every 10 minutes (600 seconds)
         },
     },

@@ -6,7 +6,7 @@ import pytest
 @pytest.mark.django_db
 class TestExtractMovieNamesFromHtml:
     def test_extracts_movie_names_from_colombia_dot_com_html(self):
-        from movies_app.tasks.download_from_colombia_dot_com import (
+        from movies_app.tasks.colombia_com_download_task import (
             _extract_movie_names_from_html,
         )
 

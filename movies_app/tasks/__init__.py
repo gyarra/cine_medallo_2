@@ -4,8 +4,8 @@ Background Tasks
 Powered by Celery for distributed task execution.
 """
 
-from . import download_from_colombia_dot_com
+from . import colombia_com_download_task
 
 __all__ = [
-    'download_from_colombia_dot_com',
+    'colombia_com_download_task',
 ]

@@ -88,10 +88,10 @@ def scrape_theater_movies(theater: Theater) -> list[str]:
 
 
 @app.task
-def download_from_colombia_dot_com_task():
+def colombia_com_download_task():
     """
     Celery task to download movie showtime data from colombia.com.
 
     Scheduled to run every 10 minutes.
     """
-    logger.info("Starting download_from_colombia_dot_com_task")
+    logger.info("Starting colombia_com_download_task")

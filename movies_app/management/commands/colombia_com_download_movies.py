@@ -5,7 +5,7 @@ Management command to scrape movies from a theater's colombia.com page.
 from django.core.management.base import BaseCommand, CommandError
 
 from movies_app.models import Theater
-from movies_app.tasks.download_from_colombia_dot_com import scrape_theater_movies
+from movies_app.tasks.colombia_com_download_task import scrape_theater_movies
 
 
 class Command(BaseCommand):
