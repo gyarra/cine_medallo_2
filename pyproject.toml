@@ -72,3 +72,7 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 "**/tests/**/*.py" = ["E402", "F841"]
 # Allow late imports and unused variables in scripts
 "scripts/*.py" = ["E402", "F841"]
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+python_files = "tests.py test_*.py *_tests.py"
+python_classes = "*Tests Test*"
