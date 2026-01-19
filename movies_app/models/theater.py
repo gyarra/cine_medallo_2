@@ -15,6 +15,7 @@ class Theater(models.Model):
     phone = models.CharField(max_length=50, blank=True)
     screen_count = models.PositiveIntegerField(null=True, blank=True)
     website = models.URLField(blank=True)
+    colombia_dot_com_url = models.URLField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

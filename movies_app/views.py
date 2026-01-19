@@ -78,14 +78,14 @@ def theater_detail(request, slug):
     <body>
         <h1>{t.name}</h1>
         <div class="chain">{t.chain}</div>
-        
+
         <div class="info"><span class="label">Address:</span> {t.address}</div>
         <div class="info"><span class="label">City:</span> {t.city}</div>
         <div class="info"><span class="label">Neighborhood:</span> {t.neighborhood or 'N/A'}</div>
         <div class="info"><span class="label">Phone:</span> {t.phone or 'N/A'}</div>
         <div class="info"><span class="label">Screens:</span> {t.screen_count or 'N/A'}</div>
         <div class="info"><span class="label">Website:</span> {f'<a href="{t.website}" target="_blank">{t.website}</a>' if t.website else 'N/A'}</div>
-        
+
         <div class="back"><a href="/api/theaters/">← Back to all theaters</a></div>
     </body>
     </html>
