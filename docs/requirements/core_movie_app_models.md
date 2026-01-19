@@ -50,13 +50,13 @@ Core Pages:
 │ id (PK)         │       │ id (PK)         │       │ id (PK)         │
 │ name            │       │ theater_id (FK) │───────│ title_es        │
 │ chain           │       │ movie_id (FK)   │       │ original_title  │
-│ address         │       │ showtime        │       │ year            │
-│ city            │       │ format          │       │ duration_minutes│
-│ neighborhood    │       │ language        │       │ genre           │
-│ latitude        │       │ screen          │       │ age_rating      │
-│ longitude       │       │ created_at      │       │ synopsis        │
-│ phone           │       │ updated_at      │       │ poster_url      │
-│ screen_count    │       └─────────────────┘       │ imdb_id         │
+│ address         │       │ start_date      │       │ year            │
+│ city            │       │ start_time      │       │ duration_minutes│
+│ neighborhood    │       │ format          │       │ genre           │
+│ latitude        │       │ language        │       │ age_rating      │
+│ longitude       │       │ screen          │       │ synopsis        │
+│ phone           │       │ created_at      │       │ poster_url      │
+│ screen_count    │       │ updated_at      │       │ imdb_id         │
 │ website         │               │                 │ tmdb_id         │
 │ is_active       │               │                 │ tmdb_rating     │
 │ created_at      │               │                 │ created_at      │
@@ -141,14 +141,15 @@ Represents a film that can be shown at theaters.
 
 Represents a specific showing of a movie at a theater.
 
-**Note:** All showtimes are stored as timezone-aware datetimes (UTC). Display conversion to local time (e.g., Colombia Time) should be handled at the presentation layer.
+**Update Strategy:** When scraping showtimes, delete all existing showtimes for the theater on the given date, then add the newly scraped showtimes. This avoids complex update logic.
 
 | Field | Type | Constraints | Description |
 |-------|------|-------------|-------------|
 | id | BigAutoField | PK | Primary key |
 | theater | ForeignKey(Theater) | required, on_delete=CASCADE | Theater showing the movie |
 | movie | ForeignKey(Movie) | required, on_delete=CASCADE | Movie being shown |
-| showtime | DateTimeField | required | Date and time of showing (timezone-aware, stored as UTC) |
+| start_date | DateField | required | Date of showing |
+| start_time | TimeField | required | Time of showing |
 | format | CharField(50) | optional | Screening format (e.g., "2D", "3D", "IMAX", "XD") |
 | language | CharField(50) | optional | Audio language (e.g., "DOBLADA", "SUBTITULADA", "Original") |
 | screen | CharField(50) | optional | Screen/sala identifier |
@@ -157,14 +158,14 @@ Represents a specific showing of a movie at a theater.
 | updated_at | DateTimeField | auto_now | Record update timestamp |
 
 **Indexes:**
-- `showtime` - for filtering by date/time
-- `theater, showtime` - composite index for theater schedule queries
-- `movie, showtime` - composite index for movie availability queries
+- `start_date` - for filtering by date
+- `theater, start_date` - composite index for theater schedule queries
+- `movie, start_date` - composite index for movie availability queries
 
 **Constraints:**
-- `unique_together: (theater, movie, showtime, format, language)` - Prevent duplicate showtime entries
+- `unique_together: (theater, movie, start_date, start_time)` - Prevent duplicate showtime entries
 
-**String representation:** `{movie.title} at {theater.name} - {showtime}`
+**String representation:** `{movie.title} at {theater.name} - {start_date} {start_time}`
 
 
 ---
@@ -199,25 +200,25 @@ from movies_app.models import Showtime
 
 today = timezone.now().date()
 showtimes = Showtime.objects.filter(
-    showtime__date=today,
+    start_date=today,
     theater__city="Medellín",
     theater__is_active=True
-).select_related('movie', 'theater').order_by('showtime')
+).select_related('movie', 'theater').order_by('start_date', 'start_time')
 ```
 
 ## Query: All showtimes for a specific movie
 ```python
 movie_showtimes = Showtime.objects.filter(
     movie__title="Avatar: Fuego Y Cenizas",
-    showtime__gte=timezone.now()
-).select_related('theater').order_by('theater__name', 'showtime')
+    start_date__gte=timezone.now().date()
+).select_related('theater').order_by('theater__name', 'start_date', 'start_time')
 ```
 
 ## Query: Theater schedule
 ```python
 theater_schedule = Showtime.objects.filter(
     theater__name="Arkadia",
-    showtime__date=today
-).select_related('movie').order_by('showtime')
+    start_date=today
+).select_related('movie').order_by('start_time')
 ```
 
