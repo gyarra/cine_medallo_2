@@ -46,6 +46,7 @@ class Command(BaseCommand):
                 "phone": data.get("phone", ""),
                 "screen_count": data.get("screen_count"),
                 "website": data.get("website", ""),
+                "colombia_dot_com_url": data.get("colombia_dot_com_url", ""),
             }
 
             theater, created = Theater.objects.update_or_create(

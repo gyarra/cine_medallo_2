@@ -37,7 +37,7 @@ pytest
 * Short, obvious methods require no comments
 * Do not write verbose explanations
 * Do not document obvious behavior
-* Exceptions: Command documentation
+* Exceptions: Command documentation should be verbose, with examples at the top of the file
 
 
 ## Command Line Conventions

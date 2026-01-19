@@ -8,6 +8,7 @@ dependencies = [
     "amqp>=5.3.1",
     "asgiref>=3.10.0",
     "beautifulsoup4>=4.14.2",
+    "camoufox>=0.4.11",
     "celery>=5.4.0",
     "Django>=5.2.7",
     "django-cors-headers>=4.7.0",
