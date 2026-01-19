@@ -48,20 +48,20 @@ Core Pages:
 │     Theater     │       │    Showtime     │       │      Movie      │
 ├─────────────────┤       ├─────────────────┤       ├─────────────────┤
 │ id (PK)         │       │ id (PK)         │       │ id (PK)         │
-│ name            │       │ theater_id (FK) │───────│ title           │
+│ name            │       │ theater_id (FK) │───────│ title_es        │
 │ chain           │       │ movie_id (FK)   │       │ original_title  │
 │ address         │       │ showtime        │       │ year            │
 │ city            │       │ format          │       │ duration_minutes│
 │ neighborhood    │       │ language        │       │ genre           │
-│ latitude        │       │ screen          │       │ rating          │
+│ latitude        │       │ screen          │       │ age_rating      │
 │ longitude       │       │ created_at      │       │ synopsis        │
 │ phone           │       │ updated_at      │       │ poster_url      │
 │ screen_count    │       └─────────────────┘       │ imdb_id         │
-│ website         │               │                 │ created_at      │
-│ is_active       │               │                 │ updated_at      │
-│ created_at      │               │                 └─────────────────┘
-│ updated_at      │               │
-└─────────────────┘               │
+│ website         │               │                 │ tmdb_id         │
+│ is_active       │               │                 │ tmdb_rating     │
+│ created_at      │               │                 │ created_at      │
+│ updated_at      │               │                 │ updated_at      │
+└─────────────────┘               │                 └─────────────────┘
         │                         │
         └─────────────────────────┘
 ```
@@ -114,25 +114,27 @@ Represents a film that can be shown at theaters.
 | Field | Type | Constraints | Description |
 |-------|------|-------------|-------------|
 | id | BigAutoField | PK | Primary key |
-| title | CharField(300) | required | Movie title (localized/display title) |
+| title_es | CharField(300) | required | Movie title in Spanish |
 | original_title | CharField(300) | optional | Original language title |
 | year | PositiveIntegerField | optional | Release year |
 | duration_minutes | PositiveIntegerField | optional | Runtime in minutes |
 | genre | CharField(100) | optional | Primary genre(s) |
-| rating | CharField(10) | optional | Age rating (e.g., "PG-13", "R", "+15") |
+| age_rating | CharField(10) | optional | Age rating (e.g., "PG-13", "R", "+15") |
 | synopsis | TextField | optional | Movie description/plot summary |
 | poster_url | URLField | optional | URL to movie poster image |
 | imdb_id | CharField(20) | optional, unique | IMDB identifier (e.g., "tt27543632") |
-| tmdb_url | URLField | optional | The Movie Database (TMDB) URL |
+| tmdb_id | PositiveIntegerField | optional, unique | The Movie Database (TMDB) identifier |
+| tmdb_rating | DecimalField(3,1) | optional | TMDB user rating (0.0-10.0) |
 | created_at | DateTimeField | auto_now_add | Record creation timestamp |
 | updated_at | DateTimeField | auto_now | Record update timestamp |
 
 **Indexes:**
-- `title` - for searching movies by title
+- `title_es` - for searching movies by title
 - `imdb_id` - unique, for external lookups
+- `tmdb_id` - unique, for TMDB lookups
 - `year` - for filtering by release year
 
-**String representation:** `{title} ({year})`
+**String representation:** `{title_es} ({year})`
 
 
 ## Showtime Model
