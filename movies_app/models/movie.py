@@ -2,7 +2,15 @@
 Movie model for storing film information.
 """
 
+from __future__ import annotations
+
+from decimal import Decimal
+from typing import TYPE_CHECKING
+
 from django.db import models
+
+if TYPE_CHECKING:
+    from movies_app.services.tmdb_service import TMDBMovieResult
 
 
 class Movie(models.Model):
@@ -101,3 +109,59 @@ class Movie(models.Model):
         if self.imdb_id:
             return f"https://www.imdb.com/title/{self.imdb_id}/"
         return None
+
+    @classmethod
+    def create_from_tmdb(cls, tmdb_result: TMDBMovieResult, poster_size: str = "w500") -> Movie:
+        """
+        Create a Movie instance from a TMDB search result.
+
+        Args:
+            tmdb_result: A TMDBMovieResult from the TMDB API
+            poster_size: Image size for poster URL (w92, w154, w185, w342, w500, w780, original)
+
+        Returns:
+            A new saved Movie instance
+        """
+        # Extract year from release_date (format: "YYYY-MM-DD")
+        year = None
+        if tmdb_result.release_date:
+            try:
+                year = int(tmdb_result.release_date.split("-")[0])
+            except (ValueError, IndexError):
+                pass
+
+        # Build poster URL
+        poster_url = ""
+        if tmdb_result.poster_path:
+            poster_url = f"https://image.tmdb.org/t/p/{poster_size}{tmdb_result.poster_path}"
+
+        movie = cls.objects.create(
+            title_es=tmdb_result.title,
+            original_title=tmdb_result.original_title,
+            year=year,
+            synopsis=tmdb_result.overview,
+            poster_url=poster_url,
+            tmdb_id=tmdb_result.id,
+            tmdb_rating=Decimal(str(tmdb_result.vote_average)) if tmdb_result.vote_average else None,
+        )
+
+        return movie
+
+    @classmethod
+    def get_or_create_from_tmdb(cls, tmdb_result: TMDBMovieResult, poster_size: str = "w500") -> tuple[Movie, bool]:
+        """
+        Get existing movie by tmdb_id or create a new one from TMDB result.
+
+        Args:
+            tmdb_result: A TMDBMovieResult from the TMDB API
+            poster_size: Image size for poster URL
+
+        Returns:
+            Tuple of (Movie instance, created boolean)
+        """
+        try:
+            movie = cls.objects.get(tmdb_id=tmdb_result.id)
+            return movie, False
+        except cls.DoesNotExist:
+            movie = cls.create_from_tmdb(tmdb_result, poster_size)
+            return movie, True
