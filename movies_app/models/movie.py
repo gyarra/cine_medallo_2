@@ -8,6 +8,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from django.db import models
+from django.utils.text import slugify
 
 if TYPE_CHECKING:
     from movies_app.services.tmdb_service import TMDBMovieResult
@@ -21,6 +22,11 @@ class Movie(models.Model):
     title_es = models.CharField(
         max_length=300,
         help_text="Movie title in Spanish",
+    )
+    slug = models.SlugField(
+        max_length=350,
+        unique=True,
+        help_text="URL-friendly identifier",
     )
     original_title = models.CharField(
         max_length=300,
@@ -90,6 +96,17 @@ class Movie(models.Model):
             models.Index(fields=["title_es"]),
             models.Index(fields=["year"]),
         ]
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(self.title_es)
+            slug = base_slug
+            counter = 1
+            while Movie.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
 
     def __str__(self):
         if self.year:
