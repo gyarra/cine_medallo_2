@@ -1,11 +1,24 @@
 """
-Management command to scrape movies from a theater's colombia.com page.
+Scrape movies from a theater's colombia.com page.
+
+Usage:
+    # List theaters with colombia.com URLs configured
+    python manage.py colombia_com_download_movies --list
+
+    # Scrape and display movie names (no database changes)
+    python manage.py colombia_com_download_movies procinal-monterrey-medellin
+
+    # Scrape, fetch TMDB data, and save to database
+    python manage.py colombia_com_download_movies procinal-monterrey-medellin --save-to-db
 """
 
 from django.core.management.base import BaseCommand, CommandError
 
 from movies_app.models import Theater
-from movies_app.tasks.colombia_com_download_task import scrape_theater_movies
+from movies_app.tasks.colombia_com_download_task import (
+    save_movies_for_theater,
+    scrape_theater_movies,
+)
 
 
 class Command(BaseCommand):
@@ -22,6 +35,11 @@ class Command(BaseCommand):
             "--list",
             action="store_true",
             help="List the first 10 theaters with colombia_dot_com_url",
+        )
+        parser.add_argument(
+            "--save-to-db",
+            action="store_true",
+            help="Save movies to database after scraping (fetches TMDB data)",
         )
 
     def handle(self, *args, **options):
@@ -49,6 +67,23 @@ class Command(BaseCommand):
             )
 
         self.stdout.write(f"URL: {theater.colombia_dot_com_url}")
+
+        if options["save_to_db"]:
+            self.stdout.write("Scraping movies and saving to database...")
+            try:
+                saved_movies = save_movies_for_theater(theater)
+            except TimeoutError:
+                raise CommandError(f"Timeout while scraping {theater.colombia_dot_com_url}")
+            except Exception as e:
+                raise CommandError(f"Error scraping theater: {e}")
+
+            self.stdout.write(
+                self.style.SUCCESS(f"\nSaved {len(saved_movies)} movies to database:")
+            )
+            for i, name in enumerate(saved_movies, 1):
+                self.stdout.write(f"  {i}. {name}")
+            return
+
         self.stdout.write("Scraping movies with Camoufox...")
 
         try:

@@ -87,6 +87,53 @@ def scrape_theater_movies(theater: Theater) -> list[str]:
     return asyncio.run(_scrape_theater_movies_async(theater))
 
 
+def save_movies_for_theater(theater: Theater) -> list[str]:
+    """
+    Scrape movie names from a theater and save them to the database.
+
+    For each movie name scraped from colombia.com:
+    1. Search TMDB for the movie
+    2. If found, upsert the movie in the database (first result is used)
+    3. If not found on TMDB, skip the movie
+
+    Returns:
+        List of movie names that were successfully saved
+    """
+    from movies_app.models import Movie
+    from movies_app.services.tmdb_service import TMDBService, TMDBServiceError
+
+    movie_names = asyncio.run(_scrape_theater_movies_async(theater))
+    saved_movies: list[str] = []
+
+    tmdb_service = TMDBService()
+
+    for movie_name in movie_names:
+        try:
+            response = tmdb_service.search_movie(movie_name)
+
+            if not response.results:
+                logger.warning(f"No TMDB results found for: {movie_name}")
+                continue
+
+            # Pick the first result
+            tmdb_result = response.results[0]
+
+            movie, created = Movie.get_or_create_from_tmdb(tmdb_result)
+            if created:
+                logger.info(f"Created movie: {movie}")
+            else:
+                logger.info(f"Movie already exists: {movie}")
+
+            saved_movies.append(movie_name)
+
+        except TMDBServiceError as e:
+            logger.error(f"TMDB error for '{movie_name}': {e}")
+            continue
+
+    logger.info(f"Saved {len(saved_movies)}/{len(movie_names)} movies for {theater.name}")
+    return saved_movies
+
+
 @app.task
 def colombia_com_download_task():
     """
