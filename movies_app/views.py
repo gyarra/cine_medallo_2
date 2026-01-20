@@ -11,41 +11,47 @@ def theater_list(request):
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Theaters - Cine Medallo</title>
+        <title>Cines - Cine Medallo</title>
         <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; background: #f5f5f5; }
-            .banner { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: white; padding: 24px 40px; margin-bottom: 24px; }
-            .banner h1 { margin: 0; font-size: 32px; }
-            .banner .subtitle { color: #aaa; margin-top: 4px; }
-            .banner nav { margin-top: 16px; }
-            .banner nav a { color: #f5c518; text-decoration: none; margin-right: 24px; font-weight: 500; }
-            .banner nav a:hover { text-decoration: underline; }
-            .content { padding: 0 40px 40px 40px; }
+            body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; background: #f0f0f0; color: #333; }
+            .header { background: #1a1a1a; display: flex; align-items: center; justify-content: space-between; padding: 16px 40px; border-bottom: 1px solid #333; }
+            .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+            .logo-stripes { display: flex; gap: 4px; }
+            .logo-stripes span { display: block; width: 8px; height: 40px; background: #e63946; border-radius: 2px; }
+            .logo-text { font-size: 24px; font-weight: 700; letter-spacing: 1px; }
+            .logo-text .cine { color: #fff; }
+            .logo-text .medallo { color: #e63946; }
+            .header nav { display: flex; gap: 32px; }
+            .header nav a { color: #888; text-decoration: none; font-size: 14px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; transition: color 0.2s; }
+            .header nav a:hover, .header nav a.active { color: #fff; }
+            .content { padding: 32px 40px; }
             h2 { color: #333; margin-top: 0; }
-            .city-header { margin-top: 32px; color: #555; font-size: 20px; border-bottom: 2px solid #ddd; padding-bottom: 8px; }
+            .city-header { margin-top: 32px; color: #666; font-size: 20px; border-bottom: 2px solid #ddd; padding-bottom: 8px; }
             .city-header:first-child { margin-top: 0; }
             .theaters-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 16px; margin-top: 16px; }
-            .theater { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+            .theater { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
             .theater h3 { margin: 0 0 8px 0; font-size: 18px; }
-            .theater h3 a { color: #0066cc; text-decoration: none; }
+            .theater h3 a { color: #e63946; text-decoration: none; }
             .theater h3 a:hover { text-decoration: underline; }
             .chain { color: #888; font-size: 13px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-            .address { color: #444; font-size: 14px; }
-            .details { color: #666; font-size: 13px; margin-top: 8px; }
-            .details a { color: #0066cc; }
+            .address { color: #555; font-size: 14px; }
+            .details { color: #888; font-size: 13px; margin-top: 8px; }
+            .details a { color: #e63946; }
         </style>
     </head>
     <body>
-        <div class="banner">
-            <h1>🎬 Cine Medallo</h1>
-            <div class="subtitle">Movie showtimes in Medellín</div>
+        <header class="header">
+            <a href="/" class="logo">
+                <div class="logo-stripes"><span></span><span></span><span></span></div>
+                <div class="logo-text"><span class="cine">CINE</span><span class="medallo">MEDALLO</span></div>
+            </a>
             <nav>
-                <a href="/">Movies</a>
-                <a href="/theaters/">Theaters Near You</a>
+                <a href="/">Cartelera</a>
+                <a href="/theaters/" class="active">Cines</a>
             </nav>
-        </div>
+        </header>
         <div class="content">
-            <h2>Theaters Near You (""" + str(theaters.count()) + """)</h2>
+            <h2>Cines (""" + str(theaters.count()) + """)</h2>
     """
 
     current_city = None
@@ -63,8 +69,8 @@ def theater_list(request):
             <div class="address">{t.address}</div>
             <div class="details">
                 {t.neighborhood}
-                {f' · {t.screen_count} screens' if t.screen_count else ''}
-                {f' · <a href="{t.website}" target="_blank">Website</a>' if t.website else ''}
+                {f' · {t.screen_count} salas' if t.screen_count else ''}
+                {f' · <a href="{t.website}" target="_blank">Sitio web</a>' if t.website else ''}
             </div>
         </div>
         """
@@ -105,14 +111,20 @@ def theater_detail(request, slug):
             }
         showtimes_by_date[st.start_date][movie_id]["times"].append(st)
 
+    dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+    meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+
     showtimes_html = ""
     if showtimes_by_date:
         for showtime_date in sorted(showtimes_by_date.keys()):
             movies_for_date = showtimes_by_date[showtime_date]
+            dia = dias_semana[showtime_date.weekday()]
+            mes = meses[showtime_date.month - 1]
+            fecha_str = f"{dia}, {showtime_date.day} de {mes}"
             if showtime_date == today:
-                date_label = f"Today - {showtime_date.strftime('%A, %B %d')}"
+                date_label = f"Hoy - {fecha_str}"
             else:
-                date_label = showtime_date.strftime("%A, %B %d")
+                date_label = fecha_str
 
             movies_html = ""
             for movie_data in movies_for_date.values():
@@ -144,7 +156,7 @@ def theater_detail(request, slug):
             </div>
             '''
     else:
-        showtimes_html = '<p class="no-showtimes">No showtimes available</p>'
+        showtimes_html = '<p class="no-showtimes">No hay funciones disponibles</p>'
 
     html = f"""
     <!DOCTYPE html>
@@ -152,57 +164,63 @@ def theater_detail(request, slug):
     <head>
         <title>{t.name} - Cine Medallo</title>
         <style>
-            body {{ font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; background: #f5f5f5; }}
-            .banner {{ background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: white; padding: 24px 40px; margin-bottom: 24px; }}
-            .banner h1 {{ margin: 0; font-size: 32px; }}
-            .banner .subtitle {{ color: #aaa; margin-top: 4px; }}
-            .banner nav {{ margin-top: 16px; }}
-            .banner nav a {{ color: #f5c518; text-decoration: none; margin-right: 24px; font-weight: 500; }}
-            .banner nav a:hover {{ text-decoration: underline; }}
-            .container {{ max-width: 900px; margin: 0 auto; padding: 0 40px 40px 40px; }}
-            .theater-card {{ background: white; padding: 32px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+            body {{ font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; background: #f0f0f0; color: #333; }}
+            .header {{ background: #1a1a1a; display: flex; align-items: center; justify-content: space-between; padding: 16px 40px; border-bottom: 1px solid #333; }}
+            .logo {{ display: flex; align-items: center; gap: 12px; text-decoration: none; }}
+            .logo-stripes {{ display: flex; gap: 4px; }}
+            .logo-stripes span {{ display: block; width: 8px; height: 40px; background: #e63946; border-radius: 2px; }}
+            .logo-text {{ font-size: 24px; font-weight: 700; letter-spacing: 1px; }}
+            .logo-text .cine {{ color: #fff; }}
+            .logo-text .medallo {{ color: #e63946; }}
+            .header nav {{ display: flex; gap: 32px; }}
+            .header nav a {{ color: #888; text-decoration: none; font-size: 14px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; transition: color 0.2s; }}
+            .header nav a:hover, .header nav a.active {{ color: #fff; }}
+            .container {{ max-width: 900px; margin: 0 auto; padding: 32px 40px; }}
+            .theater-card {{ background: #fff; padding: 32px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
             .theater-card h2 {{ margin: 0 0 8px 0; color: #333; }}
             .chain {{ color: #888; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 24px; }}
-            .info {{ margin-bottom: 12px; color: #444; }}
-            .label {{ color: #666; font-weight: 500; }}
-            a {{ color: #0066cc; text-decoration: none; }}
+            .info {{ margin-bottom: 12px; color: #555; }}
+            .label {{ color: #888; font-weight: 500; }}
+            a {{ color: #e63946; text-decoration: none; }}
             a:hover {{ text-decoration: underline; }}
-            .date-card {{ background: white; padding: 24px; border-radius: 8px; margin-top: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
-            .date-header {{ color: #333; font-size: 18px; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 2px solid #f5c518; }}
-            .movie-showtimes {{ display: flex; gap: 16px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #f0f0f0; }}
+            .date-card {{ background: #fff; padding: 24px; border-radius: 8px; margin-top: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+            .date-header {{ color: #333; font-size: 18px; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 2px solid #e63946; }}
+            .movie-showtimes {{ display: flex; gap: 16px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #eee; }}
             .movie-showtimes:last-child {{ border-bottom: none; margin-bottom: 0; padding-bottom: 0; }}
             .movie-poster {{ width: 80px; height: 120px; object-fit: cover; border-radius: 4px; }}
-            .movie-poster-placeholder {{ width: 80px; height: 120px; background: #e0e0e0; display: flex; align-items: center; justify-content: center; color: #999; font-size: 32px; border-radius: 4px; }}
+            .movie-poster-placeholder {{ width: 80px; height: 120px; background: #ddd; display: flex; align-items: center; justify-content: center; color: #999; font-size: 32px; border-radius: 4px; }}
             .movie-link {{ text-decoration: none; }}
             .movie-details {{ flex: 1; }}
             .movie-title {{ font-weight: 600; color: #333; margin-bottom: 12px; font-size: 18px; }}
             .movie-title a {{ color: inherit; }}
             .times {{ display: flex; flex-wrap: wrap; gap: 8px; }}
-            .time {{ background: #0066cc; color: white; padding: 6px 12px; border-radius: 4px; font-size: 14px; }}
+            .time {{ background: #e63946; color: white; padding: 6px 12px; border-radius: 4px; font-size: 14px; }}
             .format {{ font-size: 11px; opacity: 0.8; }}
             .no-showtimes {{ color: #888; font-style: italic; }}
         </style>
     </head>
     <body>
-        <div class="banner">
-            <h1>🎬 Cine Medallo</h1>
-            <div class="subtitle">Movie showtimes in Medellín</div>
+        <header class="header">
+            <a href="/" class="logo">
+                <div class="logo-stripes"><span></span><span></span><span></span></div>
+                <div class="logo-text"><span class="cine">CINE</span><span class="medallo">MEDALLO</span></div>
+            </a>
             <nav>
-                <a href="/">Movies</a>
-                <a href="/theaters/">Theaters Near You</a>
+                <a href="/">Cartelera</a>
+                <a href="/theaters/" class="active">Cines</a>
             </nav>
-        </div>
+        </header>
         <div class="container">
             <div class="theater-card">
                 <h2>{t.name}</h2>
                 <div class="chain">{t.chain}</div>
 
-                <div class="info"><span class="label">Address:</span> {t.address}</div>
-                <div class="info"><span class="label">City:</span> {t.city}</div>
-                <div class="info"><span class="label">Neighborhood:</span> {t.neighborhood or 'N/A'}</div>
-                <div class="info"><span class="label">Phone:</span> {t.phone or 'N/A'}</div>
-                <div class="info"><span class="label">Screens:</span> {t.screen_count or 'N/A'}</div>
-                <div class="info"><span class="label">Website:</span> {f'<a href="{t.website}" target="_blank">{t.website}</a>' if t.website else 'N/A'}</div>
+                <div class="info"><span class="label">Dirección:</span> {t.address}</div>
+                <div class="info"><span class="label">Ciudad:</span> {t.city}</div>
+                <div class="info"><span class="label">Barrio:</span> {t.neighborhood or 'N/A'}</div>
+                <div class="info"><span class="label">Teléfono:</span> {t.phone or 'N/A'}</div>
+                <div class="info"><span class="label">Salas:</span> {t.screen_count or 'N/A'}</div>
+                <div class="info"><span class="label">Sitio web:</span> {f'<a href="{t.website}" target="_blank">{t.website}</a>' if t.website else 'N/A'}</div>
             </div>
 
             {showtimes_html}
@@ -221,43 +239,49 @@ def movie_list(request):
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Cine Medallo</title>
+        <title>Cine Medallo - Cartelera</title>
         <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; background: #f5f5f5; }
-            .banner { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: white; padding: 24px 40px; margin-bottom: 24px; }
-            .banner h1 { margin: 0; font-size: 32px; }
-            .banner .subtitle { color: #aaa; margin-top: 4px; }
-            .banner nav { margin-top: 16px; }
-            .banner nav a { color: #f5c518; text-decoration: none; margin-right: 24px; font-weight: 500; }
-            .banner nav a:hover { text-decoration: underline; }
-            .content { padding: 0 40px 40px 40px; }
+            body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; background: #f0f0f0; color: #333; }
+            .header { background: #1a1a1a; display: flex; align-items: center; justify-content: space-between; padding: 16px 40px; border-bottom: 1px solid #333; }
+            .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+            .logo-stripes { display: flex; gap: 4px; }
+            .logo-stripes span { display: block; width: 8px; height: 40px; background: #e63946; border-radius: 2px; }
+            .logo-text { font-size: 24px; font-weight: 700; letter-spacing: 1px; }
+            .logo-text .cine { color: #fff; }
+            .logo-text .medallo { color: #e63946; }
+            .header nav { display: flex; gap: 32px; }
+            .header nav a { color: #888; text-decoration: none; font-size: 14px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; transition: color 0.2s; }
+            .header nav a:hover, .header nav a.active { color: #fff; }
+            .content { padding: 32px 40px; }
             h2 { color: #333; margin-top: 0; }
             .movies { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-            .movie { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+            .movie { background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
             .movie-poster { width: 100%; height: 400px; object-fit: cover; background: #ddd; }
-            .movie-poster-placeholder { width: 100%; height: 400px; background: #e0e0e0; display: flex; align-items: center; justify-content: center; color: #999; font-size: 48px; }
+            .movie-poster-placeholder { width: 100%; height: 400px; background: #ddd; display: flex; align-items: center; justify-content: center; color: #999; font-size: 48px; }
             .movie-info { padding: 16px; }
             .movie-title { font-size: 18px; font-weight: 600; margin: 0 0 4px 0; color: #333; }
             .movie-original { font-size: 14px; color: #666; margin-bottom: 8px; font-style: italic; }
             .movie-year { font-size: 14px; color: #888; margin-bottom: 8px; }
-            .movie-rating { font-size: 14px; color: #f5c518; margin-bottom: 8px; }
-            .movie-synopsis { font-size: 13px; color: #555; line-height: 1.4; }
+            .movie-rating { font-size: 14px; color: #e63946; margin-bottom: 8px; }
+            .movie-synopsis { font-size: 13px; color: #666; line-height: 1.4; }
             .movie-links { margin-top: 12px; font-size: 13px; }
-            .movie-links a { color: #0066cc; text-decoration: none; margin-right: 12px; }
+            .movie-links a { color: #e63946; text-decoration: none; margin-right: 12px; }
             .movie-links a:hover { text-decoration: underline; }
         </style>
     </head>
     <body>
-        <div class="banner">
-            <h1>🎬 Cine Medallo</h1>
-            <div class="subtitle">Movie showtimes in Medellín</div>
+        <header class="header">
+            <a href="/" class="logo">
+                <div class="logo-stripes"><span></span><span></span><span></span></div>
+                <div class="logo-text"><span class="cine">CINE</span><span class="medallo">MEDALLO</span></div>
+            </a>
             <nav>
-                <a href="/">Movies</a>
-                <a href="/theaters/">Theaters Near You</a>
+                <a href="/" class="active">Cartelera</a>
+                <a href="/theaters/">Cines</a>
             </nav>
-        </div>
+        </header>
         <div class="content">
-            <h2>Now Showing (""" + str(movies.count()) + """ movies)</h2>
+            <h2>En Cartelera (""" + str(movies.count()) + """ películas)</h2>
             <div class="movies">
     """
 
@@ -340,7 +364,11 @@ def movie_detail(request, slug):
             showtimes_by_theater[theater_name] = []
         showtimes_by_theater[theater_name].append(st)
 
-    today_str = today.strftime("%A, %B %d, %Y")
+    dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+    meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+    dia = dias_semana[today.weekday()]
+    mes = meses[today.month - 1]
+    today_str = f"{dia}, {today.day} de {mes} de {today.year}"
     showtimes_html = ""
     if showtimes_by_theater:
         showtimes_html += f'<h3 class="date-header">{today_str}</h3>'
@@ -357,7 +385,7 @@ def movie_detail(request, slug):
             </div>
             '''
     else:
-        showtimes_html = '<p class="no-showtimes">No showtimes available for today</p>'
+        showtimes_html = '<p class="no-showtimes">No hay funciones disponibles para hoy</p>'
 
     html = f"""
     <!DOCTYPE html>
@@ -365,45 +393,51 @@ def movie_detail(request, slug):
     <head>
         <title>{movie.title_es} - Cine Medallo</title>
         <style>
-            body {{ font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; background: #f5f5f5; }}
-            .banner {{ background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: white; padding: 24px 40px; margin-bottom: 24px; }}
-            .banner h1 {{ margin: 0; font-size: 32px; }}
-            .banner .subtitle {{ color: #aaa; margin-top: 4px; }}
-            .banner nav {{ margin-top: 16px; }}
-            .banner nav a {{ color: #f5c518; text-decoration: none; margin-right: 24px; font-weight: 500; }}
-            .banner nav a:hover {{ text-decoration: underline; }}
-            .container {{ max-width: 1000px; margin: 0 auto; padding: 0 40px 40px 40px; }}
-            .movie-header {{ display: flex; gap: 32px; background: white; padding: 24px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+            body {{ font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; background: #f0f0f0; color: #333; }}
+            .header {{ background: #1a1a1a; display: flex; align-items: center; justify-content: space-between; padding: 16px 40px; border-bottom: 1px solid #333; }}
+            .logo {{ display: flex; align-items: center; gap: 12px; text-decoration: none; }}
+            .logo-stripes {{ display: flex; gap: 4px; }}
+            .logo-stripes span {{ display: block; width: 8px; height: 40px; background: #e63946; border-radius: 2px; }}
+            .logo-text {{ font-size: 24px; font-weight: 700; letter-spacing: 1px; }}
+            .logo-text .cine {{ color: #fff; }}
+            .logo-text .medallo {{ color: #e63946; }}
+            .header nav {{ display: flex; gap: 32px; }}
+            .header nav a {{ color: #888; text-decoration: none; font-size: 14px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; transition: color 0.2s; }}
+            .header nav a:hover, .header nav a.active {{ color: #fff; }}
+            .container {{ max-width: 1000px; margin: 0 auto; padding: 32px 40px; }}
+            .movie-header {{ display: flex; gap: 32px; background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
             .poster {{ width: 300px; height: 450px; object-fit: cover; border-radius: 8px; }}
-            .poster-placeholder {{ width: 300px; height: 450px; background: #e0e0e0; display: flex; align-items: center; justify-content: center; color: #999; font-size: 72px; border-radius: 8px; }}
+            .poster-placeholder {{ width: 300px; height: 450px; background: #ddd; display: flex; align-items: center; justify-content: center; color: #999; font-size: 72px; border-radius: 8px; }}
             .movie-info h1 {{ margin: 0 0 8px 0; color: #333; }}
             .movie-info p {{ margin: 0 0 8px 0; color: #666; }}
             .meta {{ color: #888; font-size: 14px; margin-bottom: 16px; }}
-            .synopsis {{ color: #444; line-height: 1.6; margin-top: 16px; }}
+            .synopsis {{ color: #555; line-height: 1.6; margin-top: 16px; }}
             .links {{ margin-top: 16px; }}
-            .links a {{ color: #0066cc; text-decoration: none; margin-right: 16px; }}
+            .links a {{ color: #e63946; text-decoration: none; margin-right: 16px; }}
             .links a:hover {{ text-decoration: underline; }}
-            .showtimes-section {{ background: white; padding: 24px; border-radius: 8px; margin-top: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+            .showtimes-section {{ background: #fff; padding: 24px; border-radius: 8px; margin-top: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
             .showtimes-section h2 {{ margin: 0 0 16px 0; color: #333; }}
-            .date-header {{ color: #555; font-size: 16px; margin: 24px 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid #eee; }}
+            .date-header {{ color: #666; font-size: 16px; margin: 24px 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid #eee; }}
             .date-header:first-child {{ margin-top: 0; }}
             .theater-showtimes {{ margin-bottom: 16px; }}
             .theater-name {{ font-weight: 600; color: #333; margin-bottom: 8px; }}
             .times {{ display: flex; flex-wrap: wrap; gap: 8px; }}
-            .time {{ background: #0066cc; color: white; padding: 6px 12px; border-radius: 4px; font-size: 14px; }}
+            .time {{ background: #e63946; color: white; padding: 6px 12px; border-radius: 4px; font-size: 14px; }}
             .format {{ font-size: 11px; opacity: 0.8; }}
             .no-showtimes {{ color: #888; font-style: italic; }}
         </style>
     </head>
     <body>
-        <div class="banner">
-            <h1>🎬 Cine Medallo</h1>
-            <div class="subtitle">Movie showtimes in Medellín</div>
+        <header class="header">
+            <a href="/" class="logo">
+                <div class="logo-stripes"><span></span><span></span><span></span></div>
+                <div class="logo-text"><span class="cine">CINE</span><span class="medallo">MEDALLO</span></div>
+            </a>
             <nav>
-                <a href="/">Movies</a>
-                <a href="/theaters/">Theaters Near You</a>
+                <a href="/">Cartelera</a>
+                <a href="/theaters/">Cines</a>
             </nav>
-        </div>
+        </header>
         <div class="container">
             <div class="movie-header">
                 {poster_html}
@@ -420,7 +454,7 @@ def movie_detail(request, slug):
             </div>
 
             <div class="showtimes-section">
-                <h2>🎬 Today's Showtimes</h2>
+                <h2>🎬 Horarios de Hoy</h2>
                 {showtimes_html}
             </div>
         </div>
