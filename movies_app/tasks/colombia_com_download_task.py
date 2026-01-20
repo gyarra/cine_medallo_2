@@ -10,6 +10,7 @@ import asyncio
 import datetime
 import logging
 import re
+import traceback
 import zoneinfo
 from dataclasses import dataclass
 
@@ -18,7 +19,7 @@ from django.db import transaction
 from camoufox.async_api import AsyncCamoufox
 
 from config.celery_app import app
-from movies_app.models import Movie, Showtime, Theater
+from movies_app.models import Movie, OperationalIssue, Showtime, Theater
 from movies_app.services.tmdb_service import TMDBService, TMDBServiceError
 
 logger = logging.getLogger(__name__)
@@ -192,6 +193,14 @@ def _get_or_create_movie(movie_name: str, tmdb_service: TMDBService) -> Movie | 
 
     except TMDBServiceError as e:
         logger.error(f"TMDB error for '{movie_name}': {e}")
+        OperationalIssue.objects.create(
+            name="TMDB API Error",
+            task="_get_or_create_movie",
+            error_message=str(e),
+            traceback=traceback.format_exc(),
+            context={"movie_name": movie_name},
+            severity=OperationalIssue.Severity.ERROR,
+        )
         return None
 
 
@@ -208,6 +217,13 @@ def save_showtimes_for_theater(theater: Theater) -> int:
 
     if not date_options:
         logger.warning(f"No date options found for theater: {theater.name}")
+        OperationalIssue.objects.create(
+            name="No Date Options Found",
+            task="save_showtimes_for_theater",
+            error_message=f"No date options found in dropdown for theater: {theater.name}",
+            context={"theater_id": theater.id, "theater_name": theater.name, "url": theater.colombia_dot_com_url},  # pyright: ignore[reportAttributeAccessIssue]
+            severity=OperationalIssue.Severity.WARNING,
+        )
         return 0
 
     logger.info(f"Found {len(date_options)} dates for {theater.name}: {date_options}")
@@ -319,6 +335,14 @@ def colombia_com_download_task():
             total_showtimes += showtimes_saved
         except Exception as e:
             logger.error(f"Failed to process theater '{theater.name}': {e}")
+            OperationalIssue.objects.create(
+                name="Theater Processing Failed",
+                task="colombia_com_download_task",
+                error_message=str(e),
+                traceback=traceback.format_exc(),
+                context={"theater_id": theater.id, "theater_name": theater.name, "url": theater.colombia_dot_com_url},  # pyright: ignore[reportAttributeAccessIssue]
+                severity=OperationalIssue.Severity.ERROR,
+            )
             failed_theaters.append(theater.name)
             continue
 
