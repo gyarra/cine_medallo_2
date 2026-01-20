@@ -336,54 +336,116 @@ def movie_detail(request, slug):
         links.append(f'<a href="{movie.imdb_url}" target="_blank">IMDB</a>')
     links_html = f'<div class="links">{" ".join(links)}</div>' if links else ""
 
-    # Group showtimes by date, then by theater
-    showtimes_by_date: dict[datetime.date, dict[str, list[Showtime]]] = {}
+    # Group showtimes by date, then by theater, then by format
+    showtimes_by_date: dict[datetime.date, dict[int, dict]] = {}
     for st in showtimes:
         if st.start_date not in showtimes_by_date:
             showtimes_by_date[st.start_date] = {}
-        theater_name = st.theater.name
-        if theater_name not in showtimes_by_date[st.start_date]:
-            showtimes_by_date[st.start_date][theater_name] = []
-        showtimes_by_date[st.start_date][theater_name].append(st)
+        theater_id = st.theater.id
+        if theater_id not in showtimes_by_date[st.start_date]:
+            showtimes_by_date[st.start_date][theater_id] = {
+                "theater": st.theater,
+                "formats": {},
+            }
+        format_key = st.format or "Standard"
+        if format_key not in showtimes_by_date[st.start_date][theater_id]["formats"]:
+            showtimes_by_date[st.start_date][theater_id]["formats"][format_key] = []
+        showtimes_by_date[st.start_date][theater_id]["formats"][format_key].append(st)
 
-    dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+    dias_semana = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+    dias_semana_full = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
     meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+
+    # Build date tabs
+    available_dates = sorted(showtimes_by_date.keys()) if showtimes_by_date else []
+    date_tabs_html = ""
+    initial_date_title = ""
+    if available_dates:
+        for i, d in enumerate(available_dates):
+            dia_short = dias_semana[d.weekday()]
+            dia_full = dias_semana_full[d.weekday()]
+            mes = meses[d.month - 1]
+            if d == today:
+                tab_label = "Hoy"
+                tab_sub = f"{dia_short} {d.day}"
+                full_title = f"Hoy - {dia_full}, {d.day} de {mes}"
+            elif d == tomorrow:
+                tab_label = "Mañana"
+                tab_sub = f"{dia_short} {d.day}"
+                full_title = f"Mañana - {dia_full}, {d.day} de {mes}"
+            else:
+                tab_label = dia_short
+                tab_sub = str(d.day)
+                full_title = f"{dia_full}, {d.day} de {mes}"
+            if i == 0:
+                initial_date_title = full_title
+            active_class = "bg-gray-900 text-white" if i == 0 else "bg-white text-gray-600 hover:bg-gray-50"
+            date_tabs_html += f'<button class="date-tab px-4 py-2 rounded-lg text-center min-w-[70px] border border-gray-200 {active_class}" data-date="{d.isoformat()}" data-title="{full_title}"><div class="text-sm font-medium">{tab_label}</div><div class="text-xs opacity-70">{tab_sub}</div></button>'
 
     showtimes_html = ""
     if showtimes_by_date:
-        for showtime_date in sorted(showtimes_by_date.keys()):
+        # Generate HTML for each date (hidden by default except first)
+        for date_idx, showtime_date in enumerate(available_dates):
             theaters_for_date = showtimes_by_date[showtime_date]
-            dia = dias_semana[showtime_date.weekday()]
-            mes = meses[showtime_date.month - 1]
-            if showtime_date == today:
-                date_label = f"Hoy - {dia}, {showtime_date.day} de {mes}"
-            elif showtime_date == tomorrow:
-                date_label = f"Mañana - {dia}, {showtime_date.day} de {mes}"
-            else:
-                date_label = f"{dia}, {showtime_date.day} de {mes}"
 
             theaters_html = ""
-            for theater_name, times in theaters_for_date.items():
-                times_list = []
-                for st in times:
-                    time_str = st.start_time.strftime("%I:%M %p").lstrip("0")
-                    format_str = f' <span class="text-xs opacity-80">({st.format})</span>' if st.format else ""
-                    times_list.append(f'<span class="bg-brand-red text-white px-3 py-1.5 rounded text-sm">{time_str}{format_str}</span>')
+            for theater_data in theaters_for_date.values():
+                theater = theater_data["theater"]
+                formats = theater_data["formats"]
+
+                formats_html = ""
+                for format_name, times in formats.items():
+                    times_list = []
+                    for st in times:
+                        time_str = st.start_time.strftime("%I:%M %p").lstrip("0").upper()
+                        times_list.append(f'<span class="px-3 py-2 border border-gray-300 rounded text-sm text-gray-700">{time_str}</span>')
+                    formats_html += f'''
+                    <div class="flex items-start gap-4 mb-3 last:mb-0">
+                        <div class="text-sm text-gray-500 w-28 pt-2 shrink-0">{format_name}:</div>
+                        <div class="flex flex-wrap gap-2">{" ".join(times_list)}</div>
+                    </div>
+                    '''
+
                 theaters_html += f'''
-                <div class="mb-4 last:mb-0">
-                    <div class="font-semibold text-gray-800 mb-2"><a href="/theaters/{st.theater.slug}/" class="text-brand-red no-underline hover:underline">{theater_name}</a></div>
-                    <div class="flex flex-wrap gap-2">{" ".join(times_list)}</div>
+                <div class="py-5 border-b border-gray-100 last:border-b-0">
+                    <div class="flex items-start justify-between mb-4">
+                        <div>
+                            <a href="/theaters/{theater.slug}/" class="text-gray-900 font-semibold text-base no-underline hover:underline">{theater.name} ›</a>
+                            <div class="text-sm text-gray-500 mt-1">{theater.address}, {theater.city}</div>
+                        </div>
+                    </div>
+                    {formats_html}
                 </div>
                 '''
 
+            display_class = "" if date_idx == 0 else "hidden"
             showtimes_html += f'''
-            <div class="bg-white p-6 rounded-lg mt-6 shadow">
-                <h3 class="text-gray-800 text-lg m-0 mb-4 pb-3 border-b-2 border-brand-red">{date_label}</h3>
+            <div class="date-content {display_class}" data-date="{showtime_date.isoformat()}">
                 {theaters_html}
             </div>
             '''
     else:
-        showtimes_html = '<p class="text-gray-500 italic mt-6">No hay funciones disponibles</p>'
+        showtimes_html = '<p class="text-gray-500 italic">No hay funciones disponibles</p>'
+
+    # JavaScript for tab switching
+    tab_script = """
+    <script>
+        document.querySelectorAll('.date-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const date = this.dataset.date;
+                document.querySelectorAll('.date-tab').forEach(t => {
+                    t.classList.remove('bg-gray-900', 'text-white');
+                    t.classList.add('bg-white', 'text-gray-600');
+                });
+                this.classList.remove('bg-white', 'text-gray-600');
+                this.classList.add('bg-gray-900', 'text-white');
+                document.querySelectorAll('.date-content').forEach(c => c.classList.add('hidden'));
+                document.querySelector(`.date-content[data-date="${date}"]`).classList.remove('hidden');
+                document.getElementById('date-title').textContent = this.dataset.title;
+            });
+        });
+    </script>
+    """
 
     html = f"""
     <!DOCTYPE html>
@@ -436,8 +498,18 @@ def movie_detail(request, slug):
                 </div>
             </div>
 
-            {showtimes_html}
+            <div class="bg-white p-6 rounded-lg shadow mt-6">
+                <h3 id="date-title" class="text-gray-900 text-lg font-semibold m-0 mb-4">{initial_date_title}</h3>
+                <div class="flex gap-2">
+                    {date_tabs_html}
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow mt-4">
+                {showtimes_html}
+            </div>
         </div>
+        {tab_script}
     </body>
     </html>
     """
