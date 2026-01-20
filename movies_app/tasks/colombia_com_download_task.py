@@ -12,17 +12,14 @@ import logging
 import re
 import zoneinfo
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
 from bs4 import BeautifulSoup
+from django.db import transaction
 from camoufox.async_api import AsyncCamoufox
 
 from config.celery_app import app
 from movies_app.models import Movie, Showtime, Theater
 from movies_app.services.tmdb_service import TMDBService, TMDBServiceError
-
-if TYPE_CHECKING:
-    pass
 
 logger = logging.getLogger(__name__)
 
@@ -119,26 +116,29 @@ def _extract_showtimes_from_html(html_content: str) -> list[MovieShowtimes]:
     return result
 
 
-def _extract_movie_names_from_html(html_content: str) -> list[str]:
-    """
-    Extract movie names from colombia.com theater page HTML.
-
-    Returns:
-        List of movie names found in the HTML.
-    """
+def _find_date_options(html_content: str) -> list[datetime.date]:
+    """Extract available date options from the colombia.com page dropdown."""
     soup = BeautifulSoup(html_content, "lxml")
-    movie_divs = soup.find_all("div", class_="nombre-pelicula")
+    select = soup.find("select", {"name": "fecha"})
+    if not select:
+        return []
 
-    movie_names = []
-    for div in movie_divs:
-        anchor = div.find("a")
-        if anchor and anchor.string:
-            movie_names.append(anchor.string.strip())
+    dates: list[datetime.date] = []
+    for option in select.find_all("option"):
+        value = option.get("value")
+        if value and isinstance(value, str):
+            try:
+                parsed = datetime.datetime.strptime(value, "%m/%d/%Y").date()
+                dates.append(parsed)
+            except ValueError:
+                logger.warning(f"Could not parse date option: {value}")
+    return dates
 
-    return movie_names
 
-
-async def _scrape_theater_html_async(theater: Theater) -> str:
+async def _scrape_theater_html_async(
+    theater: Theater,
+    target_date: datetime.date | None,
+) -> str:
     """Fetch HTML content from a theater's colombia.com page."""
     if not theater.colombia_dot_com_url:
         raise ValueError(f"Theater '{theater.name}' has no colombia_dot_com_url")
@@ -160,30 +160,17 @@ async def _scrape_theater_html_async(theater: Theater) -> str:
                 wait_until="domcontentloaded",
                 timeout=BROWSER_TIMEOUT_SECONDS * 1000,
             )
+
+            if target_date:
+                date_value = target_date.strftime("%m/%d/%Y").lstrip("0").replace("/0", "/")
+                await page.select_option("select[name='fecha']", date_value)
+                await page.wait_for_load_state("domcontentloaded")
+
             html_content = await page.content()
         finally:
             await context.close()
 
     return html_content
-
-
-async def _scrape_theater_movies_async(theater: Theater) -> list[str]:
-    """
-    Async implementation of theater movie scraping using Camoufox.
-
-    Returns:
-        List of movie names found on the theater page.
-    """
-    html_content = await _scrape_theater_html_async(theater)
-    movie_names = _extract_movie_names_from_html(html_content)
-    logger.info(f"Found {len(movie_names)} movies for {theater.name}: {movie_names}")
-
-    return movie_names
-
-
-def scrape_theater_movies(theater: Theater) -> list[str]:
-    """Used only by the command to run the scraper synchronously."""
-    return asyncio.run(_scrape_theater_movies_async(theater))
 
 
 def _get_or_create_movie(movie_name: str, tmdb_service: TMDBService) -> Movie | None:
@@ -208,34 +195,73 @@ def _get_or_create_movie(movie_name: str, tmdb_service: TMDBService) -> Movie | 
         return None
 
 
+@transaction.atomic
 def save_showtimes_for_theater(theater: Theater) -> int:
     """
-    Scrape showtimes from a theater and save them to the database.
-
-    1. Scrape HTML from colombia.com
-    2. Extract showtimes from HTML
-    3. For each movie, get or create it via TMDB
-    4. Delete existing showtimes for this theater on today's date
-    5. Save new showtimes
+    Scrape showtimes from a theater for all available dates and save to the database.
 
     Returns:
-        Number of showtimes saved
+        Total number of showtimes saved across all dates
     """
-    html_content = asyncio.run(_scrape_theater_html_async(theater))
-    movie_showtimes_list = _extract_showtimes_from_html(html_content)
+    html_content = asyncio.run(_scrape_theater_html_async(theater, target_date=None))
+    date_options = _find_date_options(html_content)
 
-    if not movie_showtimes_list:
-        logger.warning(f"No showtimes found for theater: {theater.name}")
+    if not date_options:
+        logger.warning(f"No date options found for theater: {theater.name}")
         return 0
 
-    today = datetime.datetime.now(BOGOTA_TZ).date()
-    source_url = theater.colombia_dot_com_url or ""
-    tmdb_service = TMDBService()
+    logger.info(f"Found {len(date_options)} dates for {theater.name}: {date_options}")
 
-    # Delete existing showtimes for this theater on today's date
-    deleted_count, _ = Showtime.objects.filter(theater=theater, start_date=today).delete()
+    tmdb_service = TMDBService()
+    total_showtimes = 0
+    today = datetime.datetime.now(BOGOTA_TZ).date()
+
+    for target_date in date_options:
+        if target_date == today:
+            showtimes_saved = _save_showtimes_for_theater_for_date(
+                theater=theater,
+                target_date=None,
+                tmdb_service=tmdb_service,
+            )
+        else:
+            showtimes_saved = _save_showtimes_for_theater_for_date(
+                theater=theater,
+                target_date=target_date,
+                tmdb_service=tmdb_service,
+            )
+        total_showtimes += showtimes_saved
+
+    logger.info(f"Saved {total_showtimes} total showtimes for {theater.name}")
+    return total_showtimes
+
+
+def _save_showtimes_for_theater_for_date(
+    theater: Theater,
+    target_date: datetime.date | None,
+    tmdb_service: TMDBService,
+) -> int:
+    """
+    Scrape showtimes for a specific date and save them to the database.
+
+    If target_date is None, scrapes the default page (today's showtimes).
+
+    Returns:
+        Number of showtimes saved for this date
+    """
+    html_content = asyncio.run(_scrape_theater_html_async(theater, target_date=target_date))
+    movie_showtimes_list = _extract_showtimes_from_html(html_content)
+
+    effective_date = target_date or datetime.datetime.now(BOGOTA_TZ).date()
+
+    if not movie_showtimes_list:
+        logger.warning(f"No showtimes found for theater: {theater.name} on {effective_date}")
+        return 0
+
+    source_url = theater.colombia_dot_com_url
+
+    deleted_count, _ = Showtime.objects.filter(theater=theater, start_date=effective_date).delete()
     if deleted_count:
-        logger.info(f"Deleted {deleted_count} existing showtimes for {theater.name} on {today}")
+        logger.info(f"Deleted {deleted_count} existing showtimes for {theater.name} on {effective_date}")
 
     showtimes_saved = 0
 
@@ -246,50 +272,18 @@ def save_showtimes_for_theater(theater: Theater) -> int:
 
         for description in movie_showtime.descriptions:
             for start_time in description.start_times:
-                try:
-                    Showtime.objects.create(
-                        theater=theater,
-                        movie=movie,
-                        start_date=today,
-                        start_time=start_time,
-                        format=description.description,
-                        source_url=source_url,
-                    )
-                    showtimes_saved += 1
-                except Exception as e:
-                    logger.error(
-                        f"Failed to save showtime for {movie_showtime.movie_name} "
-                        f"at {start_time}: {e}"
-                    )
+                Showtime.objects.create(
+                    theater=theater,
+                    movie=movie,
+                    start_date=effective_date,
+                    start_time=start_time,
+                    format=description.description,
+                    source_url=source_url,
+                )
+                showtimes_saved += 1
 
-    logger.info(f"Saved {showtimes_saved} showtimes for {theater.name}")
+    logger.info(f"Saved {showtimes_saved} showtimes for {theater.name} on {effective_date}")
     return showtimes_saved
-
-
-def save_movies_for_theater(theater: Theater) -> list[str]:
-    """
-    Scrape movie names from a theater and save them to the database.
-
-    For each movie name scraped from colombia.com:
-    1. Search TMDB for the movie
-    2. If found, upsert the movie in the database (first result is used)
-    3. If not found on TMDB, skip the movie
-
-    Returns:
-        List of movie names that were successfully saved
-    """
-    movie_names = asyncio.run(_scrape_theater_movies_async(theater))
-    saved_movies: list[str] = []
-
-    tmdb_service = TMDBService()
-
-    for movie_name in movie_names:
-        movie = _get_or_create_movie(movie_name, tmdb_service)
-        if movie:
-            saved_movies.append(movie_name)
-
-    logger.info(f"Saved {len(saved_movies)}/{len(movie_names)} movies for {theater.name}")
-    return saved_movies
 
 
 @app.task

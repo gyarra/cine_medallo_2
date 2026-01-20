@@ -75,59 +75,76 @@ def theater_list(request):
 
 def theater_detail(request, slug):
     """Return details for a single theater by slug."""
-    from datetime import date as date_class
+    import datetime
+    import zoneinfo
+
+    bogota_tz = zoneinfo.ZoneInfo("America/Bogota")
 
     try:
         t = Theater.objects.get(slug=slug, is_active=True)
     except Theater.DoesNotExist:
         return HttpResponse("<h1>Theater not found</h1>", status=404)
 
-    # Get today's showtimes for this theater
-    today = date_class.today()
+    today = datetime.datetime.now(bogota_tz).date()
     showtimes = (
-        Showtime.objects.filter(theater=t, start_date=today)
+        Showtime.objects.filter(theater=t, start_date__gte=today)
         .select_related("movie")
-        .order_by("movie__title_es", "start_time")
+        .order_by("start_date", "movie__title_es", "start_time")
     )
 
-    # Group showtimes by movie
-    showtimes_by_movie: dict[int, dict] = {}
+    showtimes_by_date: dict[datetime.date, dict[int, dict]] = {}
     for st in showtimes:
+        if st.start_date not in showtimes_by_date:
+            showtimes_by_date[st.start_date] = {}
+
         movie_id = st.movie.id  # pyright: ignore[reportAttributeAccessIssue]
-        if movie_id not in showtimes_by_movie:
-            showtimes_by_movie[movie_id] = {
+        if movie_id not in showtimes_by_date[st.start_date]:
+            showtimes_by_date[st.start_date][movie_id] = {
                 "movie": st.movie,
                 "times": [],
             }
-        showtimes_by_movie[movie_id]["times"].append(st)
+        showtimes_by_date[st.start_date][movie_id]["times"].append(st)
 
-    today_str = today.strftime("%A, %B %d, %Y")
     showtimes_html = ""
-    if showtimes_by_movie:
-        showtimes_html += f'<h3 class="date-header">{today_str}</h3>'
-        for movie_data in showtimes_by_movie.values():
-            movie = movie_data["movie"]
-            times = movie_data["times"]
-            times_list = []
-            for st in times:
-                time_str = st.start_time.strftime("%I:%M %p").lstrip("0")
-                format_str = f' <span class="format">({st.format})</span>' if st.format else ""
-                times_list.append(f'<span class="time">{time_str}{format_str}</span>')
+    if showtimes_by_date:
+        for showtime_date in sorted(showtimes_by_date.keys()):
+            movies_for_date = showtimes_by_date[showtime_date]
+            if showtime_date == today:
+                date_label = f"Today - {showtime_date.strftime('%A, %B %d')}"
+            else:
+                date_label = showtime_date.strftime("%A, %B %d")
 
-            poster_html = f'<img class="movie-poster" src="{movie.poster_url}" alt="{movie.title_es}">' if movie.poster_url else '<div class="movie-poster-placeholder">🎬</div>'
-            showtimes_html += f'''
-            <div class="movie-showtimes">
-                <a href="/movies/{movie.slug}/" class="movie-link">
-                    {poster_html}
-                </a>
-                <div class="movie-details">
-                    <div class="movie-title"><a href="/movies/{movie.slug}/">{movie.title_es}</a></div>
-                    <div class="times">{" ".join(times_list)}</div>
+            movies_html = ""
+            for movie_data in movies_for_date.values():
+                movie = movie_data["movie"]
+                times = movie_data["times"]
+                times_list = []
+                for st in times:
+                    time_str = st.start_time.strftime("%I:%M %p").lstrip("0")
+                    format_str = f' <span class="format">({st.format})</span>' if st.format else ""
+                    times_list.append(f'<span class="time">{time_str}{format_str}</span>')
+
+                poster_html = f'<img class="movie-poster" src="{movie.poster_url}" alt="{movie.title_es}">' if movie.poster_url else '<div class="movie-poster-placeholder">🎬</div>'
+                movies_html += f'''
+                <div class="movie-showtimes">
+                    <a href="/movies/{movie.slug}/" class="movie-link">
+                        {poster_html}
+                    </a>
+                    <div class="movie-details">
+                        <div class="movie-title"><a href="/movies/{movie.slug}/">{movie.title_es}</a></div>
+                        <div class="times">{" ".join(times_list)}</div>
+                    </div>
                 </div>
+                '''
+
+            showtimes_html += f'''
+            <div class="date-card">
+                <h3 class="date-header">{date_label}</h3>
+                {movies_html}
             </div>
             '''
     else:
-        showtimes_html = '<p class="no-showtimes">No showtimes available for today</p>'
+        showtimes_html = '<p class="no-showtimes">No showtimes available</p>'
 
     html = f"""
     <!DOCTYPE html>
@@ -150,9 +167,8 @@ def theater_detail(request, slug):
             .label {{ color: #666; font-weight: 500; }}
             a {{ color: #0066cc; text-decoration: none; }}
             a:hover {{ text-decoration: underline; }}
-            .showtimes-section {{ background: white; padding: 24px; border-radius: 8px; margin-top: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
-            .showtimes-section h2 {{ margin: 0 0 16px 0; color: #333; }}
-            .date-header {{ color: #555; font-size: 16px; margin: 0 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #eee; }}
+            .date-card {{ background: white; padding: 24px; border-radius: 8px; margin-top: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+            .date-header {{ color: #333; font-size: 18px; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 2px solid #f5c518; }}
             .movie-showtimes {{ display: flex; gap: 16px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #f0f0f0; }}
             .movie-showtimes:last-child {{ border-bottom: none; margin-bottom: 0; padding-bottom: 0; }}
             .movie-poster {{ width: 80px; height: 120px; object-fit: cover; border-radius: 4px; }}
@@ -189,10 +205,7 @@ def theater_detail(request, slug):
                 <div class="info"><span class="label">Website:</span> {f'<a href="{t.website}" target="_blank">{t.website}</a>' if t.website else 'N/A'}</div>
             </div>
 
-            <div class="showtimes-section">
-                <h2>🎬 Today's Showtimes</h2>
-                {showtimes_html}
-            </div>
+            {showtimes_html}
         </div>
     </body>
     </html>

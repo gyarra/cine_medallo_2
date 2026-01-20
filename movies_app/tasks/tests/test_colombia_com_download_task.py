@@ -4,10 +4,10 @@ import pytest
 
 
 @pytest.mark.django_db
-class TestExtractMovieNamesFromHtml:
+class TestExtractShowtimesFromHtml:
     def test_extracts_movie_names_from_colombia_dot_com_html(self):
         from movies_app.tasks.colombia_com_download_task import (
-            _extract_movie_names_from_html,
+            _extract_showtimes_from_html,
         )
 
         html_snapshot_path = os.path.join(
@@ -19,7 +19,8 @@ class TestExtractMovieNamesFromHtml:
         with open(html_snapshot_path, "r", encoding="utf-8") as f:
             html_content = f.read()
 
-        movie_names = _extract_movie_names_from_html(html_content)
+        movie_showtimes = _extract_showtimes_from_html(html_content)
+        movie_names = [ms.movie_name for ms in movie_showtimes]
 
         expected_movies = [
             "Avatar: Fuego Y Cenizas",
