@@ -87,6 +87,13 @@ class Movie(models.Model):
         blank=True,
         help_text="TMDB user rating (0.0-10.0)",
     )
+    colombia_dot_com_url = models.URLField(
+        max_length=500,
+        null=True,
+        blank=True,
+        unique=True,
+        help_text="URL on colombia.com for this movie",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

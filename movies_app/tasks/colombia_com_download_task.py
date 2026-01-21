@@ -19,8 +19,8 @@ from django.db import transaction
 from camoufox.async_api import AsyncCamoufox
 
 from config.celery_app import app
-from movies_app.models import Movie, OperationalIssue, Showtime, Theater
-from movies_app.services.tmdb_service import TMDBService, TMDBServiceError
+from movies_app.models import APICallCounter, Movie, OperationalIssue, Showtime, Theater
+from movies_app.services.tmdb_service import TMDBMovieResult, TMDBService, TMDBServiceError
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +30,9 @@ BROWSER_TIMEOUT_SECONDS = 120
 # Colombia timezone
 BOGOTA_TZ = zoneinfo.ZoneInfo("America/Bogota")
 
+# Base URL for colombia.com
+COLOMBIA_COM_BASE_URL = "https://www.colombia.com"
+
 
 @dataclass
 class ShowtimeDescription:
@@ -38,8 +41,19 @@ class ShowtimeDescription:
 
 
 @dataclass
+class MovieMetadata:
+    genre: str
+    duration_minutes: int | None
+    classification: str
+    director: str
+    actors: list[str]
+    release_date: str
+
+
+@dataclass
 class MovieShowtimes:
     movie_name: str
+    movie_url: str | None
     descriptions: list[ShowtimeDescription]
 
 
@@ -66,8 +80,8 @@ def _extract_showtimes_from_html(html_content: str) -> list[MovieShowtimes]:
     """
     Extract movie showtimes from colombia.com theater page HTML.
 
-    Returns a list of MovieShowtimes, each containing the movie name
-    and a list of ShowtimeDescription objects (format/language + times).
+    Returns a list of MovieShowtimes, each containing the movie name,
+    URL to the movie detail page, and a list of ShowtimeDescription objects.
     """
     soup = BeautifulSoup(html_content, "lxml")
     movie_boxes = soup.find_all("div", class_="caja-cinema")
@@ -86,6 +100,14 @@ def _extract_showtimes_from_html(html_content: str) -> list[MovieShowtimes]:
         movie_name = " ".join(anchor.get_text().split())
         if not movie_name:
             continue
+
+        movie_url: str | None = None
+        href = anchor.get("href")
+        if href and isinstance(href, str):
+            if href.startswith("http"):
+                movie_url = href
+            elif href.startswith("/"):
+                movie_url = f"{COLOMBIA_COM_BASE_URL}{href}"
 
         descriptions: list[ShowtimeDescription] = []
 
@@ -112,7 +134,7 @@ def _extract_showtimes_from_html(html_content: str) -> list[MovieShowtimes]:
                 )
 
         if descriptions:
-            result.append(MovieShowtimes(movie_name=movie_name, descriptions=descriptions))
+            result.append(MovieShowtimes(movie_name=movie_name, movie_url=movie_url, descriptions=descriptions))
 
     return result
 
@@ -134,6 +156,113 @@ def _find_date_options(html_content: str) -> list[datetime.date]:
             except ValueError:
                 logger.warning(f"Could not parse date option: {value}")
     return dates
+
+
+def _extract_movie_metadata_from_html(html_content: str) -> MovieMetadata | None:
+    """
+    Extract movie metadata from colombia.com individual movie page HTML.
+
+    Parses: Género, Duración, Clasificación, Director, Actores, Fecha de estreno
+    """
+    soup = BeautifulSoup(html_content, "lxml")
+
+    genre = ""
+    duration_minutes: int | None = None
+    classification = ""
+    director = ""
+    actors: list[str] = []
+    release_date = ""
+
+    # Find the movie info section (within class "pelicula")
+    movie_div = soup.find("div", class_="pelicula")
+    if not movie_div:
+        return None
+
+    # Extract each metadata field by finding <b> tags with specific text
+    for div in movie_div.find_all("div"):
+        text = div.get_text(strip=True)
+
+        if text.startswith("Género:"):
+            b_tag = div.find("b")
+            if b_tag:
+                genre = text.replace("Género:", "").strip()
+
+        elif text.startswith("Duración:"):
+            # Format: "85 minutos"
+            duration_text = text.replace("Duración:", "").strip()
+            duration_match = re.match(r"(\d+)", duration_text)
+            if duration_match:
+                duration_minutes = int(duration_match.group(1))
+
+        elif text.startswith("Clasificación:"):
+            classification = text.replace("Clasificación:", "").strip()
+
+        elif text.startswith("Director:"):
+            director = text.replace("Director:", "").strip()
+
+        elif text.startswith("Actores:"):
+            actors_text = text.replace("Actores:", "").strip()
+            # Split by comma or "y" (Spanish "and")
+            actors_raw = re.split(r",\s*|\s+y\s+", actors_text)
+            actors = [a.strip() for a in actors_raw if a.strip()]
+
+    # Look for release date which has a different format
+    fecha_div = soup.find("div", class_="fecha-estreno")
+    if fecha_div:
+        fecha_text = fecha_div.get_text(strip=True)
+        # Format: "Fecha de estreno: Ene 15 / 2026"
+        if "Fecha de estreno:" in fecha_text:
+            release_date = fecha_text.replace("Fecha de estreno:", "").strip()
+
+    return MovieMetadata(
+        genre=genre,
+        duration_minutes=duration_minutes,
+        classification=classification,
+        director=director,
+        actors=actors,
+        release_date=release_date,
+    )
+
+
+def _parse_release_year_from_colombia_date(release_date_str: str) -> int | None:
+    """
+    Parse year from colombia.com release date format.
+
+    Format examples: "Ene 15 / 2026", "Dic 25 / 2025"
+    """
+    if not release_date_str:
+        return None
+
+    # Look for 4-digit year at the end
+    match = re.search(r"(\d{4})", release_date_str)
+    if match:
+        return int(match.group(1))
+    return None
+
+
+async def _scrape_movie_page_async(movie_url: str) -> str:
+    """Fetch HTML content from a movie's colombia.com page."""
+    logger.info(f"Scraping movie page: {movie_url}")
+
+    browser_options = {
+        "headless": True,
+    }
+
+    async with AsyncCamoufox(**browser_options) as browser:
+        context = await browser.new_context()  # pyright: ignore[reportAttributeAccessIssue]
+        page = await context.new_page()
+
+        try:
+            await page.goto(
+                movie_url,
+                wait_until="domcontentloaded",
+                timeout=BROWSER_TIMEOUT_SECONDS * 1000,
+            )
+            html_content = await page.content()
+        finally:
+            await context.close()
+
+    return html_content
 
 
 async def _scrape_theater_html_async(
@@ -174,20 +303,168 @@ async def _scrape_theater_html_async(
     return html_content
 
 
-def _get_or_create_movie(movie_name: str, tmdb_service: TMDBService) -> Movie | None:
-    """Look up movie in TMDB and get or create it in the database."""
+def _find_best_tmdb_match(
+    results: list[TMDBMovieResult],
+    movie_name: str,
+    metadata: MovieMetadata | None,
+) -> TMDBMovieResult | None:
+    """
+    Find the best matching TMDB result using colombia.com metadata for verification.
+
+    Compares release year and runtime to identify the correct movie.
+    Returns the best match, or None if no suitable match is found.
+    """
+    if not results:
+        return None
+
+    # If no metadata, fall back to first result
+    if not metadata:
+        logger.info(f"No metadata available for '{movie_name}', using first TMDB result")
+        return results[0]
+
+    colombia_year = _parse_release_year_from_colombia_date(metadata.release_date)
+    colombia_duration = metadata.duration_minutes
+
+    best_match: TMDBMovieResult | None = None
+    best_score = -1
+
+    for result in results:
+        score = 0
+
+        # Extract year from TMDB result
+        tmdb_year: int | None = None
+        if result.release_date:
+            try:
+                tmdb_year = int(result.release_date.split("-")[0])
+            except (ValueError, IndexError):
+                pass
+
+        # Year match (most important signal)
+        if colombia_year and tmdb_year:
+            year_diff = abs(colombia_year - tmdb_year)
+            if year_diff == 0:
+                score += 100
+            elif year_diff == 1:
+                # Allow 1 year difference for release timing differences between countries
+                score += 50
+            else:
+                # Significant year mismatch is a strong negative signal
+                score -= 50
+
+        # Title similarity bonus
+        movie_name_lower = movie_name.lower()
+        tmdb_title_lower = result.title.lower()
+        original_title_lower = result.original_title.lower()
+
+        if movie_name_lower == tmdb_title_lower:
+            score += 30
+        elif movie_name_lower in tmdb_title_lower or tmdb_title_lower in movie_name_lower:
+            score += 15
+
+        if movie_name_lower == original_title_lower:
+            score += 20
+        elif movie_name_lower in original_title_lower or original_title_lower in movie_name_lower:
+            score += 10
+
+        # Popularity boost (TMDB orders by relevance, so add small position-based bonus)
+        position_bonus = max(0, 10 - results.index(result))
+        score += position_bonus
+
+        logger.debug(
+            f"TMDB match score for '{result.title}' ({tmdb_year}): {score} "
+            f"[colombia_year={colombia_year}, duration={colombia_duration}]"
+        )
+
+        if score > best_score:
+            best_score = score
+            best_match = result
+
+    if best_match:
+        logger.info(
+            f"Selected TMDB match for '{movie_name}': '{best_match.title}' "
+            f"(id={best_match.id}, score={best_score})"
+        )
+    else:
+        logger.warning(f"No suitable TMDB match found for '{movie_name}'")
+
+    return best_match
+
+
+def _get_or_create_movie(
+    movie_name: str,
+    movie_url: str | None,
+    tmdb_service: TMDBService,
+) -> Movie | None:
+    """
+    Get or create a movie, prioritizing lookup by colombia.com URL.
+
+    Lookup order:
+    1. By colombia_dot_com_url (if provided) - avoids TMDB API call
+    2. By TMDB search - only if URL lookup fails
+
+    For new movies, scrapes the colombia.com movie page to gather additional
+    metadata for better TMDB match verification.
+    """
+    # First, try to find existing movie by colombia.com URL
+    if movie_url:
+        existing_movie = Movie.objects.filter(colombia_dot_com_url=movie_url).first()
+        if existing_movie:
+            logger.debug(f"Found movie by URL: {existing_movie}")
+            return existing_movie
+
+    # No URL match - need to search TMDB
     try:
+        APICallCounter.increment("tmdb")
         response = tmdb_service.search_movie(movie_name)
 
         if not response.results:
             logger.warning(f"No TMDB results found for: {movie_name}")
             return None
 
-        tmdb_result = response.results[0]
-        movie, created = Movie.get_or_create_from_tmdb(tmdb_result)
+        # For existing movies, check if first result already exists in DB
+        first_result = response.results[0]
+        existing_movie = Movie.objects.filter(tmdb_id=first_result.id).first()
+        if existing_movie:
+            # Update URL if we have it and the movie doesn't
+            if movie_url and not existing_movie.colombia_dot_com_url:
+                existing_movie.colombia_dot_com_url = movie_url
+                existing_movie.save(update_fields=["colombia_dot_com_url"])
+            return existing_movie
 
-        if created:
-            logger.info(f"Created movie: {movie}")
+        # New movie - scrape metadata from colombia.com for better matching
+        metadata: MovieMetadata | None = None
+        if movie_url:
+            try:
+                movie_html = asyncio.run(_scrape_movie_page_async(movie_url))
+                metadata = _extract_movie_metadata_from_html(movie_html)
+                if metadata:
+                    logger.info(
+                        f"Scraped metadata for '{movie_name}': "
+                        f"genre={metadata.genre}, duration={metadata.duration_minutes}, "
+                        f"release_date={metadata.release_date}, director={metadata.director}"
+                    )
+            except Exception as e:
+                logger.warning(f"Failed to scrape movie page for '{movie_name}': {e}")
+
+        # Find best matching TMDB result
+        best_match = _find_best_tmdb_match(response.results, movie_name, metadata)
+        if not best_match:
+            return None
+
+        # Check if this match already exists
+        existing_movie = Movie.objects.filter(tmdb_id=best_match.id).first()
+        if existing_movie:
+            # Update URL if we have it and the movie doesn't
+            if movie_url and not existing_movie.colombia_dot_com_url:
+                existing_movie.colombia_dot_com_url = movie_url
+                existing_movie.save(update_fields=["colombia_dot_com_url"])
+            return existing_movie
+
+        movie = Movie.create_from_tmdb(best_match)
+        if movie_url:
+            movie.colombia_dot_com_url = movie_url
+            movie.save(update_fields=["colombia_dot_com_url"])
+        logger.info(f"Created movie: {movie}")
 
         return movie
 
@@ -198,7 +475,7 @@ def _get_or_create_movie(movie_name: str, tmdb_service: TMDBService) -> Movie | 
             task="_get_or_create_movie",
             error_message=str(e),
             traceback=traceback.format_exc(),
-            context={"movie_name": movie_name},
+            context={"movie_name": movie_name, "movie_url": movie_url},
             severity=OperationalIssue.Severity.ERROR,
         )
         return None
@@ -282,7 +559,11 @@ def _save_showtimes_for_theater_for_date(
     showtimes_saved = 0
 
     for movie_showtime in movie_showtimes_list:
-        movie = _get_or_create_movie(movie_showtime.movie_name, tmdb_service)
+        movie = _get_or_create_movie(
+            movie_name=movie_showtime.movie_name,
+            movie_url=movie_showtime.movie_url,
+            tmdb_service=tmdb_service,
+        )
         if not movie:
             continue
 
