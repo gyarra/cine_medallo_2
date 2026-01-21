@@ -31,7 +31,7 @@
     "neighborhood": "Fabricato",
     "phone": "(604) 444 2244",
     "website": "https://procinal.com",
-    "colombia_dot_com_url": ""
+    "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-parque-fabricato-bello-s347"
   },
   {
     "name": "Procinal - Aventura",
@@ -77,18 +77,6 @@
     "phone": "(604) 605 1587",
     "website": "https://royal-films.com.co",
     "colombia_dot_com_url": "https://www.colombia.com/cine/royal-films-bosque-plaza-medellin-s246"
-  },
-  {
-    "name": "Museo de Arte Moderno Medellín - Teatro MAMM",
-    "slug": "teatro-mamm-medellin",
-    "chain": "MAMM",
-    "address": "Carrera 44 N° 19A-100, Ciudad del Río",
-    "city": "Medellín",
-    "neighborhood": "Ciudad del Río",
-    "phone": "(604) 444 2622",
-    "screen_count": 1,
-    "website": "https://www.elmamm.org",
-    "colombia_dot_com_url": ""
   },
   {
     "name": "Cine Colombia - Multiplex Molinos",
@@ -202,16 +190,6 @@
     "colombia_dot_com_url": "https://www.colombia.com/cine/cinemark-el-tesoro-medellin-s79"
   },
   {
-    "name": "Cinemark Unicentro Armenia",
-    "slug": "cinemark-unicentro-armenia",
-    "chain": "Cinemark",
-    "address": "Carrera 14 No. 6-02 Local 3-02, C.C. Unicentro",
-    "city": "Armenia",
-    "neighborhood": "Unicentro Armenia",
-    "website": "https://www.cinemark.com.co",
-    "colombia_dot_com_url": ""
-  },
-  {
     "name": "Cine Colombia - Multiplex Viva Envigado",
     "slug": "cine-colombia-multiplex-viva-envigado",
     "chain": "Cine Colombia",
@@ -220,7 +198,7 @@
     "neighborhood": "Viva Envigado",
     "phone": "3602463",
     "website": "https://www.cinecolombia.com",
-    "colombia_dot_com_url": ""
+    "colombia_dot_com_url": "https://www.colombia.com/cine/cine-colombia-viva-envigado-envigado-s297"
   },
   {
     "name": "Cinépolis City Plaza",
@@ -231,7 +209,7 @@
     "neighborhood": "City Plaza",
     "screen_count": 18,
     "website": "https://cinepolis.com.co",
-    "colombia_dot_com_url": ""
+    "colombia_dot_com_url": "https://www.colombia.com/cine/cinepolis-city-plaza-envigado-s174"
   },
   {
     "name": "Royal Films - Multicine Arrayanes Plaza",
@@ -242,7 +220,7 @@
     "neighborhood": "Arrayanes Plaza",
     "phone": "(604) 605 1587",
     "website": "https://royal-films.com.co",
-    "colombia_dot_com_url": ""
+    "colombia_dot_com_url": "https://www.colombia.com/cine/royal-films-arrayanes-plaza-itagui-s294"
   },
   {
     "name": "Procinal - Mayorca",
@@ -253,7 +231,7 @@
     "neighborhood": "Mayorca",
     "phone": "(4) 444 2244",
     "website": "https://procinal.com",
-    "colombia_dot_com_url": ""
+    "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-mayorca-sabaneta-s59"
   },
   {
     "name": "Procinal - Puerta del Norte",
@@ -264,7 +242,7 @@
     "neighborhood": "Puerta del Norte",
     "phone": "(4) 444 2244",
     "website": "https://procinal.com",
-    "colombia_dot_com_url": ""
+    "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-puerta-del-norte-bello-s61"
   },
   {
     "name": "Procinal - Aves María",
@@ -275,7 +253,7 @@
     "neighborhood": "Aves María",
     "phone": "(4) 444 2244",
     "website": "https://procinal.com",
-    "colombia_dot_com_url": ""
+    "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-aves-maria-sabaneta-s139"
   },
   {
     "name": "Procinal - San Nicolás",
@@ -286,7 +264,7 @@
     "neighborhood": "San Nicolás",
     "phone": "(4) 444 2244",
     "website": "https://procinal.com",
-    "colombia_dot_com_url": ""
+    "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-san-nicolas-rionegro-s149"
   },
   {
     "name": "Procinal - La Ceja",
@@ -297,6 +275,6 @@
     "neighborhood": "Viva La Ceja",
     "phone": "(4) 444 2244",
     "website": "https://procinal.com",
-    "colombia_dot_com_url": ""
+    "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-viva-la-ceja-la-ceja-s271"
   }
 ]
