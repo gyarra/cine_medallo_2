@@ -118,7 +118,44 @@ class TestGetOrCreateMovie:
     @pytest.fixture
     def mock_tmdb_service(self):
         """Create a mock TMDB service."""
-        return MagicMock()
+        from movies_app.services.tmdb_service import (
+            TMDBGenre,
+            TMDBMovieDetails,
+            TMDBProductionCompany,
+        )
+
+        mock = MagicMock()
+        # Mock get_movie_details to return a proper TMDBMovieDetails
+        mock.get_movie_details.return_value = TMDBMovieDetails(
+            id=12345,
+            title="Avatar: Fuego Y Cenizas",
+            original_title="Avatar: Fire and Ash",
+            overview="The third installment of the Avatar franchise.",
+            release_date="2025-12-19",
+            popularity=500.0,
+            vote_average=8.0,
+            vote_count=1000,
+            poster_path="/avatar3.jpg",
+            backdrop_path="/avatar3_backdrop.jpg",
+            genres=[TMDBGenre(id=28, name="Acción"), TMDBGenre(id=12, name="Aventura")],
+            original_language="en",
+            adult=False,
+            video=False,
+            runtime=180,
+            budget=400000000,
+            revenue=0,
+            status="Post Production",
+            tagline="Return to Pandora",
+            homepage="",
+            imdb_id="tt1234567",
+            production_companies=[
+                TMDBProductionCompany(id=1, name="20th Century Studios", logo_path=None, origin_country="US")
+            ],
+            cast=None,
+            crew=None,
+            videos=None,
+        )
+        return mock
 
     @pytest.fixture
     def sample_tmdb_results(self):

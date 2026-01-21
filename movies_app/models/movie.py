@@ -4,6 +4,7 @@ Movie model for storing film information.
 
 from __future__ import annotations
 
+import logging
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
@@ -11,7 +12,9 @@ from django.db import models
 from django.utils.text import slugify
 
 if TYPE_CHECKING:
-    from movies_app.services.tmdb_service import TMDBMovieResult
+    from movies_app.services.tmdb_service import TMDBMovieDetails, TMDBMovieResult, TMDBService
+
+logger = logging.getLogger(__name__)
 
 
 class Movie(models.Model):
@@ -94,6 +97,30 @@ class Movie(models.Model):
         unique=True,
         help_text="URL on colombia.com for this movie",
     )
+    trailer_url = models.URLField(
+        max_length=500,
+        blank=True,
+        default="",
+        help_text="YouTube trailer URL",
+    )
+    backdrop_url = models.URLField(
+        max_length=500,
+        blank=True,
+        default="",
+        help_text="URL to movie backdrop image",
+    )
+    director = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        help_text="Director name(s)",
+    )
+    cast_summary = models.CharField(
+        max_length=500,
+        blank=True,
+        default="",
+        help_text="Top billed actors, comma-separated",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -134,12 +161,21 @@ class Movie(models.Model):
         return None
 
     @classmethod
-    def create_from_tmdb(cls, tmdb_result: TMDBMovieResult, poster_size: str = "w500") -> Movie:
+    def create_from_tmdb(
+        cls,
+        tmdb_result: TMDBMovieResult,
+        tmdb_service: TMDBService | None,
+        poster_size: str = "w500",
+    ) -> Movie:
         """
         Create a Movie instance from a TMDB search result.
 
+        If tmdb_service is provided, fetches full movie details including
+        runtime, genres, director, cast, and trailer.
+
         Args:
             tmdb_result: A TMDBMovieResult from the TMDB API
+            tmdb_service: Optional TMDBService for fetching full details
             poster_size: Image size for poster URL (w92, w154, w185, w342, w500, w780, original)
 
         Returns:
@@ -158,25 +194,108 @@ class Movie(models.Model):
         if tmdb_result.poster_path:
             poster_url = f"https://image.tmdb.org/t/p/{poster_size}{tmdb_result.poster_path}"
 
-        movie = cls.objects.create(
-            title_es=tmdb_result.title,
-            original_title=tmdb_result.original_title,
-            year=year,
-            synopsis=tmdb_result.overview,
-            poster_url=poster_url,
-            tmdb_id=tmdb_result.id,
-            tmdb_rating=Decimal(str(tmdb_result.vote_average)) if tmdb_result.vote_average else None,
-        )
+        # Base movie data from search result
+        movie_data = {
+            "title_es": tmdb_result.title,
+            "original_title": tmdb_result.original_title,
+            "year": year,
+            "synopsis": tmdb_result.overview,
+            "poster_url": poster_url,
+            "tmdb_id": tmdb_result.id,
+            "tmdb_rating": Decimal(str(tmdb_result.vote_average)) if tmdb_result.vote_average else None,
+        }
 
+        # Fetch full details if service is provided
+        if tmdb_service:
+            movie_data = cls._enrich_with_tmdb_details(
+                movie_data,
+                tmdb_result.id,
+                tmdb_service,
+                poster_size,
+            )
+
+        movie = cls.objects.create(**movie_data)
         return movie
 
     @classmethod
-    def get_or_create_from_tmdb(cls, tmdb_result: TMDBMovieResult, poster_size: str = "w500") -> tuple[Movie, bool]:
+    def _enrich_with_tmdb_details(
+        cls,
+        movie_data: dict,
+        tmdb_id: int,
+        tmdb_service: TMDBService,
+        poster_size: str,
+    ) -> dict:
+        """
+        Enrich movie data with full TMDB details.
+
+        Fetches runtime, genres, director, cast, trailer, and backdrop.
+        """
+        try:
+            details = tmdb_service.get_movie_details(
+                tmdb_id,
+                include_credits=True,
+                include_videos=True,
+            )
+            movie_data = cls._apply_tmdb_details(movie_data, details, poster_size)
+        except Exception as e:
+            logger.warning(f"Failed to fetch TMDB details for movie {tmdb_id}: {e}")
+
+        return movie_data
+
+    @classmethod
+    def _apply_tmdb_details(
+        cls,
+        movie_data: dict,
+        details: TMDBMovieDetails,
+        poster_size: str,
+    ) -> dict:
+        """Apply TMDBMovieDetails to movie data dict."""
+        # Runtime
+        if details.runtime:
+            movie_data["duration_minutes"] = details.runtime
+
+        # IMDb ID
+        if details.imdb_id:
+            movie_data["imdb_id"] = details.imdb_id
+
+        # Genres (Spanish names, comma-separated)
+        if details.genres:
+            movie_data["genre"] = ", ".join(g.name for g in details.genres[:3])
+
+        # Director
+        directors = details.directors
+        if directors:
+            movie_data["director"] = ", ".join(d.name for d in directors[:2])
+
+        # Top cast
+        if details.cast:
+            top_cast = details.cast[:5]
+            movie_data["cast_summary"] = ", ".join(c.name for c in top_cast)
+
+        # Backdrop URL
+        if details.backdrop_path:
+            movie_data["backdrop_url"] = f"https://image.tmdb.org/t/p/{poster_size}{details.backdrop_path}"
+
+        # Trailer URL (prefer Spanish)
+        best_trailer = details.get_best_trailer()
+        if best_trailer and best_trailer.youtube_url:
+            movie_data["trailer_url"] = best_trailer.youtube_url
+
+        return movie_data
+
+    @classmethod
+    def get_or_create_from_tmdb(
+        cls,
+        tmdb_result: TMDBMovieResult,
+        tmdb_service: TMDBService | None,
+        poster_size: str = "w500",
+    ) -> tuple[Movie, bool]:
         """
         Get existing movie by tmdb_id or create a new one from TMDB result.
 
         Args:
             tmdb_result: A TMDBMovieResult from the TMDB API
+            tmdb_service: Optional TMDBService for fetching full details
             poster_size: Image size for poster URL
 
         Returns:
@@ -186,5 +305,5 @@ class Movie(models.Model):
             movie = cls.objects.get(tmdb_id=tmdb_result.id)
             return movie, False
         except cls.DoesNotExist:
-            movie = cls.create_from_tmdb(tmdb_result, poster_size)
+            movie = cls.create_from_tmdb(tmdb_result, tmdb_service, poster_size)
             return movie, True

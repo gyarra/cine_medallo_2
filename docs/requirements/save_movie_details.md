@@ -42,7 +42,18 @@ Add the following fields to the `Movie` model:
 | `director` | CharField | Director name(s) |
 | `cast_summary` | CharField | Top 3-5 actors, comma-separated |
 
-### 3. Trailer Selection Logic
+### 3. Genre Names in Spanish
+
+TMDB returns localized genre names when `language=es-ES` is passed:
+- "Action" → "Acción"
+- "Science Fiction" → "Ciencia ficción"
+- "Comedy" → "Comedia"
+
+The existing `genre` field on `Movie` should be populated with Spanish genre names, comma-separated.
+
+**Note:** `TMDBService.get_movie_details()` already defaults to `language="es-ES"`.
+
+### 4. Trailer Selection Logic
 
 When selecting a trailer from TMDB videos response:
 
@@ -53,7 +64,7 @@ When selecting a trailer from TMDB videos response:
 5. **Prefer highest quality:** Among matching trailers, prefer higher `size` (1080 > 720)
 6. **Construct URL:** `https://www.youtube.com/watch?v={key}`
 
-### 4. Implementation Location
+### 5. Implementation Location
 
 Modify `Movie.create_from_tmdb()` to:
 1. Accept a `TMDBService` instance as parameter (avoid creating new instance)
@@ -61,7 +72,7 @@ Modify `Movie.create_from_tmdb()` to:
 3. Extract and save all new fields
 4. Handle API errors gracefully (log warning, continue with partial data)
 
-### 5. API Call Efficiency
+### 6. API Call Efficiency
 
 - Use `append_to_response=videos,credits` to fetch details, videos, and credits in a single API call
 - Track API call with `APICallCounter.increment("tmdb")`

@@ -109,7 +109,7 @@ class Command(BaseCommand):
             return
 
         # Create the movie
-        movie = Movie.create_from_tmdb(selected_movie)
+        movie = Movie.create_from_tmdb(selected_movie, service)
 
         self.stdout.write(self.style.SUCCESS(f"\nSuccessfully imported: {movie}"))
         self.stdout.write(f"  Database ID: {movie.id}")  # pyright: ignore[reportAttributeAccessIssue]

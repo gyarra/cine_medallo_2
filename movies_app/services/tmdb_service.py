@@ -56,6 +56,29 @@ class TMDBCrewMember:
 
 
 @dataclass
+class TMDBVideo:
+    """Represents a video (trailer, teaser, etc.) from TMDB API."""
+
+    id: str
+    key: str
+    name: str
+    site: str
+    size: int
+    type: str
+    official: bool
+    iso_639_1: str
+    iso_3166_1: str
+    published_at: str
+
+    @property
+    def youtube_url(self) -> str | None:
+        """Get YouTube URL if this video is hosted on YouTube."""
+        if self.site == "YouTube":
+            return f"https://www.youtube.com/watch?v={self.key}"
+        return None
+
+
+@dataclass
 class TMDBMovieResult:
     """Represents a movie result from TMDB API."""
 
@@ -103,6 +126,7 @@ class TMDBMovieDetails:
     production_companies: list[TMDBProductionCompany]
     cast: list[TMDBCastMember] | None
     crew: list[TMDBCrewMember] | None
+    videos: list[TMDBVideo] | None
 
     @property
     def directors(self) -> list[TMDBCrewMember]:
@@ -110,6 +134,35 @@ class TMDBMovieDetails:
         if not self.crew:
             return []
         return [c for c in self.crew if c.job == "Director"]
+
+    def get_best_trailer(self) -> TMDBVideo | None:
+        """
+        Select the best trailer from available videos.
+
+        Priority:
+        1. Spanish language trailers (iso_639_1 == "es")
+        2. Official trailers over unofficial
+        3. Higher quality (size: 1080 > 720 > 480)
+        4. English as fallback if no Spanish available
+
+        Returns:
+            Best matching TMDBVideo or None if no trailers available
+        """
+        if not self.videos:
+            return None
+
+        trailers = [v for v in self.videos if v.type == "Trailer" and v.site == "YouTube"]
+        if not trailers:
+            return None
+
+        def trailer_score(video: TMDBVideo) -> tuple[int, int, int]:
+            lang_score = 2 if video.iso_639_1 == "es" else (1 if video.iso_639_1 == "en" else 0)
+            official_score = 1 if video.official else 0
+            quality_score = video.size
+            return (lang_score, official_score, quality_score)
+
+        trailers.sort(key=trailer_score, reverse=True)
+        return trailers[0]
 
 
 @dataclass
@@ -287,6 +340,7 @@ class TMDBService:
         tmdb_id: int,
         language: str = "es-ES",
         include_credits: bool = False,
+        include_videos: bool = False,
     ) -> TMDBMovieDetails:
         """
         Get detailed information for a specific movie by TMDB ID.
@@ -298,6 +352,7 @@ class TMDBService:
             tmdb_id: The TMDB movie ID
             language: Language for results (default: "es-ES" for Spanish)
             include_credits: If True, includes cast and crew in single API call
+            include_videos: If True, includes trailers and other videos in single API call
 
         Returns:
             TMDBMovieDetails with full movie information
@@ -306,14 +361,20 @@ class TMDBService:
             TMDBServiceError: If the request fails
         """
         params: dict[str, str] = {"language": language}
+        append_responses: list[str] = []
         if include_credits:
-            params["append_to_response"] = "credits"
+            append_responses.append("credits")
+        if include_videos:
+            append_responses.append("videos")
+        if append_responses:
+            params["append_to_response"] = ",".join(append_responses)
 
         logger.info(
-            "Fetching TMDB movie details for ID: %d (language=%s, credits=%s)",
+            "Fetching TMDB movie details for ID: %d (language=%s, credits=%s, videos=%s)",
             tmdb_id,
             language,
             include_credits,
+            include_videos,
         )
 
         data = self._make_request(f"/movie/{tmdb_id}", params)
@@ -335,6 +396,7 @@ class TMDBService:
 
         cast: list[TMDBCastMember] | None = None
         crew: list[TMDBCrewMember] | None = None
+        videos: list[TMDBVideo] | None = None
 
         if include_credits and "credits" in data:
             credits_data = data["credits"]
@@ -357,6 +419,24 @@ class TMDBService:
                     profile_path=c.get("profile_path"),
                 )
                 for c in credits_data.get("crew", [])
+            ]
+
+        if include_videos and "videos" in data:
+            videos_data = data["videos"]
+            videos = [
+                TMDBVideo(
+                    id=v["id"],
+                    key=v.get("key", ""),
+                    name=v.get("name", ""),
+                    site=v.get("site", ""),
+                    size=v.get("size", 0),
+                    type=v.get("type", ""),
+                    official=v.get("official", False),
+                    iso_639_1=v.get("iso_639_1", ""),
+                    iso_3166_1=v.get("iso_3166_1", ""),
+                    published_at=v.get("published_at", ""),
+                )
+                for v in videos_data.get("results", [])
             ]
 
         return TMDBMovieDetails(
@@ -384,4 +464,5 @@ class TMDBService:
             production_companies=production_companies,
             cast=cast,
             crew=crew,
+            videos=videos,
         )

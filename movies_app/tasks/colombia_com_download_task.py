@@ -660,7 +660,7 @@ def _get_or_create_movie(
                 existing_movie.save(update_fields=["colombia_dot_com_url"])
             return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=True)
 
-        movie = Movie.create_from_tmdb(best_match)
+        movie = Movie.create_from_tmdb(best_match, tmdb_service)
         if movie_url:
             movie.colombia_dot_com_url = movie_url
             movie.save(update_fields=["colombia_dot_com_url"])
