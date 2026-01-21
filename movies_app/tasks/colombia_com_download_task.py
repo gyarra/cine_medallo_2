@@ -11,6 +11,7 @@ import datetime
 import logging
 import re
 import traceback
+import unicodedata
 import zoneinfo
 from dataclasses import dataclass
 
@@ -366,7 +367,6 @@ async def _scrape_theater_html_async(
 
 def _normalize_name(name: str) -> str:
     """Normalize a name for comparison by lowercasing and removing accents/punctuation."""
-    import unicodedata
     normalized = unicodedata.normalize("NFD", name.lower())
     return "".join(c for c in normalized if unicodedata.category(c) != "Mn").strip()
 
@@ -732,7 +732,7 @@ def save_showtimes_for_theater(theater: Theater) -> TaskReport:
             if movie_title not in all_new_movies:
                 all_new_movies.append(movie_title)
 
-    logger.info(f"Proccesing finished. Saved {total_showtimes} total showtimes for {theater.name}\n\n\n")
+    logger.info(f"Processing finished. Saved {total_showtimes} total showtimes for {theater.name}\n\n\n")
     return TaskReport(
         total_showtimes=total_showtimes,
         tmdb_calls=total_tmdb_calls,
@@ -765,7 +765,7 @@ def _save_showtimes_for_theater_for_date(
         logger.warning(f"No showtimes found for theater: {theater.name} on {effective_date}")
         return TaskReport(total_showtimes=0, tmdb_calls=0, new_movies=[])
 
-    logger.info(f"Processing showtimesfor {theater.name} on {effective_date}")
+    logger.info(f"Processing showtimes for {theater.name} on {effective_date}")
 
     source_url = theater.colombia_dot_com_url
     deleted_count, _ = Showtime.objects.filter(theater=theater, start_date=effective_date).delete()
