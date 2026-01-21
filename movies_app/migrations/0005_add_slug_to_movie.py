@@ -31,11 +31,11 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # Step 1: Add slug field with null=True temporarily
+        # Step 1: Add slug field with null=True temporarily (use CharField to avoid index creation)
         migrations.AddField(
             model_name="movie",
             name="slug",
-            field=models.SlugField(
+            field=models.CharField(
                 max_length=350,
                 null=True,
                 help_text="URL-friendly identifier",
@@ -43,7 +43,7 @@ class Migration(migrations.Migration):
         ),
         # Step 2: Populate slugs for existing movies
         migrations.RunPython(populate_slugs, reverse_populate_slugs),
-        # Step 3: Make slug non-nullable and unique
+        # Step 3: Convert to SlugField with unique constraint
         migrations.AlterField(
             model_name="movie",
             name="slug",
