@@ -57,6 +57,32 @@ class MovieShowtimes:
     descriptions: list[ShowtimeDescription]
 
 
+@dataclass
+class MovieLookupResult:
+    movie: Movie | None
+    is_new: bool
+    tmdb_called: bool
+
+
+@dataclass
+class TaskReport:
+    total_showtimes: int
+    tmdb_calls: int
+    new_movies: list[str]
+
+    def print_report(self) -> None:
+        logger.info("=" * 50)
+        logger.info("TASK REPORT")
+        logger.info("=" * 50)
+        logger.info(f"Total showtimes added: {self.total_showtimes}")
+        logger.info(f"TMDB API calls made: {self.tmdb_calls}")
+        logger.info(f"New movies added: {len(self.new_movies)}")
+        if self.new_movies:
+            for movie_title in self.new_movies:
+                logger.info(f"  - {movie_title}")
+        logger.info("=" * 50)
+
+
 def _parse_time_string(time_str: str) -> datetime.time | None:
     """Parse time string like '12:50 pm' or '4:30 pm' to datetime.time."""
     time_str = time_str.strip().lower()
@@ -299,6 +325,7 @@ async def _scrape_theater_html_async(
             html_content = await page.content()
         finally:
             await context.close()
+    logger.info(f"Finished scraping showtimes for theater: {theater.name}\n\n")
 
     return html_content
 
@@ -394,7 +421,7 @@ def _get_or_create_movie(
     movie_name: str,
     movie_url: str | None,
     tmdb_service: TMDBService,
-) -> Movie | None:
+) -> MovieLookupResult:
     """
     Get or create a movie, prioritizing lookup by colombia.com URL.
 
@@ -409,17 +436,18 @@ def _get_or_create_movie(
     if movie_url:
         existing_movie = Movie.objects.filter(colombia_dot_com_url=movie_url).first()
         if existing_movie:
-            logger.debug(f"Found movie by URL: {existing_movie}")
-            return existing_movie
+            logger.info(f"Found movie by URL: {existing_movie}")
+            return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=False)
 
     # No URL match - need to search TMDB
     try:
+        logger.info(f"Did not find move: {existing_movie}. Searching TMDB for '{movie_name}'")
         APICallCounter.increment("tmdb")
         response = tmdb_service.search_movie(movie_name)
 
         if not response.results:
             logger.warning(f"No TMDB results found for: {movie_name}")
-            return None
+            return MovieLookupResult(movie=None, is_new=False, tmdb_called=True)
 
         # For existing movies, check if first result already exists in DB
         first_result = response.results[0]
@@ -429,7 +457,7 @@ def _get_or_create_movie(
             if movie_url and not existing_movie.colombia_dot_com_url:
                 existing_movie.colombia_dot_com_url = movie_url
                 existing_movie.save(update_fields=["colombia_dot_com_url"])
-            return existing_movie
+            return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=True)
 
         # New movie - scrape metadata from colombia.com for better matching
         metadata: MovieMetadata | None = None
@@ -449,7 +477,7 @@ def _get_or_create_movie(
         # Find best matching TMDB result
         best_match = _find_best_tmdb_match(response.results, movie_name, metadata)
         if not best_match:
-            return None
+            return MovieLookupResult(movie=None, is_new=False, tmdb_called=True)
 
         # Check if this match already exists
         existing_movie = Movie.objects.filter(tmdb_id=best_match.id).first()
@@ -458,7 +486,7 @@ def _get_or_create_movie(
             if movie_url and not existing_movie.colombia_dot_com_url:
                 existing_movie.colombia_dot_com_url = movie_url
                 existing_movie.save(update_fields=["colombia_dot_com_url"])
-            return existing_movie
+            return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=True)
 
         movie = Movie.create_from_tmdb(best_match)
         if movie_url:
@@ -466,7 +494,7 @@ def _get_or_create_movie(
             movie.save(update_fields=["colombia_dot_com_url"])
         logger.info(f"Created movie: {movie}")
 
-        return movie
+        return MovieLookupResult(movie=movie, is_new=True, tmdb_called=True)
 
     except TMDBServiceError as e:
         logger.error(f"TMDB error for '{movie_name}': {e}")
@@ -478,16 +506,16 @@ def _get_or_create_movie(
             context={"movie_name": movie_name, "movie_url": movie_url},
             severity=OperationalIssue.Severity.ERROR,
         )
-        return None
+        return MovieLookupResult(movie=None, is_new=False, tmdb_called=True)
 
 
 @transaction.atomic
-def save_showtimes_for_theater(theater: Theater) -> int:
+def save_showtimes_for_theater(theater: Theater) -> TaskReport:
     """
     Scrape showtimes from a theater for all available dates and save to the database.
 
     Returns:
-        Total number of showtimes saved across all dates
+        TaskReport with stats for this theater
     """
     html_content = asyncio.run(_scrape_theater_html_async(theater, target_date=None))
     date_options = _find_date_options(html_content)
@@ -501,45 +529,55 @@ def save_showtimes_for_theater(theater: Theater) -> int:
             context={"theater_id": theater.id, "theater_name": theater.name, "url": theater.colombia_dot_com_url},  # pyright: ignore[reportAttributeAccessIssue]
             severity=OperationalIssue.Severity.WARNING,
         )
-        return 0
+        return TaskReport(total_showtimes=0, tmdb_calls=0, new_movies=[])
 
     logger.info(f"Found {len(date_options)} dates for {theater.name}: {date_options}")
 
     tmdb_service = TMDBService()
     total_showtimes = 0
+    total_tmdb_calls = 0
+    all_new_movies: list[str] = []
     today = datetime.datetime.now(BOGOTA_TZ).date()
 
     for target_date in date_options:
         if target_date == today:
-            showtimes_saved = _save_showtimes_for_theater_for_date(
+            report = _save_showtimes_for_theater_for_date(
                 theater=theater,
                 target_date=None,
                 tmdb_service=tmdb_service,
             )
         else:
-            showtimes_saved = _save_showtimes_for_theater_for_date(
+            report = _save_showtimes_for_theater_for_date(
                 theater=theater,
                 target_date=target_date,
                 tmdb_service=tmdb_service,
             )
-        total_showtimes += showtimes_saved
+        total_showtimes += report.total_showtimes
+        total_tmdb_calls += report.tmdb_calls
+        for movie_title in report.new_movies:
+            if movie_title not in all_new_movies:
+                all_new_movies.append(movie_title)
 
     logger.info(f"Saved {total_showtimes} total showtimes for {theater.name}")
-    return total_showtimes
+    return TaskReport(
+        total_showtimes=total_showtimes,
+        tmdb_calls=total_tmdb_calls,
+        new_movies=all_new_movies,
+    )
 
 
 def _save_showtimes_for_theater_for_date(
     theater: Theater,
     target_date: datetime.date | None,
     tmdb_service: TMDBService,
-) -> int:
+) -> TaskReport:
     """
     Scrape showtimes for a specific date and save them to the database.
 
     If target_date is None, scrapes the default page (today's showtimes).
 
     Returns:
-        Number of showtimes saved for this date
+        TaskReport with stats for this date
     """
     html_content = asyncio.run(_scrape_theater_html_async(theater, target_date=target_date))
     movie_showtimes_list = _extract_showtimes_from_html(html_content)
@@ -548,7 +586,7 @@ def _save_showtimes_for_theater_for_date(
 
     if not movie_showtimes_list:
         logger.warning(f"No showtimes found for theater: {theater.name} on {effective_date}")
-        return 0
+        return TaskReport(total_showtimes=0, tmdb_calls=0, new_movies=[])
 
     source_url = theater.colombia_dot_com_url
 
@@ -557,21 +595,27 @@ def _save_showtimes_for_theater_for_date(
         logger.info(f"Deleted {deleted_count} existing showtimes for {theater.name} on {effective_date}")
 
     showtimes_saved = 0
+    tmdb_calls = 0
+    new_movies: list[str] = []
 
     for movie_showtime in movie_showtimes_list:
-        movie = _get_or_create_movie(
+        lookup_result = _get_or_create_movie(
             movie_name=movie_showtime.movie_name,
             movie_url=movie_showtime.movie_url,
             tmdb_service=tmdb_service,
         )
-        if not movie:
+        if lookup_result.tmdb_called:
+            tmdb_calls += 1
+        if lookup_result.is_new and lookup_result.movie:
+            new_movies.append(str(lookup_result.movie))
+        if not lookup_result.movie:
             continue
 
         for description in movie_showtime.descriptions:
             for start_time in description.start_times:
                 Showtime.objects.create(
                     theater=theater,
-                    movie=movie,
+                    movie=lookup_result.movie,
                     start_date=effective_date,
                     start_time=start_time,
                     format=description.description,
@@ -580,7 +624,11 @@ def _save_showtimes_for_theater_for_date(
                 showtimes_saved += 1
 
     logger.info(f"Saved {showtimes_saved} showtimes for {theater.name} on {effective_date}")
-    return showtimes_saved
+    return TaskReport(
+        total_showtimes=showtimes_saved,
+        tmdb_calls=tmdb_calls,
+        new_movies=new_movies,
+    )
 
 
 @app.task
@@ -607,13 +655,19 @@ def colombia_com_download_task():
     logger.info(f"Found {theater_count} theaters with colombia_dot_com_url")
 
     total_showtimes = 0
+    total_tmdb_calls = 0
+    all_new_movies: list[str] = []
     failed_theaters: list[str] = []
 
     for theater in theaters:
         try:
             logger.info(f"Processing theater: {theater.name}")
-            showtimes_saved = save_showtimes_for_theater(theater)
-            total_showtimes += showtimes_saved
+            report = save_showtimes_for_theater(theater)
+            total_showtimes += report.total_showtimes
+            total_tmdb_calls += report.tmdb_calls
+            for movie_title in report.new_movies:
+                if movie_title not in all_new_movies:
+                    all_new_movies.append(movie_title)
         except Exception as e:
             logger.error(f"Failed to process theater '{theater.name}': {e}")
             OperationalIssue.objects.create(
@@ -627,10 +681,12 @@ def colombia_com_download_task():
             failed_theaters.append(theater.name)
             continue
 
-    logger.info(
-        f"colombia_com_download_task completed: "
-        f"{total_showtimes} showtimes saved, {len(failed_theaters)} theaters failed"
+    final_report = TaskReport(
+        total_showtimes=total_showtimes,
+        tmdb_calls=total_tmdb_calls,
+        new_movies=all_new_movies,
     )
+    final_report.print_report()
 
     if failed_theaters:
         logger.warning(f"Failed theaters: {failed_theaters}")
