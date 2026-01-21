@@ -3,10 +3,10 @@ Scrape showtimes from a theater's colombia.com page.
 
 Usage:
     # List theaters with colombia.com URLs configured
-    python manage.py colombia_com_download_movies --list
+    python manage.py colombia_com_download_for_one_theater --list
 
     # Scrape showtimes and save to database
-    python manage.py colombia_com_download_movies procinal-monterrey-medellin
+    python manage.py colombia_com_download_for_one_theater procinal-monterrey-medellin
 """
 
 from django.core.management.base import BaseCommand, CommandError
