@@ -16,6 +16,46 @@ TMDB_API_BASE_URL = "https://api.themoviedb.org/3"
 
 
 @dataclass
+class TMDBGenre:
+    """Represents a genre from TMDB API."""
+
+    id: int
+    name: str
+
+
+@dataclass
+class TMDBProductionCompany:
+    """Represents a production company from TMDB API."""
+
+    id: int
+    name: str
+    logo_path: str | None
+    origin_country: str
+
+
+@dataclass
+class TMDBCastMember:
+    """Represents a cast member (actor) from TMDB API."""
+
+    id: int
+    name: str
+    character: str
+    order: int
+    profile_path: str | None
+
+
+@dataclass
+class TMDBCrewMember:
+    """Represents a crew member from TMDB API."""
+
+    id: int
+    name: str
+    job: str
+    department: str
+    profile_path: str | None
+
+
+@dataclass
 class TMDBMovieResult:
     """Represents a movie result from TMDB API."""
 
@@ -33,6 +73,43 @@ class TMDBMovieResult:
     original_language: str
     adult: bool
     video: bool
+
+
+@dataclass
+class TMDBMovieDetails:
+    """Represents detailed movie information from TMDB API."""
+
+    id: int
+    title: str
+    original_title: str
+    overview: str
+    release_date: str
+    popularity: float
+    vote_average: float
+    vote_count: int
+    poster_path: str | None
+    backdrop_path: str | None
+    genres: list[TMDBGenre]
+    original_language: str
+    adult: bool
+    video: bool
+    runtime: int | None
+    budget: int
+    revenue: int
+    status: str
+    tagline: str
+    homepage: str
+    imdb_id: str | None
+    production_companies: list[TMDBProductionCompany]
+    cast: list[TMDBCastMember] | None
+    crew: list[TMDBCrewMember] | None
+
+    @property
+    def directors(self) -> list[TMDBCrewMember]:
+        """Get all directors from the crew."""
+        if not self.crew:
+            return []
+        return [c for c in self.crew if c.job == "Director"]
 
 
 @dataclass
@@ -146,6 +223,8 @@ class TMDBService:
 
         data = self._make_request("/search/movie", params)
 
+        logger.debug(f"Full results from TMDB: {data}")
+
         results = [
             TMDBMovieResult(
                 id=movie["id"],
@@ -202,3 +281,107 @@ class TMDBService:
         if not poster_path:
             return None
         return f"https://image.tmdb.org/t/p/{size}{poster_path}"
+
+    def get_movie_details(
+        self,
+        tmdb_id: int,
+        language: str = "es-ES",
+        include_credits: bool = False,
+    ) -> TMDBMovieDetails:
+        """
+        Get detailed information for a specific movie by TMDB ID.
+
+        Returns more detailed information than search results, including:
+        runtime, budget, revenue, production companies, imdb_id, status, etc.
+
+        Args:
+            tmdb_id: The TMDB movie ID
+            language: Language for results (default: "es-ES" for Spanish)
+            include_credits: If True, includes cast and crew in single API call
+
+        Returns:
+            TMDBMovieDetails with full movie information
+
+        Raises:
+            TMDBServiceError: If the request fails
+        """
+        params: dict[str, str] = {"language": language}
+        if include_credits:
+            params["append_to_response"] = "credits"
+
+        logger.info(
+            "Fetching TMDB movie details for ID: %d (language=%s, credits=%s)",
+            tmdb_id,
+            language,
+            include_credits,
+        )
+
+        data = self._make_request(f"/movie/{tmdb_id}", params)
+
+        genres = [
+            TMDBGenre(id=g["id"], name=g.get("name", ""))
+            for g in data.get("genres", [])
+        ]
+
+        production_companies = [
+            TMDBProductionCompany(
+                id=pc["id"],
+                name=pc.get("name", ""),
+                logo_path=pc.get("logo_path"),
+                origin_country=pc.get("origin_country", ""),
+            )
+            for pc in data.get("production_companies", [])
+        ]
+
+        cast: list[TMDBCastMember] | None = None
+        crew: list[TMDBCrewMember] | None = None
+
+        if include_credits and "credits" in data:
+            credits_data = data["credits"]
+            cast = [
+                TMDBCastMember(
+                    id=c["id"],
+                    name=c.get("name", ""),
+                    character=c.get("character", ""),
+                    order=c.get("order", 0),
+                    profile_path=c.get("profile_path"),
+                )
+                for c in credits_data.get("cast", [])
+            ]
+            crew = [
+                TMDBCrewMember(
+                    id=c["id"],
+                    name=c.get("name", ""),
+                    job=c.get("job", ""),
+                    department=c.get("department", ""),
+                    profile_path=c.get("profile_path"),
+                )
+                for c in credits_data.get("crew", [])
+            ]
+
+        return TMDBMovieDetails(
+            id=data["id"],
+            title=data.get("title", ""),
+            original_title=data.get("original_title", ""),
+            overview=data.get("overview", ""),
+            release_date=data.get("release_date", ""),
+            popularity=data.get("popularity", 0.0),
+            vote_average=data.get("vote_average", 0.0),
+            vote_count=data.get("vote_count", 0),
+            poster_path=data.get("poster_path"),
+            backdrop_path=data.get("backdrop_path"),
+            genres=genres,
+            original_language=data.get("original_language", ""),
+            adult=data.get("adult", False),
+            video=data.get("video", False),
+            runtime=data.get("runtime"),
+            budget=data.get("budget", 0),
+            revenue=data.get("revenue", 0),
+            status=data.get("status", ""),
+            tagline=data.get("tagline", ""),
+            homepage=data.get("homepage", ""),
+            imdb_id=data.get("imdb_id"),
+            production_companies=production_companies,
+            cast=cast,
+            crew=crew,
+        )

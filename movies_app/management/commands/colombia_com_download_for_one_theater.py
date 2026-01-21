@@ -1,5 +1,5 @@
 """
-Scrape showtimes from a theater's colombia.com page.
+Scrape showtimes from a theater's colombia.com page, using the download task.
 
 Usage:
     # List theaters with colombia.com URLs configured

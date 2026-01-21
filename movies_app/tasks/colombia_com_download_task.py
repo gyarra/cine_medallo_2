@@ -71,6 +71,7 @@ class TaskReport:
     new_movies: list[str]
 
     def print_report(self) -> None:
+        logger.info("\n\n")
         logger.info("=" * 50)
         logger.info("TASK REPORT")
         logger.info("=" * 50)
@@ -266,6 +267,39 @@ def _parse_release_year_from_colombia_date(release_date_str: str) -> int | None:
     return None
 
 
+def _parse_release_date_from_colombia_date(release_date_str: str) -> datetime.date | None:
+    """
+    Parse full date from colombia.com release date format.
+
+    Format examples: "Ene 15 / 2026", "Dic 25 / 2025"
+    Returns datetime.date or None if parsing fails.
+    """
+    if not release_date_str:
+        return None
+
+    # Spanish month abbreviations to month numbers
+    month_map = {
+        "ene": 1, "feb": 2, "mar": 3, "abr": 4, "may": 5, "jun": 6,
+        "jul": 7, "ago": 8, "sep": 9, "oct": 10, "nov": 11, "dic": 12,
+    }
+
+    # Pattern: "Mes DD / YYYY" e.g., "Ene 15 / 2026"
+    match = re.match(r"(\w{3})\s+(\d{1,2})\s*/\s*(\d{4})", release_date_str.strip(), re.IGNORECASE)
+    if match:
+        month_abbr = match.group(1).lower()
+        day = int(match.group(2))
+        year = int(match.group(3))
+
+        month = month_map.get(month_abbr)
+        if month:
+            try:
+                return datetime.date(year, month, day)
+            except ValueError:
+                pass
+
+    return None
+
+
 async def _scrape_movie_page_async(movie_url: str) -> str:
     """Fetch HTML content from a movie's colombia.com page."""
     logger.info(f"Scraping movie page: {movie_url}")
@@ -325,58 +359,129 @@ async def _scrape_theater_html_async(
             html_content = await page.content()
         finally:
             await context.close()
-    logger.info(f"Finished scraping showtimes for theater: {theater.name}\n\n")
+    logger.info(f"Finished scraping showtimes for theater: {theater.name}\n")
 
     return html_content
+
+
+def _normalize_name(name: str) -> str:
+    """Normalize a name for comparison by lowercasing and removing accents/punctuation."""
+    import unicodedata
+    normalized = unicodedata.normalize("NFD", name.lower())
+    return "".join(c for c in normalized if unicodedata.category(c) != "Mn").strip()
 
 
 def _find_best_tmdb_match(
     results: list[TMDBMovieResult],
     movie_name: str,
     metadata: MovieMetadata | None,
+    tmdb_service: TMDBService,
 ) -> TMDBMovieResult | None:
     """
     Find the best matching TMDB result using colombia.com metadata for verification.
 
-    Compares release year and runtime to identify the correct movie.
+    Matching priority:
+    1. Exact release date match
+    2. Release year match (within 1 year tolerance)
+    3. Director/actors match (fetches details from TMDB)
+    4. Title similarity
+
     Returns the best match, or None if no suitable match is found.
     """
+    logger.debug(f"=== _find_best_tmdb_match START for '{movie_name}' ===")
+    logger.debug(f"  TMDB results count: {len(results)}")
+    logger.debug(f"  Has metadata: {metadata is not None}")
+
     if not results:
+        logger.debug("  No TMDB results, returning None")
         return None
 
     # If no metadata, fall back to first result
     if not metadata:
         logger.info(f"No metadata available for '{movie_name}', using first TMDB result")
+        logger.debug(f"  Falling back to first result: '{results[0].title}' (id={results[0].id})")
+        OperationalIssue.objects.create(
+            name="No Colombia.com Metadata",
+            task="_find_best_tmdb_match",
+            error_message=f"Could not extract metadata from colombia.com for '{movie_name}'",
+            context={"movie_name": movie_name},
+            severity=OperationalIssue.Severity.WARNING,
+        )
         return results[0]
 
+    logger.debug(f"  Metadata: director='{metadata.director}', actors={metadata.actors}")
+    logger.debug(f"  Metadata: release_date='{metadata.release_date}', duration={metadata.duration_minutes}")
+
+    colombia_date = _parse_release_date_from_colombia_date(metadata.release_date)
     colombia_year = _parse_release_year_from_colombia_date(metadata.release_date)
-    colombia_duration = metadata.duration_minutes
+    logger.debug(f"  Parsed colombia_date={colombia_date}, colombia_year={colombia_year}")
+
+    if not colombia_year:
+        logger.warning(f"Could not parse release date from '{metadata.release_date}' for '{movie_name}'")
+        OperationalIssue.objects.create(
+            name="Missing Colombia.com Release Date",
+            task="_find_best_tmdb_match",
+            error_message=f"Could not parse release date from colombia.com for '{movie_name}'",
+            context={
+                "movie_name": movie_name,
+                "release_date_raw": metadata.release_date,
+                "metadata": {
+                    "genre": metadata.genre,
+                    "duration_minutes": metadata.duration_minutes,
+                    "director": metadata.director,
+                },
+            },
+            severity=OperationalIssue.Severity.WARNING,
+        )
 
     best_match: TMDBMovieResult | None = None
     best_score = -1
+    has_date_match = False
 
-    for result in results:
+    logger.debug(f"  --- Starting loop over {len(results)} TMDB results ---")
+
+    for idx, result in enumerate(results):
+        logger.debug(f"  [{idx}] Evaluating: '{result.title}' (id={result.id}, release={result.release_date})")
         score = 0
 
-        # Extract year from TMDB result
+        # Parse TMDB date
+        tmdb_date: datetime.date | None = None
         tmdb_year: int | None = None
         if result.release_date:
             try:
-                tmdb_year = int(result.release_date.split("-")[0])
-            except (ValueError, IndexError):
-                pass
+                tmdb_date = datetime.datetime.strptime(result.release_date, "%Y-%m-%d").date()
+                tmdb_year = tmdb_date.year
+            except ValueError:
+                logger.debug(f"      Failed to parse TMDB date: '{result.release_date}'")
 
-        # Year match (most important signal)
-        if colombia_year and tmdb_year:
+        logger.debug(f"      tmdb_date={tmdb_date}, tmdb_year={tmdb_year}")
+
+        # Priority 1: Exact date match (strongest signal) - return immediately
+        if colombia_date and tmdb_date and colombia_date == tmdb_date:
+            logger.info(
+                f"Exact date match for '{movie_name}': '{result.title}' "
+                f"(id={result.id}, date={tmdb_date})"
+            )
+            logger.debug("  === EARLY RETURN: Exact date match ===")
+            return result
+
+        # Priority 2: Year match
+        elif colombia_year and tmdb_year:
             year_diff = abs(colombia_year - tmdb_year)
+            logger.debug(f"      Year comparison: colombia={colombia_year}, tmdb={tmdb_year}, diff={year_diff}")
             if year_diff == 0:
                 score += 100
+                has_date_match = True
+                logger.debug("      +100 (same year)")
             elif year_diff == 1:
                 # Allow 1 year difference for release timing differences between countries
                 score += 50
+                has_date_match = True
+                logger.debug("      +50 (year diff = 1)")
             else:
                 # Significant year mismatch is a strong negative signal
                 score -= 50
+                logger.debug("      -50 (year diff > 1)")
 
         # Title similarity bonus
         movie_name_lower = movie_name.lower()
@@ -385,34 +490,102 @@ def _find_best_tmdb_match(
 
         if movie_name_lower == tmdb_title_lower:
             score += 30
+            logger.debug("      +30 (exact title match)")
         elif movie_name_lower in tmdb_title_lower or tmdb_title_lower in movie_name_lower:
             score += 15
+            logger.debug("      +15 (partial title match)")
 
         if movie_name_lower == original_title_lower:
             score += 20
+            logger.debug("      +20 (exact original_title match)")
         elif movie_name_lower in original_title_lower or original_title_lower in movie_name_lower:
             score += 10
+            logger.debug("      +10 (partial original_title match)")
 
         # Popularity boost (TMDB orders by relevance, so add small position-based bonus)
-        position_bonus = max(0, 10 - results.index(result))
+        position_bonus = max(0, 10 - idx)
         score += position_bonus
+        logger.debug(f"      +{position_bonus} (position bonus)")
+
+        # Director/actors matching - only fetch details if we have metadata to compare
+        # and limit to top 5 results to avoid excessive API calls
+        director_matched = False
+        actor_matched = False
+        if metadata and (metadata.director or metadata.actors) and idx < 5:
+            logger.debug("      Fetching TMDB details for credits comparison...")
+            try:
+                APICallCounter.increment("tmdb")
+                details = tmdb_service.get_movie_details(result.id, include_credits=True)
+                logger.debug(f"      Got details: {len(details.directors)} directors, {len(details.cast) if details.cast else 0} cast")
+
+                # Director matching
+                if metadata.director and details.directors:
+                    colombia_director = _normalize_name(metadata.director)
+                    tmdb_director_names = [d.name for d in details.directors]
+                    logger.debug(f"      Director comparison: colombia='{colombia_director}', tmdb={tmdb_director_names}")
+                    for tmdb_director in details.directors:
+                        if _normalize_name(tmdb_director.name) == colombia_director:
+                            score += 150
+                            director_matched = True
+                            logger.debug(f"      +150 (director match: {tmdb_director.name})")
+                            break
+
+                # Actors matching - check if any colombia.com actor appears in TMDB cast
+                if metadata.actors and details.cast:
+                    colombia_actors = {_normalize_name(a) for a in metadata.actors}
+                    tmdb_actors = {_normalize_name(c.name) for c in details.cast[:15]}  # Top 15 cast
+                    matching_actors = colombia_actors & tmdb_actors
+                    logger.debug(f"      Actor comparison: colombia={colombia_actors}")
+                    logger.debug(f"      Actor comparison: tmdb={tmdb_actors}")
+                    logger.debug(f"      Matching actors: {matching_actors}")
+                    if matching_actors:
+                        # Score based on number of matching actors
+                        actor_score = min(len(matching_actors) * 30, 90)  # Cap at 90
+                        score += actor_score
+                        actor_matched = True
+                        logger.debug(f"      +{actor_score} (actor match: {len(matching_actors)} actors)")
+            except TMDBServiceError as e:
+                logger.warning(f"Failed to fetch details for TMDB id {result.id}: {e}")
 
         logger.debug(
-            f"TMDB match score for '{result.title}' ({tmdb_year}): {score} "
-            f"[colombia_year={colombia_year}, duration={colombia_duration}]"
+            f"      FINAL SCORE: {score} (director_matched={director_matched}, actor_matched={actor_matched})"
         )
 
         if score > best_score:
+            logger.debug(f"      New best match! (previous best_score={best_score})")
             best_score = score
             best_match = result
+
+    logger.debug("  --- Loop complete ---")
+
+    # Log operational issue if we couldn't match by date
+    if not has_date_match and (colombia_date or colombia_year):
+        tmdb_dates = [
+            f"{r.title}: {r.release_date}" for r in results[:5]  # First 5 results
+        ]
+        logger.debug("  No date match found, creating OperationalIssue")
+        OperationalIssue.objects.create(
+            name="No TMDB Date Match",
+            task="_find_best_tmdb_match",
+            error_message=f"No TMDB result matched release date for '{movie_name}'",
+            context={
+                "movie_name": movie_name,
+                "colombia_date": str(colombia_date) if colombia_date else None,
+                "colombia_year": colombia_year,
+                "tmdb_results": tmdb_dates,
+            },
+            severity=OperationalIssue.Severity.WARNING,
+        )
 
     if best_match:
         logger.info(
             f"Selected TMDB match for '{movie_name}': '{best_match.title}' "
-            f"(id={best_match.id}, score={best_score})"
+            f"(id={best_match.id}, score={best_score}, date_matched={has_date_match})"
         )
+        logger.debug(f"=== _find_best_tmdb_match END: returning '{best_match.title}' ===")
     else:
         logger.warning(f"No suitable TMDB match found for '{movie_name}'")
+        logger.debug("=== _find_best_tmdb_match END: returning None ===")
 
     return best_match
 
@@ -436,12 +609,11 @@ def _get_or_create_movie(
     if movie_url:
         existing_movie = Movie.objects.filter(colombia_dot_com_url=movie_url).first()
         if existing_movie:
-            logger.info(f"Found movie by URL: {existing_movie}")
             return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=False)
 
     # No URL match - need to search TMDB
     try:
-        logger.info(f"Did not find move: {existing_movie}. Searching TMDB for '{movie_name}'")
+        logger.info(f"Did not find movie: '{movie_name}'. Searching TMDB...")
         APICallCounter.increment("tmdb")
         response = tmdb_service.search_movie(movie_name)
 
@@ -475,7 +647,7 @@ def _get_or_create_movie(
                 logger.warning(f"Failed to scrape movie page for '{movie_name}': {e}")
 
         # Find best matching TMDB result
-        best_match = _find_best_tmdb_match(response.results, movie_name, metadata)
+        best_match = _find_best_tmdb_match(response.results, movie_name, metadata, tmdb_service)
         if not best_match:
             return MovieLookupResult(movie=None, is_new=False, tmdb_called=True)
 
@@ -531,7 +703,7 @@ def save_showtimes_for_theater(theater: Theater) -> TaskReport:
         )
         return TaskReport(total_showtimes=0, tmdb_calls=0, new_movies=[])
 
-    logger.info(f"Found {len(date_options)} dates for {theater.name}: {date_options}")
+    logger.info(f"Found {len(date_options)} dates for {theater.name}: {date_options}\n\n")
 
     tmdb_service = TMDBService()
     total_showtimes = 0
@@ -545,12 +717,14 @@ def save_showtimes_for_theater(theater: Theater) -> TaskReport:
                 theater=theater,
                 target_date=None,
                 tmdb_service=tmdb_service,
+                html_content=html_content,
             )
         else:
             report = _save_showtimes_for_theater_for_date(
                 theater=theater,
                 target_date=target_date,
                 tmdb_service=tmdb_service,
+                html_content=None,
             )
         total_showtimes += report.total_showtimes
         total_tmdb_calls += report.tmdb_calls
@@ -558,7 +732,7 @@ def save_showtimes_for_theater(theater: Theater) -> TaskReport:
             if movie_title not in all_new_movies:
                 all_new_movies.append(movie_title)
 
-    logger.info(f"Saved {total_showtimes} total showtimes for {theater.name}")
+    logger.info(f"Proccesing finished. Saved {total_showtimes} total showtimes for {theater.name}\n\n\n")
     return TaskReport(
         total_showtimes=total_showtimes,
         tmdb_calls=total_tmdb_calls,
@@ -570,16 +744,19 @@ def _save_showtimes_for_theater_for_date(
     theater: Theater,
     target_date: datetime.date | None,
     tmdb_service: TMDBService,
+    html_content: str | None,
 ) -> TaskReport:
     """
     Scrape showtimes for a specific date and save them to the database.
 
     If target_date is None, scrapes the default page (today's showtimes).
+    If html_content is provided, uses it instead of scraping.
 
     Returns:
         TaskReport with stats for this date
     """
-    html_content = asyncio.run(_scrape_theater_html_async(theater, target_date=target_date))
+    if not html_content:
+        html_content = asyncio.run(_scrape_theater_html_async(theater, target_date=target_date))
     movie_showtimes_list = _extract_showtimes_from_html(html_content)
 
     effective_date = target_date or datetime.datetime.now(BOGOTA_TZ).date()
@@ -588,8 +765,9 @@ def _save_showtimes_for_theater_for_date(
         logger.warning(f"No showtimes found for theater: {theater.name} on {effective_date}")
         return TaskReport(total_showtimes=0, tmdb_calls=0, new_movies=[])
 
-    source_url = theater.colombia_dot_com_url
+    logger.info(f"Processing showtimesfor {theater.name} on {effective_date}")
 
+    source_url = theater.colombia_dot_com_url
     deleted_count, _ = Showtime.objects.filter(theater=theater, start_date=effective_date).delete()
     if deleted_count:
         logger.info(f"Deleted {deleted_count} existing showtimes for {theater.name} on {effective_date}")
@@ -661,7 +839,7 @@ def colombia_com_download_task():
 
     for theater in theaters:
         try:
-            logger.info(f"Processing theater: {theater.name}")
+            logger.info(f"Starting to process theater: {theater.name}")
             report = save_showtimes_for_theater(theater)
             total_showtimes += report.total_showtimes
             total_tmdb_calls += report.tmdb_calls

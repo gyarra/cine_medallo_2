@@ -2,10 +2,11 @@
 Import a movie from TMDB into the database.
 
 Usage:
-    python manage.py import_movie_from_tmdb "Avatar: Fuego Y Cenizas"
-    python manage.py import_movie_from_tmdb "Avatar" --year 2025
-    python manage.py import_movie_from_tmdb "Fight Club" --language en-US
+    python manage.py tmdb_service_import_movie "Avatar: Fuego Y Cenizas"
+    python manage.py tmdb_service_import_movie "Avatar" --year 2025
+    python manage.py tmdb_service_import_movie "Fight Club" --language en-US
 """
+
 
 from django.core.management.base import BaseCommand
 
@@ -67,6 +68,15 @@ class Command(BaseCommand):
         for i, movie in enumerate(response.results[:10], 1):
             year_str = f" ({movie.release_date[:4]})" if movie.release_date else ""
             self.stdout.write(f"  {i}. {movie.title}{year_str} [TMDB ID: {movie.id}]")
+            self.stdout.write(f"     Original Title: {movie.original_title}")
+            self.stdout.write(f"     Release Date: {movie.release_date or 'N/A'}")
+            self.stdout.write(f"     Popularity: {movie.popularity}")
+            self.stdout.write(f"     Vote Average: {movie.vote_average}")
+            self.stdout.write(f"     Vote Count: {movie.vote_count}")
+            if movie.overview:
+                overview = movie.overview[:200] + "..." if len(movie.overview) > 200 else movie.overview
+                self.stdout.write(f"     Overview: {overview}")
+            self.stdout.write("")
 
         # Select movie
         if select:

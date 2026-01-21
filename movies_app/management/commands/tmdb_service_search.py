@@ -2,10 +2,11 @@
 Search TMDB for movie information.
 
 Usage:
-    python manage.py search_tmdb "Avatar: Fuego Y Cenizas"
-    python manage.py search_tmdb "Avatar" --year 2024
-    python manage.py search_tmdb "Fight Club" --language en-US
+    python manage.py tmdb_service_search "Avatar: Fuego Y Cenizas"
+    python manage.py tmdb_service_search "Avatar" --year 2024
+    python manage.py tmdb_service_search "Fight Club" --language en-US
 """
+
 
 from django.core.management.base import BaseCommand
 
