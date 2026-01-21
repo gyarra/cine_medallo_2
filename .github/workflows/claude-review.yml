@@ -1,0 +1,72 @@
+name: Claude PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+  actions: read
+  id-token: write
+
+jobs:
+  claude-review:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Claude PR Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          show_full_output: true
+          prompt: |
+            Review this pull request following the project guidelines in .github/copilot-instructions.md.
+
+            Read the Hard Rules and coding standards carefully and apply them to all changed files.
+
+            IMPORTANT: Do NOT set up the environment, run tests, or run any automated checks (linting, type checking, etc.). These are already automated in separate GitHub workflows (lint.yml, typecheck.yml, tests.yml).
+
+            Project-specific emphasis (from copilot-instructions.md):
+            - Use OOP—classes, not free functions; composition over inheritance
+            - NO inline imports—all imports at top of file, no exceptions
+            - No default values in method parameters
+            - Never swallow exceptions—log errors properly
+            - Generate migrations before pushing a PR
+            - New features require success and failure tests
+
+            IMPORTANT - Keep feedback concise:
+            - Do NOT comment on positive changes or things done well
+            - Do NOT list things that "look good" or "are correct"
+            - ONLY report issues, questions, and observations that need attention
+            - If there are no issues, simply approve with a one-line summary
+
+            Provide feedback using these categories:
+            - 🔴 Blocking: Must fix before merge (bugs, security issues)
+            - 🟡 Important: Should fix (performance, maintainability)
+            - 🟢 Suggestion: Nice to have improvements
+            - 💡 Question/Observation: Clarification needed or notable pattern
+
+            For each issue: reference file:line, explain the problem, suggest a fix.
+
+            If the PR has no issues, approve it with a brief one-line summary.
+
+          claude_args: |
+            --model claude-sonnet-4-5-20250929
+            --max-turns 25
+
+          track_progress: true
+
+          settings: |
+            {
+              "bash": {
+                "allow": ["git diff*", "git show*", "git log*", "find*", "grep*"]
+              }
+            }
