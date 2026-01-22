@@ -404,3 +404,73 @@ class TestGetOrCreateMovie:
         assert result.movie is None
         assert result.is_new is False
         assert result.tmdb_called is True
+
+    def test_no_tmdb_results_records_unfindable_url(self, mock_tmdb_service):
+        """When TMDB returns no results, records the URL as unfindable."""
+        from movies_app.models import UnfindableMovieUrl
+        from movies_app.services.tmdb_service import TMDBSearchResponse
+        from movies_app.tasks.colombia_com_download_task import _get_or_create_movie
+
+        mock_tmdb_service.search_movie.return_value = TMDBSearchResponse(
+            page=1, total_pages=0, total_results=0, results=[]
+        )
+
+        movie_url = "https://www.colombia.com/cine/peliculas/unfindable-movie"
+        _get_or_create_movie(
+            movie_name="Unfindable Movie",
+            movie_url=movie_url,
+            tmdb_service=mock_tmdb_service,
+            storage_service=None,
+        )
+
+        unfindable = UnfindableMovieUrl.objects.get(url=movie_url)
+        assert unfindable.movie_title == "Unfindable Movie"
+        assert unfindable.reason == UnfindableMovieUrl.Reason.NO_TMDB_RESULTS
+        assert unfindable.attempts == 1
+
+    def test_skips_tmdb_lookup_for_known_unfindable_url(self, mock_tmdb_service):
+        """When URL is already in unfindable cache, skips TMDB lookup entirely."""
+        from movies_app.models import UnfindableMovieUrl
+        from movies_app.tasks.colombia_com_download_task import _get_or_create_movie
+
+        movie_url = "https://www.colombia.com/cine/peliculas/cached-unfindable"
+        UnfindableMovieUrl.objects.create(
+            url=movie_url,
+            movie_title="Cached Unfindable Movie",
+            reason=UnfindableMovieUrl.Reason.NO_TMDB_RESULTS,
+            attempts=3,
+        )
+
+        result = _get_or_create_movie(
+            movie_name="Cached Unfindable Movie",
+            movie_url=movie_url,
+            tmdb_service=mock_tmdb_service,
+            storage_service=None,
+        )
+
+        assert result.movie is None
+        assert result.tmdb_called is False
+        mock_tmdb_service.search_movie.assert_not_called()
+
+    def test_increments_attempts_for_known_unfindable_url(self, mock_tmdb_service):
+        """When encountering a known unfindable URL, increments the attempts counter."""
+        from movies_app.models import UnfindableMovieUrl
+        from movies_app.tasks.colombia_com_download_task import _get_or_create_movie
+
+        movie_url = "https://www.colombia.com/cine/peliculas/repeat-unfindable"
+        UnfindableMovieUrl.objects.create(
+            url=movie_url,
+            movie_title="Repeat Unfindable Movie",
+            reason=UnfindableMovieUrl.Reason.NO_TMDB_RESULTS,
+            attempts=5,
+        )
+
+        _get_or_create_movie(
+            movie_name="Repeat Unfindable Movie",
+            movie_url=movie_url,
+            tmdb_service=mock_tmdb_service,
+            storage_service=None,
+        )
+
+        unfindable = UnfindableMovieUrl.objects.get(url=movie_url)
+        assert unfindable.attempts == 6
