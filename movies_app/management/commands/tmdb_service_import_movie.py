@@ -8,10 +8,30 @@ Usage:
 """
 
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 
 from movies_app.models import Movie
+from movies_app.services.supabase_storage_service import SupabaseStorageService
 from movies_app.services.tmdb_service import TMDBService, TMDBServiceError
+
+
+def _create_storage_service() -> SupabaseStorageService | None:
+    """Create a Supabase storage service if credentials are configured."""
+    bucket_url = settings.SUPABASE_IMAGES_BUCKET_URL
+    access_key_id = settings.SUPABASE_IMAGES_BUCKET_ACCESS_KEY_ID
+    secret_access_key = settings.SUPABASE_IMAGES_BUCKET_SECRET_ACCESS_KEY
+    bucket_name = settings.SUPABASE_IMAGES_BUCKET_NAME
+
+    if not all([bucket_url, access_key_id, secret_access_key, bucket_name]):
+        return None
+
+    return SupabaseStorageService(
+        bucket_url=bucket_url,
+        access_key_id=access_key_id,
+        secret_access_key=secret_access_key,
+        bucket_name=bucket_name,
+    )
 
 
 class Command(BaseCommand):
@@ -108,8 +128,9 @@ class Command(BaseCommand):
             )
             return
 
-        # Create the movie (no storage service for manual imports)
-        movie = Movie.create_from_tmdb(selected_movie, service, storage_service=None)
+        # Create the movie with storage service for image uploads
+        storage_service = _create_storage_service()
+        movie = Movie.create_from_tmdb(selected_movie, service, storage_service)
 
         self.stdout.write(self.style.SUCCESS(f"\nSuccessfully imported: {movie}"))
         self.stdout.write(f"  Database ID: {movie.id}")  # pyright: ignore[reportAttributeAccessIssue]
