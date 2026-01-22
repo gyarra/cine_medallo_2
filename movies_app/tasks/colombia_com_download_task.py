@@ -657,7 +657,7 @@ def _record_unfindable_url(
     reason: UnfindableMovieUrl.Reason,
 ) -> None:
     """Record a URL as unfindable to avoid future redundant lookups."""
-    UnfindableMovieUrl.objects.update_or_create(
+    obj, created = UnfindableMovieUrl.objects.update_or_create(
         url=url,
         defaults={
             "movie_title": movie_title,
@@ -665,6 +665,10 @@ def _record_unfindable_url(
             "reason": reason,
         },
     )
+    if not created:
+        obj.attempts += 1
+        obj.save(update_fields=["attempts"])
+
     OperationalIssue.objects.create(
         name="Unfindable Movie URL",
         task="_get_or_create_movie",
@@ -950,7 +954,7 @@ def colombia_com_download_task():
         logger.warning("No theaters found with colombia_dot_com_url")
         return
 
-    logger.info(f"Found {theater_count} theaters with colombia_dot_com_url")
+    logger.info(f"Found {theater_count} theaters with colombia_dot_com_url\n\n")
 
     total_showtimes = 0
     total_tmdb_calls = 0

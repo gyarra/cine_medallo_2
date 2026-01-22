@@ -17,7 +17,7 @@ class UnfindableMovieUrl(models.Model):
 
     url = models.URLField(unique=True, max_length=500)
     movie_title = models.CharField(max_length=500)
-    original_title = models.CharField(max_length=500, blank=True, default="")
+    original_title = models.CharField(max_length=500, default="")
     reason = models.CharField(max_length=50, choices=Reason.choices)
     attempts = models.PositiveIntegerField(default=1)
     first_seen = models.DateTimeField(auto_now_add=True)
