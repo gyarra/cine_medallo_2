@@ -12,6 +12,7 @@ from django.db import models
 from django.utils.text import slugify
 
 if TYPE_CHECKING:
+    from movies_app.services.supabase_storage_service import SupabaseStorageService
     from movies_app.services.tmdb_service import TMDBMovieDetails, TMDBMovieResult, TMDBService
 
 logger = logging.getLogger(__name__)
@@ -165,7 +166,7 @@ class Movie(models.Model):
         cls,
         tmdb_result: TMDBMovieResult,
         tmdb_service: TMDBService | None,
-        poster_size: str = "w500",
+        storage_service: SupabaseStorageService | None,
     ) -> Movie:
         """
         Create a Movie instance from a TMDB search result.
@@ -173,10 +174,13 @@ class Movie(models.Model):
         If tmdb_service is provided, fetches full movie details including
         runtime, genres, director, cast, and trailer.
 
+        If storage_service is provided, uploads images to Supabase and stores
+        those URLs instead of TMDB URLs.
+
         Args:
             tmdb_result: A TMDBMovieResult from the TMDB API
             tmdb_service: Optional TMDBService for fetching full details
-            poster_size: Image size for poster URL (w92, w154, w185, w342, w500, w780, original)
+            storage_service: Optional SupabaseStorageService for uploading images
 
         Returns:
             A new saved Movie instance
@@ -189,10 +193,15 @@ class Movie(models.Model):
             except (ValueError, IndexError):
                 pass
 
-        # Build poster URL
+        # Build poster URL (will be replaced with Supabase URL if storage_service provided)
         poster_url = ""
         if tmdb_result.poster_path:
-            poster_url = f"https://image.tmdb.org/t/p/{poster_size}{tmdb_result.poster_path}"
+            tmdb_poster_url = f"https://image.tmdb.org/t/p/original{tmdb_result.poster_path}"
+            poster_url = cls._upload_image_or_fallback(
+                storage_service,
+                tmdb_poster_url,
+                f"posters/{tmdb_result.id}.jpg",
+            )
 
         # Base movie data from search result
         movie_data = {
@@ -211,11 +220,38 @@ class Movie(models.Model):
                 movie_data,
                 tmdb_result.id,
                 tmdb_service,
-                poster_size,
+                storage_service,
             )
 
         movie = cls.objects.create(**movie_data)
         return movie
+
+    @classmethod
+    def _upload_image_or_fallback(
+        cls,
+        storage_service: SupabaseStorageService | None,
+        tmdb_url: str,
+        dest_path: str,
+    ) -> str:
+        """
+        Upload image to Supabase if storage service provided, otherwise return TMDB URL.
+
+        Falls back to TMDB URL if upload fails.
+        """
+        if not storage_service:
+            return tmdb_url
+
+        from movies_app.services.supabase_storage_service import SupabaseStorageError
+
+        try:
+            # Check if already uploaded
+            existing_url = storage_service.get_existing_url(dest_path)
+            if existing_url:
+                return existing_url
+            return storage_service.download_and_upload_from_url(tmdb_url, dest_path)
+        except SupabaseStorageError as e:
+            logger.warning(f"Failed to upload image to Supabase, using TMDB URL: {e}")
+            return tmdb_url
 
     @classmethod
     def _enrich_with_tmdb_details(
@@ -223,7 +259,7 @@ class Movie(models.Model):
         movie_data: dict,
         tmdb_id: int,
         tmdb_service: TMDBService,
-        poster_size: str,
+        storage_service: SupabaseStorageService | None,
     ) -> dict:
         """
         Enrich movie data with full TMDB details.
@@ -236,7 +272,7 @@ class Movie(models.Model):
                 include_credits=True,
                 include_videos=True,
             )
-            movie_data = cls._apply_tmdb_details(movie_data, details, poster_size)
+            movie_data = cls._apply_tmdb_details(movie_data, details, storage_service)
         except Exception as e:
             logger.warning(f"Failed to fetch TMDB details for movie {tmdb_id}: {e}")
 
@@ -247,7 +283,7 @@ class Movie(models.Model):
         cls,
         movie_data: dict,
         details: TMDBMovieDetails,
-        poster_size: str,
+        storage_service: SupabaseStorageService | None,
     ) -> dict:
         """Apply TMDBMovieDetails to movie data dict."""
         # Runtime
@@ -274,7 +310,13 @@ class Movie(models.Model):
 
         # Backdrop URL
         if details.backdrop_path:
-            movie_data["backdrop_url"] = f"https://image.tmdb.org/t/p/{poster_size}{details.backdrop_path}"
+            tmdb_id = movie_data.get("tmdb_id")
+            tmdb_backdrop_url = f"https://image.tmdb.org/t/p/original{details.backdrop_path}"
+            movie_data["backdrop_url"] = cls._upload_image_or_fallback(
+                storage_service,
+                tmdb_backdrop_url,
+                f"backdrops/{tmdb_id}.jpg",
+            )
 
         # Trailer URL (prefer Spanish)
         best_trailer = details.get_best_trailer()
@@ -288,7 +330,7 @@ class Movie(models.Model):
         cls,
         tmdb_result: TMDBMovieResult,
         tmdb_service: TMDBService | None,
-        poster_size: str = "w500",
+        storage_service: SupabaseStorageService | None,
     ) -> tuple[Movie, bool]:
         """
         Get existing movie by tmdb_id or create a new one from TMDB result.
@@ -296,7 +338,7 @@ class Movie(models.Model):
         Args:
             tmdb_result: A TMDBMovieResult from the TMDB API
             tmdb_service: Optional TMDBService for fetching full details
-            poster_size: Image size for poster URL
+            storage_service: Optional SupabaseStorageService for uploading images
 
         Returns:
             Tuple of (Movie instance, created boolean)
@@ -305,5 +347,5 @@ class Movie(models.Model):
             movie = cls.objects.get(tmdb_id=tmdb_result.id)
             return movie, False
         except cls.DoesNotExist:
-            movie = cls.create_from_tmdb(tmdb_result, tmdb_service, poster_size)
+            movie = cls.create_from_tmdb(tmdb_result, tmdb_service, storage_service)
             return movie, True

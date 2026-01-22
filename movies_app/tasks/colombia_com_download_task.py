@@ -16,11 +16,13 @@ import zoneinfo
 from dataclasses import dataclass
 
 from bs4 import BeautifulSoup
+from django.conf import settings
 from django.db import transaction
 from camoufox.async_api import AsyncCamoufox
 
 from config.celery_app import app
 from movies_app.models import APICallCounter, Movie, OperationalIssue, Showtime, Theater
+from movies_app.services.supabase_storage_service import SupabaseStorageService
 from movies_app.services.tmdb_service import TMDBMovieResult, TMDBService, TMDBServiceError
 
 logger = logging.getLogger(__name__)
@@ -33,6 +35,25 @@ BOGOTA_TZ = zoneinfo.ZoneInfo("America/Bogota")
 
 # Base URL for colombia.com
 COLOMBIA_COM_BASE_URL = "https://www.colombia.com"
+
+
+def _create_storage_service() -> SupabaseStorageService | None:
+    """Create a Supabase storage service if credentials are configured."""
+    bucket_url = settings.SUPABASE_IMAGES_BUCKET_URL
+    access_key_id = settings.SUPABASE_IMAGES_BUCKET_ACCESS_KEY_ID
+    secret_access_key = settings.SUPABASE_IMAGES_BUCKET_SECRET_ACCESS_KEY
+    bucket_name = settings.SUPABASE_IMAGES_BUCKET_NAME
+
+    if not all([bucket_url, access_key_id, secret_access_key, bucket_name]):
+        logger.debug("Supabase storage not configured, images will use TMDB URLs")
+        return None
+
+    return SupabaseStorageService(
+        bucket_url=bucket_url,
+        access_key_id=access_key_id,
+        secret_access_key=secret_access_key,
+        bucket_name=bucket_name,
+    )
 
 
 @dataclass
@@ -641,6 +662,7 @@ def _get_or_create_movie(
     movie_name: str,
     movie_url: str | None,
     tmdb_service: TMDBService,
+    storage_service: SupabaseStorageService | None,
 ) -> MovieLookupResult:
     """
     Get or create a movie, prioritizing lookup by colombia.com URL.
@@ -726,7 +748,7 @@ def _get_or_create_movie(
                 existing_movie.save(update_fields=["colombia_dot_com_url"])
             return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=True)
 
-        movie = Movie.create_from_tmdb(best_match, tmdb_service)
+        movie = Movie.create_from_tmdb(best_match, tmdb_service, storage_service)
         if movie_url:
             movie.colombia_dot_com_url = movie_url
             movie.save(update_fields=["colombia_dot_com_url"])
@@ -772,6 +794,7 @@ def save_showtimes_for_theater(theater: Theater) -> TaskReport:
     logger.info(f"Found {len(date_options)} dates for {theater.name}: {date_options}\n\n")
 
     tmdb_service = TMDBService()
+    storage_service = _create_storage_service()
     total_showtimes = 0
     total_tmdb_calls = 0
     all_new_movies: list[str] = []
@@ -783,6 +806,7 @@ def save_showtimes_for_theater(theater: Theater) -> TaskReport:
                 theater=theater,
                 target_date=None,
                 tmdb_service=tmdb_service,
+                storage_service=storage_service,
                 html_content=html_content,
             )
         else:
@@ -790,6 +814,7 @@ def save_showtimes_for_theater(theater: Theater) -> TaskReport:
                 theater=theater,
                 target_date=target_date,
                 tmdb_service=tmdb_service,
+                storage_service=storage_service,
                 html_content=None,
             )
         total_showtimes += report.total_showtimes
@@ -810,6 +835,7 @@ def _save_showtimes_for_theater_for_date(
     theater: Theater,
     target_date: datetime.date | None,
     tmdb_service: TMDBService,
+    storage_service: SupabaseStorageService | None,
     html_content: str | None,
 ) -> TaskReport:
     """
@@ -847,6 +873,7 @@ def _save_showtimes_for_theater_for_date(
             movie_name=movie_showtime.movie_name,
             movie_url=movie_showtime.movie_url,
             tmdb_service=tmdb_service,
+            storage_service=storage_service,
         )
         if lookup_result.tmdb_called:
             tmdb_calls += 1
