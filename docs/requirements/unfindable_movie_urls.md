@@ -59,7 +59,7 @@ if UnfindableMovieUrl.objects.filter(url=movie_url).exists():
 
 ### 2. Record Unfindable URLs
 
-When we fail to match a movie, instead of (or in addition to) creating an `OperationalIssue`:
+When we fail to match a movie, record it in `UnfindableMovieUrl` **and** create an `OperationalIssue` (for visibility in logs/alerts):
 
 ```python
 UnfindableMovieUrl.objects.update_or_create(
@@ -70,6 +70,14 @@ UnfindableMovieUrl.objects.update_or_create(
         "reason": "no_tmdb_results",
         "attempts": F("attempts") + 1,
     }
+)
+
+OperationalIssue.objects.create(
+    name="Unfindable Movie URL",
+    task="_get_or_create_movie",
+    error_message=f"Could not match movie to TMDB: {movie_title}",
+    context={"movie_url": movie_url, "reason": "no_tmdb_results"},
+    severity=OperationalIssue.Severity.WARNING,
 )
 ```
 

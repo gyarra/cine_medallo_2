@@ -21,7 +21,7 @@ from django.db import transaction
 from camoufox.async_api import AsyncCamoufox
 
 from config.celery_app import app
-from movies_app.models import APICallCounter, Movie, OperationalIssue, Showtime, Theater
+from movies_app.models import APICallCounter, Movie, OperationalIssue, Showtime, Theater, UnfindableMovieUrl
 from movies_app.services.supabase_storage_service import SupabaseStorageService
 from movies_app.services.tmdb_service import TMDBMovieResult, TMDBService, TMDBServiceError
 
@@ -650,6 +650,30 @@ def _find_best_tmdb_match(
     return best_match
 
 
+def _record_unfindable_url(
+    url: str,
+    movie_title: str,
+    original_title: str | None,
+    reason: UnfindableMovieUrl.Reason,
+) -> None:
+    """Record a URL as unfindable to avoid future redundant lookups."""
+    UnfindableMovieUrl.objects.update_or_create(
+        url=url,
+        defaults={
+            "movie_title": movie_title,
+            "original_title": original_title or "",
+            "reason": reason,
+        },
+    )
+    OperationalIssue.objects.create(
+        name="Unfindable Movie URL",
+        task="_get_or_create_movie",
+        error_message=f"Could not match movie to TMDB: {movie_title}",
+        context={"movie_url": url, "reason": reason, "original_title": original_title},
+        severity=OperationalIssue.Severity.WARNING,
+    )
+
+
 def _get_or_create_movie(
     movie_name: str,
     movie_url: str | None,
@@ -661,13 +685,22 @@ def _get_or_create_movie(
 
     Lookup order:
     1. By colombia_dot_com_url (if provided) - avoids TMDB API call
-    2. By TMDB search with metadata matching
+    2. Check if URL is known to be unfindable - avoids redundant TMDB calls
+    3. By TMDB search with metadata matching
     """
     # Step 1: Try to find existing movie by colombia.com URL
     if movie_url:
         existing_movie = Movie.objects.filter(colombia_dot_com_url=movie_url).first()
         if existing_movie:
             return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=False)
+
+        # Step 1b: Check if this URL is already known to be unfindable
+        unfindable = UnfindableMovieUrl.objects.filter(url=movie_url).first()
+        if unfindable:
+            unfindable.attempts += 1
+            unfindable.save(update_fields=["attempts", "last_seen"])
+            logger.debug(f"Skipping TMDB lookup for known unfindable URL: {movie_url}")
+            return MovieLookupResult(movie=None, is_new=False, tmdb_called=False)
 
     # Step 2: Scrape metadata from colombia.com movie page
     # We do this before TMDB search because the original title (in parentheses) is often
@@ -694,6 +727,12 @@ def _get_or_create_movie(
                 context={"movie_name": movie_name, "movie_url": movie_url},
                 severity=OperationalIssue.Severity.WARNING,
             )
+            # Record as unfindable due to metadata scrape failure
+            if movie_url:
+                _record_unfindable_url(
+                    movie_url, movie_name, None, UnfindableMovieUrl.Reason.NO_METADATA
+                )
+            return MovieLookupResult(movie=None, is_new=False, tmdb_called=False)
 
     # Step 3: Search TMDB (use original title if available for better matching)
     search_name = metadata.original_title if metadata and metadata.original_title else movie_name
@@ -705,18 +744,25 @@ def _get_or_create_movie(
 
         if not response.results:
             logger.warning(f"No TMDB results found for: {search_name}")
-            OperationalIssue.objects.create(
-                name="No TMDB Results",
-                task="_get_or_create_movie",
-                error_message=f"No TMDB results found for movie: {search_name}",
-                context={"movie_name": movie_name, "search_name": search_name, "movie_url": movie_url},
-                severity=OperationalIssue.Severity.WARNING,
-            )
+            if movie_url:
+                _record_unfindable_url(
+                    movie_url,
+                    movie_name,
+                    metadata.original_title if metadata else None,
+                    UnfindableMovieUrl.Reason.NO_TMDB_RESULTS,
+                )
             return MovieLookupResult(movie=None, is_new=False, tmdb_called=True)
 
         # Step 4: Find best matching TMDB result
         best_match = _find_best_tmdb_match(response.results, movie_name, metadata, tmdb_service)
         if not best_match:
+            if movie_url:
+                _record_unfindable_url(
+                    movie_url,
+                    movie_name,
+                    metadata.original_title if metadata else None,
+                    UnfindableMovieUrl.Reason.NO_MATCH,
+                )
             return MovieLookupResult(movie=None, is_new=False, tmdb_called=True)
 
         # Step 5: Check if this match already exists in DB
