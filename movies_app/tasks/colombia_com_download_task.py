@@ -398,22 +398,14 @@ async def _scrape_theater_html_async(
                 date_value = target_date.strftime("%m/%d/%Y").lstrip("0").replace("/0", "/")
                 logger.info(f"Selecting date: {target_date} (value: {date_value})")
 
-                # Capture current showtime content before changing date
-                old_content = await page.inner_html(".cartelera") if await page.query_selector(".cartelera") else ""
-
+                wait_start = datetime.datetime.now()
                 await page.select_option("select[name='fecha']", date_value)
                 await page.wait_for_load_state("networkidle")
 
-                # Poll until showtime content changes or timeout (max 5 seconds)
-                # The date dropdown triggers an AJAX update that replaces showtime data.
-                # networkidle fires too early, before the DOM is fully updated.
-                wait_start = datetime.datetime.now()
-                max_wait_seconds = 5
-                while (datetime.datetime.now() - wait_start).total_seconds() < max_wait_seconds:
-                    new_content = await page.inner_html(".cartelera") if await page.query_selector(".cartelera") else ""
-                    if new_content != old_content:
-                        break
-                    await asyncio.sleep(0.2)
+                # Sleep for 5 seconds while the conent updates.
+                # We've tried a number of "more efficient" strategies, that are faster, however they don't work,
+                # and we end up with incorrect showtimes. This works, so keep it, unless we find a better way that works.
+                await asyncio.sleep(5.0)
 
                 wait_duration = (datetime.datetime.now() - wait_start).total_seconds()
                 logger.info(f"Content change wait took {wait_duration:.2f}s for date {target_date}")
