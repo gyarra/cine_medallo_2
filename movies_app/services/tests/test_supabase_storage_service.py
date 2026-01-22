@@ -34,7 +34,7 @@ class TestSupabaseStorageService:
             Body=image_bytes,
             ContentType="image/jpeg",
         )
-        assert result == "https://example.supabase.co/storage/v1/s3/movie-images/posters/12345.jpg"
+        assert result == "https://example.supabase.co/storage/v1/object/public/movie-images/posters/12345.jpg"
 
     def test_upload_image_raises_on_client_error(self, storage_service, mock_boto3_client):
         from botocore.exceptions import ClientError
@@ -77,7 +77,7 @@ class TestSupabaseStorageService:
 
         result = storage_service.get_existing_url("posters/12345.jpg")
 
-        assert result == "https://example.supabase.co/storage/v1/s3/movie-images/posters/12345.jpg"
+        assert result == "https://example.supabase.co/storage/v1/object/public/movie-images/posters/12345.jpg"
 
     def test_get_existing_url_returns_none_when_not_exists(self, storage_service, mock_boto3_client):
         from botocore.exceptions import ClientError

@@ -102,7 +102,10 @@ class SupabaseStorageService:
 
     def _get_public_url(self, path: str) -> str:
         """Construct the public URL for an uploaded image."""
-        return f"{self.bucket_url}/{self.bucket_name}/{path}"
+        # The bucket_url uses the S3 endpoint (/storage/v1/s3) but public URLs
+        # need the object endpoint (/storage/v1/object/public)
+        public_url = self.bucket_url.replace("/storage/v1/s3", "/storage/v1/object/public")
+        return f"{public_url}/{self.bucket_name}/{path}"
 
     def get_existing_url(self, path: str) -> str | None:
         """
