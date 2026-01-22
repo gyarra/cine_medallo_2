@@ -84,6 +84,47 @@ class TestExtractMovieMetadata:
         assert "Jadon Cal" in metadata.actors
         assert "Sean Bridgers" in metadata.actors
         assert "Ene 15 / 2026" in metadata.release_date
+        assert metadata.original_title == "The Painted"  # From "La Maldición De Evelyn (The Painted)"
+
+    def test_extracts_original_title_from_parentheses(self):
+        from movies_app.tasks.colombia_com_download_task import (
+            _extract_movie_metadata_from_html,
+        )
+
+        html_with_original_title = """
+        <html>
+        <h1>La Empleada (The Housemaid)</h1>
+        <div class="pelicula">
+            <div>Género: Drama</div>
+            <div>Duración: 120 minutos</div>
+            <div>Director: Test Director</div>
+        </div>
+        </html>
+        """
+
+        metadata = _extract_movie_metadata_from_html(html_with_original_title)
+
+        assert metadata is not None
+        assert metadata.original_title == "The Housemaid"
+
+    def test_no_original_title_when_no_parentheses(self):
+        from movies_app.tasks.colombia_com_download_task import (
+            _extract_movie_metadata_from_html,
+        )
+
+        html_snapshot_path = os.path.join(
+            os.path.dirname(__file__),
+            "html_snapshot",
+            "colombia_dot_com___individual_movie_no_parens_title.html",
+        )
+
+        with open(html_snapshot_path, "r", encoding="utf-8") as f:
+            html_content = f.read()
+
+        metadata = _extract_movie_metadata_from_html(html_content)
+
+        assert metadata is not None
+        assert metadata.original_title is None  # "Bugonia" has no parentheses
 
     def test_parse_release_year_from_colombia_date(self):
         from movies_app.tasks.colombia_com_download_task import (
@@ -284,6 +325,7 @@ class TestGetOrCreateMovie:
                     director="James Cameron",
                     actors=["Sam Worthington", "Zoe Saldaña"],
                     release_date="Dic 19 / 2025",
+                    original_title=None,
                 )
 
                 result = _get_or_create_movie(
@@ -327,6 +369,7 @@ class TestGetOrCreateMovie:
                     director="James Cameron",
                     actors=["Sam Worthington"],
                     release_date="Dic 19 / 2025",
+                    original_title=None,
                 )
 
                 result = _get_or_create_movie(

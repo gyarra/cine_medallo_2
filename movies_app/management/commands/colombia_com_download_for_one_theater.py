@@ -55,7 +55,7 @@ class Command(BaseCommand):
             )
 
         self.stdout.write(f"URL: {theater.colombia_dot_com_url}")
-        self.stdout.write("Scraping showtimes and saving to database...")
+        self.stdout.write("Scraping showtimes and saving to database...\n\n\n")
 
         try:
             showtimes_saved = save_showtimes_for_theater(theater)
