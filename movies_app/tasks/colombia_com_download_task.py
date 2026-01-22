@@ -49,6 +49,7 @@ class MovieMetadata:
     director: str
     actors: list[str]
     release_date: str
+    original_title: str | None
 
 
 @dataclass
@@ -183,6 +184,13 @@ def _find_date_options(html_content: str) -> list[datetime.date]:
                 dates.append(parsed)
             except ValueError:
                 logger.warning(f"Could not parse date option: {value}")
+                OperationalIssue.objects.create(
+                    name="Date Option Parse Error",
+                    task="_find_date_options",
+                    error_message=f"Could not parse date option value: {value}",
+                    context={"value": value},
+                    severity=OperationalIssue.Severity.WARNING,
+                )
     return dates
 
 
@@ -191,6 +199,8 @@ def _extract_movie_metadata_from_html(html_content: str) -> MovieMetadata | None
     Extract movie metadata from colombia.com individual movie page HTML.
 
     Parses: Género, Duración, Clasificación, Director, Actores, Fecha de estreno
+    Also extracts original title from parentheses in movie title, e.g.,
+    "La Empleada (The Housemaid)" -> original_title = "The Housemaid"
     """
     soup = BeautifulSoup(html_content, "lxml")
 
@@ -200,11 +210,21 @@ def _extract_movie_metadata_from_html(html_content: str) -> MovieMetadata | None
     director = ""
     actors: list[str] = []
     release_date = ""
+    original_title: str | None = None
 
     # Find the movie info section (within class "pelicula")
     movie_div = soup.find("div", class_="pelicula")
     if not movie_div:
         return None
+
+    # Extract original title from movie name if in parentheses
+    # e.g., "La Empleada (The Housemaid)" -> "The Housemaid"
+    title_h1 = soup.find("h1")
+    if title_h1:
+        title_text = title_h1.get_text(strip=True)
+        paren_match = re.search(r"\(([^)]+)\)\s*$", title_text)
+        if paren_match:
+            original_title = paren_match.group(1).strip()
 
     # Extract each metadata field by finding <b> tags with specific text
     for div in movie_div.find_all("div"):
@@ -249,6 +269,7 @@ def _extract_movie_metadata_from_html(html_content: str) -> MovieMetadata | None
         director=director,
         actors=actors,
         release_date=release_date,
+        original_title=original_title,
     )
 
 
@@ -354,8 +375,27 @@ async def _scrape_theater_html_async(
 
             if target_date:
                 date_value = target_date.strftime("%m/%d/%Y").lstrip("0").replace("/0", "/")
+                logger.info(f"Selecting date: {target_date} (value: {date_value})")
+
+                # Capture current showtime content before changing date
+                old_content = await page.inner_html(".cartelera") if await page.query_selector(".cartelera") else ""
+
                 await page.select_option("select[name='fecha']", date_value)
-                await page.wait_for_load_state("domcontentloaded")
+                await page.wait_for_load_state("networkidle")
+
+                # Poll until showtime content changes or timeout (max 5 seconds)
+                # The date dropdown triggers an AJAX update that replaces showtime data.
+                # networkidle fires too early, before the DOM is fully updated.
+                wait_start = datetime.datetime.now()
+                max_wait_seconds = 5
+                while (datetime.datetime.now() - wait_start).total_seconds() < max_wait_seconds:
+                    new_content = await page.inner_html(".cartelera") if await page.query_selector(".cartelera") else ""
+                    if new_content != old_content:
+                        break
+                    await asyncio.sleep(0.2)
+
+                wait_duration = (datetime.datetime.now() - wait_start).total_seconds()
+                logger.info(f"Content change wait took {wait_duration:.2f}s for date {target_date}")
 
             html_content = await page.content()
         finally:
@@ -546,6 +586,13 @@ def _find_best_tmdb_match(
                         logger.debug(f"      +{actor_score} (actor match: {len(matching_actors)} actors)")
             except TMDBServiceError as e:
                 logger.warning(f"Failed to fetch details for TMDB id {result.id}: {e}")
+                OperationalIssue.objects.create(
+                    name="TMDB Details Fetch Failed",
+                    task="_find_best_tmdb_match",
+                    error_message=f"Failed to fetch TMDB details for movie id {result.id}: {e}",
+                    context={"movie_name": movie_name, "tmdb_id": result.id, "tmdb_title": result.title},
+                    severity=OperationalIssue.Severity.WARNING,
+                )
 
         logger.debug(
             f"      FINAL SCORE: {score} (director_matched={director_matched}, actor_matched={actor_matched})"
@@ -602,8 +649,8 @@ def _get_or_create_movie(
     1. By colombia_dot_com_url (if provided) - avoids TMDB API call
     2. By TMDB search - only if URL lookup fails
 
-    For new movies, scrapes the colombia.com movie page to gather additional
-    metadata for better TMDB match verification.
+    For new movies, scrapes the colombia.com movie page to gather metadata
+    including original title (from parentheses) for better TMDB matching.
     """
     # First, try to find existing movie by colombia.com URL
     if movie_url:
@@ -611,16 +658,50 @@ def _get_or_create_movie(
         if existing_movie:
             return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=False)
 
-    # No URL match - need to search TMDB
+    # No URL match - scrape metadata first, then search TMDB
+    metadata: MovieMetadata | None = None
+    if movie_url:
+        try:
+            movie_html = asyncio.run(_scrape_movie_page_async(movie_url))
+            metadata = _extract_movie_metadata_from_html(movie_html)
+            if metadata:
+                logger.info(
+                    f"Scraped metadata for '{movie_name}': "
+                    f"genre={metadata.genre}, duration={metadata.duration_minutes}, "
+                    f"release_date={metadata.release_date}, director={metadata.director}, "
+                    f"original_title={metadata.original_title}"
+                )
+        except Exception as e:
+            logger.warning(f"Failed to scrape movie page for '{movie_name}': {e}")
+            OperationalIssue.objects.create(
+                name="Movie Page Scrape Failed",
+                task="_get_or_create_movie",
+                error_message=f"Failed to scrape colombia.com movie page for '{movie_name}': {e}",
+                traceback=traceback.format_exc(),
+                context={"movie_name": movie_name, "movie_url": movie_url},
+                severity=OperationalIssue.Severity.WARNING,
+            )
+
+    # Use original title for TMDB search if available, otherwise use listing name
+    search_name = metadata.original_title if metadata and metadata.original_title else movie_name
+
     try:
-        logger.info(f"Did not find movie: '{movie_name}'. Searching TMDB...")
+        logger.info(f"Searching TMDB for: '{search_name}' (listing name: '{movie_name}')")
         APICallCounter.increment("tmdb")
-        response = tmdb_service.search_movie(movie_name)
+        response = tmdb_service.search_movie(search_name)
 
         if not response.results:
-            logger.warning(f"No TMDB results found for: {movie_name}")
+            logger.warning(f"No TMDB results found for: {search_name}")
+            OperationalIssue.objects.create(
+                name="No TMDB Results",
+                task="_get_or_create_movie",
+                error_message=f"No TMDB results found for movie: {search_name}",
+                context={"movie_name": movie_name, "search_name": search_name, "movie_url": movie_url},
+                severity=OperationalIssue.Severity.WARNING,
+            )
             return MovieLookupResult(movie=None, is_new=False, tmdb_called=True)
 
+        # TODO: Remove this. We could find and old movie that happens to be the first result, but that is incorrect.
         # For existing movies, check if first result already exists in DB
         first_result = response.results[0]
         existing_movie = Movie.objects.filter(tmdb_id=first_result.id).first()
@@ -630,21 +711,6 @@ def _get_or_create_movie(
                 existing_movie.colombia_dot_com_url = movie_url
                 existing_movie.save(update_fields=["colombia_dot_com_url"])
             return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=True)
-
-        # New movie - scrape metadata from colombia.com for better matching
-        metadata: MovieMetadata | None = None
-        if movie_url:
-            try:
-                movie_html = asyncio.run(_scrape_movie_page_async(movie_url))
-                metadata = _extract_movie_metadata_from_html(movie_html)
-                if metadata:
-                    logger.info(
-                        f"Scraped metadata for '{movie_name}': "
-                        f"genre={metadata.genre}, duration={metadata.duration_minutes}, "
-                        f"release_date={metadata.release_date}, director={metadata.director}"
-                    )
-            except Exception as e:
-                logger.warning(f"Failed to scrape movie page for '{movie_name}': {e}")
 
         # Find best matching TMDB result
         best_match = _find_best_tmdb_match(response.results, movie_name, metadata, tmdb_service)
@@ -801,7 +867,7 @@ def _save_showtimes_for_theater_for_date(
                 )
                 showtimes_saved += 1
 
-    logger.info(f"Saved {showtimes_saved} showtimes for {theater.name} on {effective_date}")
+    logger.info(f"Saved {showtimes_saved} showtimes for {theater.name} on {effective_date}\n\n")
     return TaskReport(
         total_showtimes=showtimes_saved,
         tmdb_calls=tmdb_calls,
