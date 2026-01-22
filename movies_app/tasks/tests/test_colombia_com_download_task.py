@@ -262,6 +262,7 @@ class TestGetOrCreateMovie:
             movie_name="Avatar: Fuego Y Cenizas",
             movie_url="https://www.colombia.com/cine/peliculas/avatar-fuego-y-cenizas",
             tmdb_service=mock_tmdb_service,
+            storage_service=None,
         )
 
         assert result.movie == movie
@@ -291,6 +292,7 @@ class TestGetOrCreateMovie:
             movie_name="Avatar: Fuego Y Cenizas",
             movie_url="https://www.colombia.com/cine/peliculas/avatar-fuego-y-cenizas",
             tmdb_service=mock_tmdb_service,
+            storage_service=None,
         )
 
         assert result.movie == movie
@@ -332,6 +334,7 @@ class TestGetOrCreateMovie:
                     movie_name="Avatar: Fuego Y Cenizas",
                     movie_url="https://www.colombia.com/cine/peliculas/avatar-fuego-y-cenizas",
                     tmdb_service=mock_tmdb_service,
+                    storage_service=None,
                 )
 
         assert result.movie is not None
@@ -376,6 +379,7 @@ class TestGetOrCreateMovie:
                     movie_name="Avatar",
                     movie_url="https://www.colombia.com/cine/peliculas/avatar",
                     tmdb_service=mock_tmdb_service,
+                    storage_service=None,
                 )
 
         assert result.movie is not None
@@ -394,6 +398,7 @@ class TestGetOrCreateMovie:
             movie_name="Nonexistent Movie XYZ123",
             movie_url="https://www.colombia.com/cine/peliculas/nonexistent",
             tmdb_service=mock_tmdb_service,
+            storage_service=None,
         )
 
         assert result.movie is None

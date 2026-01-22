@@ -16,11 +16,13 @@ import zoneinfo
 from dataclasses import dataclass
 
 from bs4 import BeautifulSoup
+from django.conf import settings
 from django.db import transaction
 from camoufox.async_api import AsyncCamoufox
 
 from config.celery_app import app
 from movies_app.models import APICallCounter, Movie, OperationalIssue, Showtime, Theater
+from movies_app.services.supabase_storage_service import SupabaseStorageService
 from movies_app.services.tmdb_service import TMDBMovieResult, TMDBService, TMDBServiceError
 
 logger = logging.getLogger(__name__)
@@ -33,6 +35,25 @@ BOGOTA_TZ = zoneinfo.ZoneInfo("America/Bogota")
 
 # Base URL for colombia.com
 COLOMBIA_COM_BASE_URL = "https://www.colombia.com"
+
+
+def _create_storage_service() -> SupabaseStorageService | None:
+    """Create a Supabase storage service if credentials are configured."""
+    bucket_url = settings.SUPABASE_IMAGES_BUCKET_URL
+    access_key_id = settings.SUPABASE_IMAGES_BUCKET_ACCESS_KEY_ID
+    secret_access_key = settings.SUPABASE_IMAGES_BUCKET_SECRET_ACCESS_KEY
+    bucket_name = settings.SUPABASE_IMAGES_BUCKET_NAME
+
+    if not all([bucket_url, access_key_id, secret_access_key, bucket_name]):
+        logger.debug("Supabase storage not configured, images will use TMDB URLs")
+        return None
+
+    return SupabaseStorageService(
+        bucket_url=bucket_url,
+        access_key_id=access_key_id,
+        secret_access_key=secret_access_key,
+        bucket_name=bucket_name,
+    )
 
 
 @dataclass
@@ -641,24 +662,24 @@ def _get_or_create_movie(
     movie_name: str,
     movie_url: str | None,
     tmdb_service: TMDBService,
+    storage_service: SupabaseStorageService | None,
 ) -> MovieLookupResult:
     """
     Get or create a movie, prioritizing lookup by colombia.com URL.
 
     Lookup order:
     1. By colombia_dot_com_url (if provided) - avoids TMDB API call
-    2. By TMDB search - only if URL lookup fails
-
-    For new movies, scrapes the colombia.com movie page to gather metadata
-    including original title (from parentheses) for better TMDB matching.
+    2. By TMDB search with metadata matching
     """
-    # First, try to find existing movie by colombia.com URL
+    # Step 1: Try to find existing movie by colombia.com URL
     if movie_url:
         existing_movie = Movie.objects.filter(colombia_dot_com_url=movie_url).first()
         if existing_movie:
             return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=False)
 
-    # No URL match - scrape metadata first, then search TMDB
+    # Step 2: Scrape metadata from colombia.com movie page
+    # We do this before TMDB search because the original title (in parentheses) is often
+    # a much better match in TMDB than the translated Spanish name, which may vary by region.
     metadata: MovieMetadata | None = None
     if movie_url:
         try:
@@ -682,7 +703,7 @@ def _get_or_create_movie(
                 severity=OperationalIssue.Severity.WARNING,
             )
 
-    # Use original title for TMDB search if available, otherwise use listing name
+    # Step 3: Search TMDB (use original title if available for better matching)
     search_name = metadata.original_title if metadata and metadata.original_title else movie_name
 
     try:
@@ -701,32 +722,22 @@ def _get_or_create_movie(
             )
             return MovieLookupResult(movie=None, is_new=False, tmdb_called=True)
 
-        # TODO: Remove this. We could find and old movie that happens to be the first result, but that is incorrect.
-        # For existing movies, check if first result already exists in DB
-        first_result = response.results[0]
-        existing_movie = Movie.objects.filter(tmdb_id=first_result.id).first()
-        if existing_movie:
-            # Update URL if we have it and the movie doesn't
-            if movie_url and not existing_movie.colombia_dot_com_url:
-                existing_movie.colombia_dot_com_url = movie_url
-                existing_movie.save(update_fields=["colombia_dot_com_url"])
-            return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=True)
-
-        # Find best matching TMDB result
+        # Step 4: Find best matching TMDB result
         best_match = _find_best_tmdb_match(response.results, movie_name, metadata, tmdb_service)
         if not best_match:
             return MovieLookupResult(movie=None, is_new=False, tmdb_called=True)
 
-        # Check if this match already exists
+        # Step 5: Check if this match already exists in DB
         existing_movie = Movie.objects.filter(tmdb_id=best_match.id).first()
         if existing_movie:
-            # Update URL if we have it and the movie doesn't
+            # Add colombia.com URL if the movie doesn't have one yet
             if movie_url and not existing_movie.colombia_dot_com_url:
                 existing_movie.colombia_dot_com_url = movie_url
                 existing_movie.save(update_fields=["colombia_dot_com_url"])
             return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=True)
 
-        movie = Movie.create_from_tmdb(best_match, tmdb_service)
+        # Step 6: Create new movie
+        movie = Movie.create_from_tmdb(best_match, tmdb_service, storage_service)
         if movie_url:
             movie.colombia_dot_com_url = movie_url
             movie.save(update_fields=["colombia_dot_com_url"])
@@ -772,6 +783,7 @@ def save_showtimes_for_theater(theater: Theater) -> TaskReport:
     logger.info(f"Found {len(date_options)} dates for {theater.name}: {date_options}\n\n")
 
     tmdb_service = TMDBService()
+    storage_service = _create_storage_service()
     total_showtimes = 0
     total_tmdb_calls = 0
     all_new_movies: list[str] = []
@@ -783,6 +795,7 @@ def save_showtimes_for_theater(theater: Theater) -> TaskReport:
                 theater=theater,
                 target_date=None,
                 tmdb_service=tmdb_service,
+                storage_service=storage_service,
                 html_content=html_content,
             )
         else:
@@ -790,6 +803,7 @@ def save_showtimes_for_theater(theater: Theater) -> TaskReport:
                 theater=theater,
                 target_date=target_date,
                 tmdb_service=tmdb_service,
+                storage_service=storage_service,
                 html_content=None,
             )
         total_showtimes += report.total_showtimes
@@ -810,6 +824,7 @@ def _save_showtimes_for_theater_for_date(
     theater: Theater,
     target_date: datetime.date | None,
     tmdb_service: TMDBService,
+    storage_service: SupabaseStorageService | None,
     html_content: str | None,
 ) -> TaskReport:
     """
@@ -847,6 +862,7 @@ def _save_showtimes_for_theater_for_date(
             movie_name=movie_showtime.movie_name,
             movie_url=movie_showtime.movie_url,
             tmdb_service=tmdb_service,
+            storage_service=storage_service,
         )
         if lookup_result.tmdb_called:
             tmdb_calls += 1
