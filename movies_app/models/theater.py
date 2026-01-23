@@ -1,5 +1,7 @@
 from django.db import models
 
+from movies_app.models.movie_source_url import MovieSourceUrl
+
 
 class Theater(models.Model):
     """Represents a movie theater/cinema location."""
@@ -16,6 +18,18 @@ class Theater(models.Model):
     screen_count = models.PositiveIntegerField(null=True, blank=True)
     website = models.URLField(blank=True)
     colombia_dot_com_url = models.URLField(null=True, blank=True)
+    scraper_type = models.CharField(
+        max_length=50,
+        choices=MovieSourceUrl.ScraperType.choices,
+        null=True,
+        blank=True,
+        help_text="The scraper to use for downloading showtimes for this theater",
+    )
+    download_source_url = models.URLField(
+        null=True,
+        blank=True,
+        help_text="URL to scrape for showtimes (may differ from colombia_dot_com_url)",
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

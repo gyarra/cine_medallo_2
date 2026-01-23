@@ -2,13 +2,12 @@
 MovieLookupService: Service for movie lookup, TMDB matching, and deduplication.
 """
 
-
 import datetime
 import logging
 import traceback
 import unicodedata
 from django.conf import settings
-from movies_app.models import APICallCounter, Movie, OperationalIssue, UnfindableMovieUrl
+from movies_app.models import APICallCounter, Movie, MovieSourceUrl, OperationalIssue, UnfindableMovieUrl
 from movies_app.services.supabase_storage_service import SupabaseStorageService
 from movies_app.services.tmdb_service import TMDBMovieResult, TMDBService, TMDBServiceError
 from movies_app.services.movie_lookup_result import MovieLookupResult
@@ -275,13 +274,16 @@ class MovieLookupService:
         self,
         movie_name: str,
         source_url: str | None,
-        source_url_field: str,
+        scraper_type: MovieSourceUrl.ScraperType,
         metadata,
     ):
         if source_url:
-            existing_movie = Movie.objects.filter(**{source_url_field: source_url}).first()
-            if existing_movie:
-                return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=False)
+            existing_source_url = MovieSourceUrl.objects.filter(
+                scraper_type=scraper_type,
+                url=source_url,
+            ).select_related("movie").first()
+            if existing_source_url:
+                return MovieLookupResult(movie=existing_source_url.movie, is_new=False, tmdb_called=False)
 
             unfindable = UnfindableMovieUrl.objects.filter(url=source_url).first()
             if unfindable:
@@ -321,15 +323,21 @@ class MovieLookupService:
 
             existing_movie = Movie.objects.filter(tmdb_id=best_match.id).first()
             if existing_movie:
-                if source_url and not getattr(existing_movie, source_url_field):
-                    setattr(existing_movie, source_url_field, source_url)
-                    existing_movie.save(update_fields=[source_url_field])
+                if source_url:
+                    MovieSourceUrl.objects.update_or_create(
+                        movie=existing_movie,
+                        scraper_type=scraper_type,
+                        defaults={"url": source_url},
+                    )
                 return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=True)
 
             movie = Movie.create_from_tmdb(best_match, self.tmdb_service, self.storage_service)
             if source_url:
-                setattr(movie, source_url_field, source_url)
-                movie.save(update_fields=[source_url_field])
+                MovieSourceUrl.objects.create(
+                    movie=movie,
+                    scraper_type=scraper_type,
+                    url=source_url,
+                )
 
             logger.info(f"Created movie: {movie}")
 

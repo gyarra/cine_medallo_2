@@ -1,0 +1,1120 @@
+<html lang="es"><head>
+<!-- Google Tag Manager -->
+
+<!-- End Google Tag Manager -->
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<link href="https://gmpg.org/xfn/11" rel="profile"/>
+<link href="https://www.elmamm.org/content/themes/mamm-theme/dist/images/favicons/apple-touch-icon.png" rel="apple-touch-icon" sizes="180x180"/>
+<link href="https://www.elmamm.org/content/themes/mamm-theme/dist/images/favicons/favicon-32x32.png" rel="icon" sizes="32x32" type="image/png"/>
+<link href="https://www.elmamm.org/content/themes/mamm-theme/dist/images/favicons/favicon-16x16.png" rel="icon" sizes="16x16" type="image/png"/>
+<link href="https://www.elmamm.org/content/themes/mamm-theme/dist/images/favicons/site.webmanifest" rel="manifest"/>
+<link color="#000000" href="https://www.elmamm.org/content/themes/mamm-theme/dist/images/favicons/safari-pinned-tab.svg" rel="mask-icon"/>
+<meta content="#da532c" name="msapplication-TileColor"/>
+<meta content="#ffffff" name="theme-color"/>
+<meta content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" name="robots"/>
+<title>Cine - Museo de Arte Moderno de Medellín</title>
+<link href="https://www.elmamm.org/cine/" rel="canonical"/>
+<link href="https://www.elmamm.org/cine/page/2/" rel="next"/>
+<meta content="es_ES" property="og:locale"/>
+<meta content="website" property="og:type"/>
+<meta content="Cine - Museo de Arte Moderno de Medellín" property="og:title"/>
+<meta content="https://www.elmamm.org/cine/" property="og:url"/>
+<meta content="Museo de Arte Moderno de Medellín" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="@MAMmedellin" name="twitter:site"/>
+
+<link href="//www.elmamm.org" rel="dns-prefetch"/>
+<link href="//www.googletagmanager.com" rel="dns-prefetch"/>
+
+
+<link href="https://www.elmamm.org/content/plugins/woocommerce/assets/css/woocommerce-layout.css?ver=2.0.13" id="woocommerce-layout-css" media="all" rel="stylesheet" type="text/css"/>
+<link href="https://www.elmamm.org/content/plugins/woocommerce/assets/css/woocommerce-smallscreen.css?ver=2.0.13" id="woocommerce-smallscreen-css" media="only screen and (max-width: 768px)" rel="stylesheet" type="text/css"/>
+<link href="https://www.elmamm.org/content/plugins/woocommerce/assets/css/woocommerce.css?ver=2.0.13" id="woocommerce-general-css" media="all" rel="stylesheet" type="text/css"/>
+
+<link href="https://www.elmamm.org/content/themes/mamm-theme/dist/css/theme.css?ver=2.0.13" id="theme_styles-css" media="all" rel="stylesheet" type="text/css"/>
+<link href="https://www.elmamm.org/content/plugins/woocommerce/assets/css/select2.css?ver=2.0.13" id="select2-css" media="all" rel="stylesheet" type="text/css"/>
+
+
+
+
+
+
+
+
+<meta content="WJCRxgIx1nNdTwxraEtoXWW97kvIe64dQYsDWiPh" name="csrf-token"/><meta content="Site Kit by Google 1.170.0" name="generator"/> <noscript></noscript>
+<link href="https://www.elmamm.org/content/plugins/woocommerce/assets/client/blocks/wc-blocks.css?ver=2.0.13" id="wc-blocks-style-css" media="all" rel="stylesheet" type="text/css"/>
+
+</head>
+<body class="archive post-type-archive post-type-archive-cine wp-theme-mamm-theme theme-mamm-theme woocommerce-js hfeed">
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe height="0" src="https://www.googletagmanager.com/ns.html?id=GTM-K3V3JF3" width="0"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+<header>
+<div class="container">
+<div class="topHeader">
+<div class="col left">
+<a class="logo" href="https://www.elmamm.org">
+<img alt="MAMM" height="45" src="https://www.elmamm.org/content/themes/mamm-theme/dist/svg/logo-mamm.svg?ver=2.0.13" width="180"/>
+</a>
+<div class="schedules">
+<p>Abierto hoy de 11:00 a.m. a 7:00 p.m.</p>
+</div>
+</div>
+<div class="mobile-flex">
+<div class="header-cart">
+<a class="cart-link" href="https://www.elmamm.org/carrito/">
+
+<span class="cart-count">
+                                0
+                            </span>
+</a>
+</div>
+<button aria-label="Menú" class="menuMobile menuMobileTop">
+<img alt="Menu Mobile" class="bars" height="32" src="https://www.elmamm.org/content/themes/mamm-theme/dist/svg/menu-mobile.svg?ver=2.0.13" width="32"/>
+<img alt="Menu Mobile" class="close" height="32" src="https://www.elmamm.org/content/themes/mamm-theme/dist/svg/menu-mobile-close.svg?ver=2.0.13" width="32"/>
+</button>
+</div>
+<div class="col right">
+<a class="button primary big" href="https://www.elmamm.org/cine/" target="">Cine MAMM</a>
+<a class="button secondary big tickets" href="https://www.elmamm.org/producto/entradas-al-museo-mamm/" target="">
+                        Entradas
+
+                    </a>
+<div class="header-cart">
+<a class="cart-link" href="https://www.elmamm.org/carrito/">
+
+<span class="cart-count">
+                                0
+                            </span>
+</a>
+</div>
+</div>
+</div>
+<div class="sub-nav-mobile">
+<div class="row">
+<a class="button primary big" href="https://www.elmamm.org/cine/" target="">Cine MAMM</a>
+<a class="button secondary big" href="https://www.elmamm.org/producto/entradas-al-museo-mamm/" target="">
+                        Entradas
+
+                    </a>
+</div>
+</div>
+<div class="sub-nav-tablet">
+<div class="row">
+<div class="schedules">
+<p>Abierto hoy de 11:00 a.m. a 7:00 p.m.</p>
+</div>
+<button aria-label="Menú" class="menuMobile">
+<img alt="Menu Mobile" class="bars" height="32" src="https://www.elmamm.org/content/themes/mamm-theme/dist/svg/menu-mobile.svg?ver=2.0.13" width="32"/>
+<img alt="Menu Mobile" class="close" height="32" src="https://www.elmamm.org/content/themes/mamm-theme/dist/svg/menu-mobile-close.svg?ver=2.0.13" width="32"/>
+</button>
+</div>
+</div>
+<nav class="desktop-v2 nav-mobile">
+<ul>
+<li class="">
+<a class="level-1" href="#">Visítanos</a>
+<div class="sub-menu-level">
+<div class="container">
+<a aria-label="Cerrar menú" class="close-submenu" href="#">
+
+                Visítanos
+            </a>
+<div class="col-wrapper">
+<div class="col">
+<h3>Tu visita </h3>
+<ul>
+<li>
+<a class="visitanos" href="https://www.elmamm.org/visitanos/">
+                                            Planea tu visita
+                                        </a>
+</li>
+<li>
+<a class="nav-link" href="/producto/entradas-al-museo-mamm/">
+                                            Compra tus entradas
+                                        </a>
+</li>
+</ul>
+</div>
+<div class="col">
+<h3>Portafolio </h3>
+<ul>
+<li>
+<a class="nav-link" href="https://www.elmamm.org/alquiler-de-espacios/">
+                                            Alquiler de espacios
+                                        </a>
+</li>
+<li>
+<a class="nav-link" href="https://www.elmamm.org/sala-de-estudio/">
+                                            Sala de Estudio
+                                        </a>
+</li>
+</ul>
+</div>
+<div class="col">
+<a class="block-card yellow" href="/producto/entradas-al-museo-mamm/">
+<div class="thumbnail">
+<img alt="Llamado a acción para comprar entradas" src="https://www.elmamm.org/content/uploads/2026/01/compra-entradas-1-314x203.png"/>
+</div>
+<div class="data">
+<p>Compra tus entradas</p>
+</div>
+</a>
+</div>
+</div>
+</div>
+</div>
+</li>
+<li class="">
+<a class="level-1" href="#">Prográmate</a>
+<div class="sub-menu-level">
+<div class="container">
+<a aria-label="Cerrar menú" class="close-submenu" href="#">
+
+                Prográmate
+            </a>
+<div class="col-wrapper">
+<div class="col">
+<h3>Participa </h3>
+<ul>
+<li>
+<a class="nav-link" href="/programacion/?nombre=&amp;acceso=&amp;tipo=evento-del-museo#agenda">
+                                            Eventos
+                                        </a>
+</li>
+<li>
+<a class="nav-link" href="/programacion/?nombre=&amp;acceso=&amp;tipo=curso#agenda">
+                                            Cursos
+                                        </a>
+</li>
+<li>
+<a class="nav-link" href="/programacion/?nombre=&amp;acceso=&amp;tipo=taller#agenda">
+                                            Talleres
+                                        </a>
+</li>
+<li>
+<a class="nav-link" href="/programacion/">
+                                            Explora toda la agenda
+                                        </a>
+</li>
+</ul>
+</div>
+<div class="col">
+<h3>Cine </h3>
+<ul>
+<li>
+<a class="cine" href="https://www.elmamm.org/cine/">
+                                            Cartelera
+                                        </a>
+</li>
+<li>
+<a class="nav-link" href="https://www.elmamm.org/cine/#semana">
+                                            Esta semana
+                                        </a>
+</li>
+<li>
+<a class="nav-link" href="https://www.elmamm.org/cine/#proximos">
+                                            Próximos estrenos
+                                        </a>
+</li>
+</ul>
+</div>
+<div class="col">
+<a class="block-card orange" href="https://www.elmamm.org/programacion/">
+<div class="thumbnail">
+<img alt="Accede a conoce la programación" src="https://www.elmamm.org/content/uploads/2026/01/conoce-programacion-314x203.png"/>
+</div>
+<div class="data">
+<p>Conoce la programación</p>
+</div>
+</a>
+</div>
+</div>
+</div>
+</div>
+</li>
+<li class="">
+<a class="level-1" href="#">Exposiciones y Colección</a>
+<div class="sub-menu-level">
+<div class="container">
+<a aria-label="Cerrar menú" class="close-submenu" href="#">
+
+                Exposiciones y Colección
+            </a>
+<div class="col-wrapper">
+<div class="col">
+<h3>Conéctate con el arte </h3>
+<ul>
+<li>
+<a class="nav-link" href="https://www.elmamm.org/exposiciones/exposiciones-actuales/">
+                                            Exposiciones actuales
+                                        </a>
+</li>
+<li>
+<a class="nav-link" href="https://www.elmamm.org/exposiciones/exposiciones-futuras/">
+                                            Exposiciones futuras
+                                        </a>
+</li>
+<li>
+<a class="nav-link" href="https://www.elmamm.org/exposiciones/exposiciones-pasadas/">
+                                            Exposiciones pasadas
+                                        </a>
+</li>
+</ul>
+</div>
+<div class="col">
+<h3>Una colección viva </h3>
+<ul>
+<li>
+<a class="coleccion" href="https://www.elmamm.org/coleccion-mamm/">
+                                            Colección MAMM
+                                        </a>
+</li>
+</ul>
+</div>
+<div class="col">
+<a class="block-card yellow" href="https://www.elmamm.org/exposiciones/exposiciones-actuales/">
+<div class="thumbnail">
+<img alt="Acceso a exposiciones actuales" src="https://www.elmamm.org/content/uploads/2026/01/exposiciones-actuales-314x203.png"/>
+</div>
+<div class="data">
+<p>Exposiciones actuales</p>
+</div>
+</a>
+</div>
+</div>
+</div>
+</div>
+</li>
+<li class="amigos">
+<a class="amigos" href="https://www.elmamm.org/amigos-mamm/">Amigos MAMM</a>
+</li> <li class="">
+<a class="level-1" href="#">Acerca del MAMM</a>
+<div class="sub-menu-level">
+<div class="container">
+<a aria-label="Cerrar menú" class="close-submenu" href="#">
+
+                Acerca del MAMM
+            </a>
+<div class="col-wrapper">
+<div class="col">
+<h3>Apoya </h3>
+<ul>
+<li>
+<a class="nav-link" href="https://www.elmamm.org/proyectos/">
+                                            Proyectos sociales
+                                        </a>
+</li>
+</ul>
+</div>
+<div class="col">
+<h3>Explora </h3>
+<ul>
+<li>
+<a class="nav-link" href="https://www.elmamm.org/quienes-somos/">
+                                            Quiénes somos
+                                        </a>
+</li>
+<li>
+<a class="nav-link" href="https://www.elmamm.org/nuestra-historia/">
+                                            Nuestra historia
+                                        </a>
+</li>
+</ul>
+</div>
+<div class="col">
+<a class="block-card orange" href="https://www.elmamm.org/proyectos/">
+<div class="thumbnail">
+<img alt="Acceso a proyectos sociales" src="https://www.elmamm.org/content/uploads/2026/01/proyectos-sociales-314x203.png"/>
+</div>
+<div class="data">
+<p>Proyectos sociales</p>
+</div>
+</a>
+</div>
+</div>
+</div>
+</div>
+</li>
+</ul>
+</nav>
+</div>
+</header>
+<section class="hero bg-white">
+<div class="container">
+<div class="breadcrumbs">
+<a href="https://www.elmamm.org"><span>Inicio</span></a>
+<span>/</span>
+<a href="https://www.elmamm.org/cine">Cine MAMM</a>
+
+</div>
+<div class="top">
+<h1 class="strong">Cine MAMM</h1>
+<p>En el MAMM también puedes vivir la experiencia del cine. Conoce nuestra cartelera semanal, ven y disfruta de nuestras funciones.</p>
+</div>
+</div>
+</section>
+<main class="container">
+<ul class="tabs tabs-cine">
+<li class="tab" data-id="cartelera" data-tab-target="#cartelera" id="tab-cartelera">
+                                    Nuestra cartelera
+                            </li>
+<li class="tab active" data-id="semana" data-tab-target="#semana" id="tab-semana">
+                                    Esta semana
+                            </li>
+<li class="tab" data-id="proximos" data-tab-target="#proximos" id="tab-proximos">
+                                    Próximos estrenos
+                            </li>
+<li class="tab" data-id="ciclos" data-tab-target="#ciclos" id="tab-ciclos">
+                                    Ciclos especializados
+                            </li>
+</ul>
+<div class="tab-content">
+<div class="data-tab-content" data-tab-content="" id="cartelera">
+<div class="mt-4">
+<section class="alert full-width">
+<div class="col">
+<svg fill="none" height="40" viewbox="0 0 40 40" width="40" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M19.9998 5.00008C11.7156 5.00008 4.99984 11.7158 4.99984 20.0001C4.99984 28.2844 11.7156 35.0001 19.9998 35.0001C28.2841 35.0001 34.9998 28.2844 34.9998 20.0001C34.9998 11.7158 28.2841 5.00008 19.9998 5.00008ZM1.6665 20.0001C1.6665 9.87486 9.87462 1.66675 19.9998 1.66675C30.1251 1.66675 38.3332 9.87486 38.3332 20.0001C38.3332 30.1253 30.1251 38.3334 19.9998 38.3334C9.87462 38.3334 1.6665 30.1253 1.6665 20.0001Z" fill="#252525" fill-rule="evenodd"></path>
+<path clip-rule="evenodd" d="M20.0002 18.3333C20.9206 18.3333 21.6668 19.0794 21.6668 19.9999V26.6666C21.6668 27.5871 20.9206 28.3333 20.0002 28.3333C19.0797 28.3333 18.3335 27.5871 18.3335 26.6666V19.9999C18.3335 19.0794 19.0797 18.3333 20.0002 18.3333Z" fill="#252525" fill-rule="evenodd"></path>
+<path clip-rule="evenodd" d="M18.3335 13.3334C18.3335 12.4129 19.0797 11.6667 20.0002 11.6667H20.0168C20.9373 11.6667 21.6835 12.4129 21.6835 13.3334C21.6835 14.2539 20.9373 15.0001 20.0168 15.0001H20.0002C19.0797 15.0001 18.3335 14.2539 18.3335 13.3334Z" fill="#252525" fill-rule="evenodd"></path>
+</svg>
+</div>
+<div class="col">
+<p>Todas nuestras funciones tienen un costo de $14.000 COP, para conocer descuentos e información importante antes de realizar tu compra te recomendamos leer atentamente toda la información. Descuentos no acumulables entre sí.</p>
+</div>
+</section>
+</div>
+<section class="cartelera-slider-wrapper">
+<div class="cartelera-slider js-cartelera-slider slick-initialized slick-slider slick-dotted">
+<div class="slick-list draggable"><div class="slick-track"><div aria-describedby="slick-slide-control06" aria-hidden="true" class="card-agenda slick-slide slick-cloned" data-slick-index="-4" id="" role="tabpanel" tabindex="-1">
+<div class="thumbnail">
+<img alt="Rostro de una mujer rubia con con los ojos cerrados y papel a su alrededor con las letras mátate, amor" height="350" src="https://www.elmamm.org/content/uploads/2025/12/DML_Key-Artwork_OS_ES-LATAM_Cines-Nov6_1-1-scaled-1.jpg" width="230"/>
+</div>
+<div class="data">
+<div>
+<h3>Mátate, amor</h3>
+<p class="date">Mayores de 15 años |
+                                    118 min.</p>
+<p class="ticket"><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span> 14.000</bdi></span></p>
+</div>
+<a href="https://www.elmamm.org/producto/matate-amor-2/" tabindex="-1">Conoce más</a>
+</div>
+</div><div aria-describedby="slick-slide-control07" aria-hidden="true" class="card-agenda slick-slide slick-cloned" data-slick-index="-3" id="" role="tabpanel" tabindex="-1">
+<div class="thumbnail">
+<img alt="" height="350" src="https://www.elmamm.org/content/uploads/2026/01/Poster-valor-sentimental-Cine-Mamm.jpg" width="230"/>
+</div>
+<div class="data">
+<div>
+<h3>Valor Sentimental</h3>
+<p class="date">Mayores de 12 años |
+                                    135 min</p>
+<p class="ticket"><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span> 14.000</bdi></span></p>
+</div>
+<a href="https://www.elmamm.org/producto/valor-sentimental/" tabindex="-1">Conoce más</a>
+</div>
+</div><div aria-describedby="slick-slide-control08" aria-hidden="true" class="card-agenda slick-slide slick-cloned" data-slick-index="-2" id="" role="tabpanel" tabindex="-1">
+<div class="thumbnail">
+<img alt="animación de una cara mirando a superior cayéndole un líquido rojo y amarillo por la cara" height="350" src="https://www.elmamm.org/content/uploads/2025/12/4x5_BUG_crt.OptimisedPoster_crn.BloodAndHoneyOneSheet_siz.1080x1350_cta.Only-In-Cinemas_cou.LAS_Spanish.des_.jpg" width="230"/>
+</div>
+<div class="data">
+<div>
+<h3>Bugonia</h3>
+<p class="date">Mayores 12 años |
+                                    120 min.</p>
+<p class="ticket"><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span> 14.000</bdi></span></p>
+</div>
+<a href="https://www.elmamm.org/producto/bugonia-2/" tabindex="-1">Conoce más</a>
+</div>
+</div><div aria-describedby="slick-slide-control09" aria-hidden="true" class="card-agenda slick-slide slick-cloned" data-slick-index="-1" id="" role="tabpanel" tabindex="-1">
+<div class="thumbnail">
+<img alt="" height="350" src="https://www.elmamm.org/content/uploads/2025/12/Captura-de-pantalla-2025-11-26-a-las-2.43.39-p.m.png" width="230"/>
+</div>
+<div class="data">
+<div>
+<h3>Fue solo un accidente</h3>
+<p class="date">Mayores de 12 años |
+                                    105 min</p>
+<p class="ticket"><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span> 14.000</bdi></span></p>
+</div>
+<a href="https://www.elmamm.org/producto/fue-solo-un-accidente-2/" tabindex="-1">Conoce más</a>
+</div>
+</div><div aria-describedby="slick-slide-control00" aria-hidden="false" class="card-agenda slick-slide slick-current slick-active" data-slick-index="0" id="slick-slide00" role="tabpanel" tabindex="0">
+<div class="thumbnail">
+<img alt="" height="350" src="https://www.elmamm.org/content/uploads/2026/01/poster-resurreccion-cine-mamm.jpg" width="230"/>
+</div>
+<div class="data">
+<div>
+<h3>Resurrección</h3>
+<p class="date">Mayores de 12 años |
+                                    160 min.</p>
+<p class="ticket"><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span> 14.000</bdi></span></p>
+</div>
+<a href="https://www.elmamm.org/producto/resurreccion/" tabindex="0">Conoce más</a>
+</div>
+</div><div aria-describedby="slick-slide-control01" aria-hidden="false" class="card-agenda slick-slide slick-active" data-slick-index="1" id="slick-slide01" role="tabpanel" tabindex="0">
+<div class="thumbnail">
+<img alt="" height="350" src="https://www.elmamm.org/content/uploads/2026/01/poster-marty-supremo-cine-mamm.jpg" width="230"/>
+</div>
+<div class="data">
+<div>
+<h3>Marty Supremo</h3>
+<p class="date">Mayores de 12 años |
+                                    149 min</p>
+<p class="ticket"><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span> 14.000</bdi></span></p>
+</div>
+<a href="https://www.elmamm.org/producto/marty-supremo/" tabindex="0">Conoce más</a>
+</div>
+</div><div aria-describedby="slick-slide-control01" aria-hidden="false" class="card-agenda slick-slide slick-active" data-slick-index="2" id="slick-slide02" role="tabpanel" tabindex="0">
+<div class="thumbnail">
+<img alt="" height="350" src="https://www.elmamm.org/content/uploads/2026/01/poster-la-unica-opcion-cine-mamm.jpg" width="230"/>
+</div>
+<div class="data">
+<div>
+<h3>La única opción</h3>
+<p class="date">Mayores de 15 años |
+                                    139 min</p>
+<p class="ticket"><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span> 14.000</bdi></span></p>
+</div>
+<a href="https://www.elmamm.org/producto/la-unica-opcion/" tabindex="0">Conoce más</a>
+</div>
+</div><div aria-describedby="slick-slide-control03" aria-hidden="false" class="card-agenda slick-slide slick-active" data-slick-index="3" id="slick-slide03" role="tabpanel" tabindex="0">
+<div class="thumbnail">
+<img alt="" height="350" src="https://www.elmamm.org/content/uploads/2026/01/poster-the-threesome-Cine-Mamm-scaled.jpeg" width="230"/>
+</div>
+<div class="data">
+<div>
+<h3>The Threesome</h3>
+<p class="date">Mayores de 15 años |
+                                    112 min.</p>
+<p class="ticket"><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span> 14.000</bdi></span></p>
+</div>
+<a href="https://www.elmamm.org/producto/the-threesome/" tabindex="0">Conoce más</a>
+</div>
+</div><div aria-describedby="slick-slide-control02" aria-hidden="true" class="card-agenda slick-slide" data-slick-index="4" id="slick-slide04" role="tabpanel" tabindex="-1">
+<div class="thumbnail">
+<img alt="" height="350" src="https://www.elmamm.org/content/uploads/2026/01/poster-perfect-blue.jpeg" width="230"/>
+</div>
+<div class="data">
+<div>
+<h3>Perfect Blue</h3>
+<p class="date">Mayores de 15 años |
+                                    81 min</p>
+<p class="ticket"><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span> 14.000</bdi></span></p>
+</div>
+<a href="https://www.elmamm.org/producto/perfect-blue-2/" tabindex="-1">Conoce más</a>
+</div>
+</div><div aria-describedby="slick-slide-control05" aria-hidden="true" class="card-agenda slick-slide" data-slick-index="5" id="slick-slide05" role="tabpanel" tabindex="-1">
+<div class="thumbnail">
+<img alt="Hombre parado en un fondo rojo con texto que dice Poeta" height="350" src="https://www.elmamm.org/content/uploads/2025/12/poster480x670.png" width="230"/>
+</div>
+<div class="data">
+<div>
+<h3>Un poeta</h3>
+<p class="date">Mayores de 12 años |
+                                    120 min.</p>
+<p class="ticket"><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span> 14.000</bdi></span></p>
+</div>
+<a href="https://www.elmamm.org/producto/un-poeta-2/" tabindex="-1">Conoce más</a>
+</div>
+</div><div aria-describedby="slick-slide-control03" aria-hidden="true" class="card-agenda slick-slide" data-slick-index="6" id="slick-slide06" role="tabpanel" tabindex="-1">
+<div class="thumbnail">
+<img alt="Rostro de una mujer rubia con con los ojos cerrados y papel a su alrededor con las letras mátate, amor" height="350" src="https://www.elmamm.org/content/uploads/2025/12/DML_Key-Artwork_OS_ES-LATAM_Cines-Nov6_1-1-scaled-1.jpg" width="230"/>
+</div>
+<div class="data">
+<div>
+<h3>Mátate, amor</h3>
+<p class="date">Mayores de 15 años |
+                                    118 min.</p>
+<p class="ticket"><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span> 14.000</bdi></span></p>
+</div>
+<a href="https://www.elmamm.org/producto/matate-amor-2/" tabindex="-1">Conoce más</a>
+</div>
+</div><div aria-describedby="slick-slide-control07" aria-hidden="true" class="card-agenda slick-slide" data-slick-index="7" id="slick-slide07" role="tabpanel" tabindex="-1">
+<div class="thumbnail">
+<img alt="" height="350" src="https://www.elmamm.org/content/uploads/2026/01/Poster-valor-sentimental-Cine-Mamm.jpg" width="230"/>
+</div>
+<div class="data">
+<div>
+<h3>Valor Sentimental</h3>
+<p class="date">Mayores de 12 años |
+                                    135 min</p>
+<p class="ticket"><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span> 14.000</bdi></span></p>
+</div>
+<a href="https://www.elmamm.org/producto/valor-sentimental/" tabindex="-1">Conoce más</a>
+</div>
+</div><div aria-describedby="slick-slide-control04" aria-hidden="true" class="card-agenda slick-slide" data-slick-index="8" id="slick-slide08" role="tabpanel" tabindex="-1">
+<div class="thumbnail">
+<img alt="animación de una cara mirando a superior cayéndole un líquido rojo y amarillo por la cara" height="350" src="https://www.elmamm.org/content/uploads/2025/12/4x5_BUG_crt.OptimisedPoster_crn.BloodAndHoneyOneSheet_siz.1080x1350_cta.Only-In-Cinemas_cou.LAS_Spanish.des_.jpg" width="230"/>
+</div>
+<div class="data">
+<div>
+<h3>Bugonia</h3>
+<p class="date">Mayores 12 años |
+                                    120 min.</p>
+<p class="ticket"><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span> 14.000</bdi></span></p>
+</div>
+<a href="https://www.elmamm.org/producto/bugonia-2/" tabindex="-1">Conoce más</a>
+</div>
+</div><div aria-describedby="slick-slide-control09" aria-hidden="true" class="card-agenda slick-slide" data-slick-index="9" id="slick-slide09" role="tabpanel" tabindex="-1">
+<div class="thumbnail">
+<img alt="" height="350" src="https://www.elmamm.org/content/uploads/2025/12/Captura-de-pantalla-2025-11-26-a-las-2.43.39-p.m.png" width="230"/>
+</div>
+<div class="data">
+<div>
+<h3>Fue solo un accidente</h3>
+<p class="date">Mayores de 12 años |
+                                    105 min</p>
+<p class="ticket"><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span> 14.000</bdi></span></p>
+</div>
+<a href="https://www.elmamm.org/producto/fue-solo-un-accidente-2/" tabindex="-1">Conoce más</a>
+</div>
+</div><div aria-describedby="slick-slide-control00" aria-hidden="true" class="card-agenda slick-slide slick-cloned" data-slick-index="10" id="" role="tabpanel" tabindex="-1">
+<div class="thumbnail">
+<img alt="" height="350" src="https://www.elmamm.org/content/uploads/2026/01/poster-resurreccion-cine-mamm.jpg" width="230"/>
+</div>
+<div class="data">
+<div>
+<h3>Resurrección</h3>
+<p class="date">Mayores de 12 años |
+                                    160 min.</p>
+<p class="ticket"><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span> 14.000</bdi></span></p>
+</div>
+<a href="https://www.elmamm.org/producto/resurreccion/" tabindex="-1">Conoce más</a>
+</div>
+</div><div aria-describedby="slick-slide-control01" aria-hidden="true" class="card-agenda slick-slide slick-cloned" data-slick-index="11" id="" role="tabpanel" tabindex="-1">
+<div class="thumbnail">
+<img alt="" height="350" src="https://www.elmamm.org/content/uploads/2026/01/poster-marty-supremo-cine-mamm.jpg" width="230"/>
+</div>
+<div class="data">
+<div>
+<h3>Marty Supremo</h3>
+<p class="date">Mayores de 12 años |
+                                    149 min</p>
+<p class="ticket"><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span> 14.000</bdi></span></p>
+</div>
+<a href="https://www.elmamm.org/producto/marty-supremo/" tabindex="-1">Conoce más</a>
+</div>
+</div><div aria-describedby="slick-slide-control02" aria-hidden="true" class="card-agenda slick-slide slick-cloned" data-slick-index="12" id="" role="tabpanel" tabindex="-1">
+<div class="thumbnail">
+<img alt="" height="350" src="https://www.elmamm.org/content/uploads/2026/01/poster-la-unica-opcion-cine-mamm.jpg" width="230"/>
+</div>
+<div class="data">
+<div>
+<h3>La única opción</h3>
+<p class="date">Mayores de 15 años |
+                                    139 min</p>
+<p class="ticket"><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span> 14.000</bdi></span></p>
+</div>
+<a href="https://www.elmamm.org/producto/la-unica-opcion/" tabindex="-1">Conoce más</a>
+</div>
+</div><div aria-describedby="slick-slide-control03" aria-hidden="true" class="card-agenda slick-slide slick-cloned" data-slick-index="13" id="" role="tabpanel" tabindex="-1">
+<div class="thumbnail">
+<img alt="" height="350" src="https://www.elmamm.org/content/uploads/2026/01/poster-the-threesome-Cine-Mamm-scaled.jpeg" width="230"/>
+</div>
+<div class="data">
+<div>
+<h3>The Threesome</h3>
+<p class="date">Mayores de 15 años |
+                                    112 min.</p>
+<p class="ticket"><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span> 14.000</bdi></span></p>
+</div>
+<a href="https://www.elmamm.org/producto/the-threesome/" tabindex="-1">Conoce más</a>
+</div>
+</div><div aria-describedby="slick-slide-control04" aria-hidden="true" class="card-agenda slick-slide slick-cloned" data-slick-index="14" id="" role="tabpanel" tabindex="-1">
+<div class="thumbnail">
+<img alt="" height="350" src="https://www.elmamm.org/content/uploads/2026/01/poster-perfect-blue.jpeg" width="230"/>
+</div>
+<div class="data">
+<div>
+<h3>Perfect Blue</h3>
+<p class="date">Mayores de 15 años |
+                                    81 min</p>
+<p class="ticket"><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span> 14.000</bdi></span></p>
+</div>
+<a href="https://www.elmamm.org/producto/perfect-blue-2/" tabindex="-1">Conoce más</a>
+</div>
+</div><div aria-describedby="slick-slide-control05" aria-hidden="true" class="card-agenda slick-slide slick-cloned" data-slick-index="15" id="" role="tabpanel" tabindex="-1">
+<div class="thumbnail">
+<img alt="Hombre parado en un fondo rojo con texto que dice Poeta" height="350" src="https://www.elmamm.org/content/uploads/2025/12/poster480x670.png" width="230"/>
+</div>
+<div class="data">
+<div>
+<h3>Un poeta</h3>
+<p class="date">Mayores de 12 años |
+                                    120 min.</p>
+<p class="ticket"><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span> 14.000</bdi></span></p>
+</div>
+<a href="https://www.elmamm.org/producto/un-poeta-2/" tabindex="-1">Conoce más</a>
+</div>
+</div><div aria-describedby="slick-slide-control06" aria-hidden="true" class="card-agenda slick-slide slick-cloned" data-slick-index="16" id="" role="tabpanel" tabindex="-1">
+<div class="thumbnail">
+<img alt="Rostro de una mujer rubia con con los ojos cerrados y papel a su alrededor con las letras mátate, amor" height="350" src="https://www.elmamm.org/content/uploads/2025/12/DML_Key-Artwork_OS_ES-LATAM_Cines-Nov6_1-1-scaled-1.jpg" width="230"/>
+</div>
+<div class="data">
+<div>
+<h3>Mátate, amor</h3>
+<p class="date">Mayores de 15 años |
+                                    118 min.</p>
+<p class="ticket"><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span> 14.000</bdi></span></p>
+</div>
+<a href="https://www.elmamm.org/producto/matate-amor-2/" tabindex="-1">Conoce más</a>
+</div>
+</div><div aria-describedby="slick-slide-control07" aria-hidden="true" class="card-agenda slick-slide slick-cloned" data-slick-index="17" id="" role="tabpanel" tabindex="-1">
+<div class="thumbnail">
+<img alt="" height="350" src="https://www.elmamm.org/content/uploads/2026/01/Poster-valor-sentimental-Cine-Mamm.jpg" width="230"/>
+</div>
+<div class="data">
+<div>
+<h3>Valor Sentimental</h3>
+<p class="date">Mayores de 12 años |
+                                    135 min</p>
+<p class="ticket"><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span> 14.000</bdi></span></p>
+</div>
+<a href="https://www.elmamm.org/producto/valor-sentimental/" tabindex="-1">Conoce más</a>
+</div>
+</div><div aria-describedby="slick-slide-control08" aria-hidden="true" class="card-agenda slick-slide slick-cloned" data-slick-index="18" id="" role="tabpanel" tabindex="-1">
+<div class="thumbnail">
+<img alt="animación de una cara mirando a superior cayéndole un líquido rojo y amarillo por la cara" height="350" src="https://www.elmamm.org/content/uploads/2025/12/4x5_BUG_crt.OptimisedPoster_crn.BloodAndHoneyOneSheet_siz.1080x1350_cta.Only-In-Cinemas_cou.LAS_Spanish.des_.jpg" width="230"/>
+</div>
+<div class="data">
+<div>
+<h3>Bugonia</h3>
+<p class="date">Mayores 12 años |
+                                    120 min.</p>
+<p class="ticket"><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span> 14.000</bdi></span></p>
+</div>
+<a href="https://www.elmamm.org/producto/bugonia-2/" tabindex="-1">Conoce más</a>
+</div>
+</div><div aria-describedby="slick-slide-control09" aria-hidden="true" class="card-agenda slick-slide slick-cloned" data-slick-index="19" id="" role="tabpanel" tabindex="-1">
+<div class="thumbnail">
+<img alt="" height="350" src="https://www.elmamm.org/content/uploads/2025/12/Captura-de-pantalla-2025-11-26-a-las-2.43.39-p.m.png" width="230"/>
+</div>
+<div class="data">
+<div>
+<h3>Fue solo un accidente</h3>
+<p class="date">Mayores de 12 años |
+                                    105 min</p>
+<p class="ticket"><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span> 14.000</bdi></span></p>
+</div>
+<a href="https://www.elmamm.org/producto/fue-solo-un-accidente-2/" tabindex="-1">Conoce más</a>
+</div>
+</div></div></div></div>
+<div class="slider-custom-buttons-center">
+
+<div class="buttons"><ul class="slick-dots" role="tablist"><li class="slick-active" role="presentation"><button aria-controls="slick-slide00" aria-label="1 of 3" aria-selected="true" id="slick-slide-control00" role="tab" tabindex="0" type="button">1</button></li><li role="presentation"><button aria-controls="slick-slide02" aria-label="2 of 3" id="slick-slide-control01" role="tab" tabindex="-1" type="button">2</button></li><li role="presentation"><button aria-controls="slick-slide04" aria-label="3 of 3" id="slick-slide-control02" role="tab" tabindex="-1" type="button">3</button></li><li role="presentation"><button aria-controls="slick-slide06" aria-label="4 of 3" id="slick-slide-control03" role="tab" tabindex="-1" type="button">4</button></li><li role="presentation"><button aria-controls="slick-slide08" aria-label="5 of 3" id="slick-slide-control04" role="tab" tabindex="-1" type="button">5</button></li></ul></div>
+
+</div>
+</section>
+</div>
+<div class="data-tab-content active" data-tab-content="" id="semana">
+<div class="row mt-4 mb-4 text-center">
+<p>Disfruta de la experiencia Cine MAMM
+</p>
+</div>
+<section class="alert full-width">
+<div class="col">
+<svg fill="none" height="40" viewbox="0 0 40 40" width="40" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M19.9998 5.00008C11.7156 5.00008 4.99984 11.7158 4.99984 20.0001C4.99984 28.2844 11.7156 35.0001 19.9998 35.0001C28.2841 35.0001 34.9998 28.2844 34.9998 20.0001C34.9998 11.7158 28.2841 5.00008 19.9998 5.00008ZM1.6665 20.0001C1.6665 9.87486 9.87462 1.66675 19.9998 1.66675C30.1251 1.66675 38.3332 9.87486 38.3332 20.0001C38.3332 30.1253 30.1251 38.3334 19.9998 38.3334C9.87462 38.3334 1.6665 30.1253 1.6665 20.0001Z" fill="#252525" fill-rule="evenodd"></path>
+<path clip-rule="evenodd" d="M20.0002 18.3333C20.9206 18.3333 21.6668 19.0794 21.6668 19.9999V26.6666C21.6668 27.5871 20.9206 28.3333 20.0002 28.3333C19.0797 28.3333 18.3335 27.5871 18.3335 26.6666V19.9999C18.3335 19.0794 19.0797 18.3333 20.0002 18.3333Z" fill="#252525" fill-rule="evenodd"></path>
+<path clip-rule="evenodd" d="M18.3335 13.3334C18.3335 12.4129 19.0797 11.6667 20.0002 11.6667H20.0168C20.9373 11.6667 21.6835 12.4129 21.6835 13.3334C21.6835 14.2539 20.9373 15.0001 20.0168 15.0001H20.0002C19.0797 15.0001 18.3335 14.2539 18.3335 13.3334Z" fill="#252525" fill-rule="evenodd"></path>
+</svg>
+</div>
+<div class="col">
+<p>Todas nuestras funcionen tienen un costo de $14.000 COP, para conocer descuentos e información importante antes de realizar tu compra te recomendamos leer atentamente toda la información. Descuentos no acumulables entre sí</p>
+</div>
+</section>
+<section class="schedule-week">
+<div class="row">
+<div class="col past-day">
+<div class="day">
+<p class="small">miércoles 21 Ene</p>
+</div>
+<div class="card">
+<a>
+<p class="small">2:00 pm</p>
+<h3>Un poeta</h3>
+</a>
+</div>
+<div class="card">
+<a>
+<p class="small">4:20 pm</p>
+<h3>The Threesome</h3>
+</a>
+</div>
+<div class="card">
+<a>
+<p class="small">6:30 pm</p>
+<h3>Fue solo un accidente</h3>
+</a>
+</div>
+<div class="card">
+<a>
+<p class="small">8:30 pm</p>
+<h3>Perfect Blue</h3>
+</a>
+<span class="ciclo">Remasterizada en 4K</span>
+</div>
+</div>
+<div class="col past-day">
+<div class="day">
+<p class="small">jueves 22 Ene</p>
+</div>
+<div class="card">
+<a>
+<p class="small">2:00 pm</p>
+<h3>Bugonia</h3>
+</a>
+</div>
+<div class="card">
+<a>
+<p class="small">4:20 pm</p>
+<h3>Perfect Blue</h3>
+</a>
+<span class="ciclo">Remasterizada en 4K</span>
+</div>
+<div class="card">
+<a>
+<p class="small">6:00 pm</p>
+<h3>Marty Supremo</h3>
+</a>
+</div>
+<div class="card">
+<a>
+<p class="small">8:50 pm</p>
+<h3>Valor Sentimental</h3>
+</a>
+</div>
+</div>
+<div class="col">
+<div class="day">
+<p class="small">viernes 23 Ene</p>
+</div>
+<div class="card">
+<a href="https://www.elmamm.org/producto/perfect-blue-2/">
+<p class="small">2:00 pm</p>
+<h3>Perfect Blue</h3>
+</a>
+<span class="ciclo">Remasterizada en 4K</span>
+</div>
+<div class="card">
+<a href="https://www.elmamm.org/producto/la-unica-opcion/">
+<p class="small">3:40 pm</p>
+<h3>La única opción</h3>
+</a>
+</div>
+<div class="card">
+<a href="https://www.elmamm.org/producto/resurreccion/">
+<p class="small">6:30 pm</p>
+<h3>Resurrección</h3>
+</a>
+<span class="ciclo">Exclusivo Cine MAMM</span>
+</div>
+<div class="card">
+<a href="https://www.elmamm.org/producto/matate-amor-2/">
+<p class="small">9:30 pm</p>
+<h3>Mátate, amor</h3>
+</a>
+</div>
+</div>
+<div class="col">
+<div class="day">
+<p class="small">sábado 24 Ene</p>
+</div>
+<div class="card">
+<a href="https://www.elmamm.org/producto/fue-solo-un-accidente-2/">
+<p class="small">1:15 pm</p>
+<h3>Fue solo un accidente</h3>
+</a>
+</div>
+<div class="card">
+<a href="https://www.elmamm.org/producto/valor-sentimental/">
+<p class="small">3:20 pm</p>
+<h3>Valor Sentimental</h3>
+</a>
+</div>
+<div class="card">
+<a href="https://www.elmamm.org/producto/la-unica-opcion/">
+<p class="small">6:00 pm</p>
+<h3>La única opción</h3>
+</a>
+</div>
+<div class="card">
+<a href="https://www.elmamm.org/producto/marty-supremo/">
+<p class="small">8:40 pm</p>
+<h3>Marty Supremo</h3>
+</a>
+</div>
+</div>
+<div class="col">
+<div class="day">
+<p class="small">domingo 25 Ene</p>
+</div>
+<div class="card">
+<a href="https://www.elmamm.org/producto/marty-supremo/">
+<p class="small">1:00 pm</p>
+<h3>Marty Supremo</h3>
+</a>
+</div>
+<div class="card">
+<a href="https://www.elmamm.org/producto/resurreccion/">
+<p class="small">4:00 pm</p>
+<h3>Resurrección</h3>
+</a>
+<span class="ciclo">Exclusivo Cine MAMM</span>
+</div>
+<div class="card">
+<a href="https://www.elmamm.org/producto/bugonia-2/">
+<p class="small">7:00 pm</p>
+<h3>Bugonia</h3>
+</a>
+</div>
+<div class="card">
+<a href="https://www.elmamm.org/producto/un-poeta-2/">
+<p class="small">9:20 pm</p>
+<h3>Un poeta</h3>
+</a>
+</div>
+</div>
+</div>
+</section> </div>
+<div class="data-tab-content" data-tab-content="" id="proximos">
+<div class="row mt-4 mb-4 text-center">
+<p>Conoce las películas que se estrenarán próximamente en nuestro Teatro MAMM</p>
+</div>
+<section class="empty-schedule">
+<img alt="Empty Schedule" height="200" src="https://www.elmamm.org/content/themes/mamm-theme/dist/svg/icons/empty-schedule.svg" width="200"/>
+<p>Lo sentimos, en este momento no tenemos películas disponibles en nuestra cartelera.</p>
+</section>
+</div>
+<div class="data-tab-content" data-tab-content="" id="ciclos">
+
+</div>
+</div>
+<section class="block block-cine-info">
+<div class="title-top">
+<h3>Información importante</h3>
+<hr/>
+</div>
+<div class="row">
+<div class="card">
+<div class="ico">
+<img alt="icono de boletas" height="80" src="https://www.elmamm.org/content/uploads/2022/12/mamm-tickets.png" width="80"/>
+</div>
+<div class="data">
+<p>Compra tus boletas de forma virtual, selecciona la función, paga y ¡listo!</p>
+</div>
+</div>
+<div class="card">
+<div class="ico">
+<img alt="icono reloj" height="80" src="https://www.elmamm.org/content/uploads/2022/12/mamm-clock.png" width="80"/>
+</div>
+<div class="data">
+<p>Acércate a la taquilla 15 minutos antes de la función para validar tu boleta</p>
+</div>
+</div>
+<div class="card">
+<div class="ico">
+<img alt="icono whatsapp" height="80" src="https://www.elmamm.org/content/uploads/2022/12/mamm-whatsapp.png" width="80"/>
+</div>
+<div class="data">
+<p>Si tienes dudas puedes escribirnos a nuestro WhatsApp 3006073966</p>
+</div>
+</div>
+</div>
+</section> <div class="accordion">
+<div class="accordion-item">
+<button aria-expanded="false" id="accordion-button-1">
+<div class="titleWrap">
+<div class="title">
+<p><strong>Antes de comprar tu boleta</strong></p>
+<span class="caption">Lee cuidadosamente estas aclaraciones</span>
+</div>
+<span aria-hidden="true" class="icon">
+<img alt="Caret" height="22" src="https://www.elmamm.org/content/themes/mamm-theme/dist/svg/icons/caret-down.svg" width="22"/>
+</span>
+</div>
+</button>
+<div class="accordion-content content-cinema">
+<div class="content">
+<ul>
+<li>El costo de la boleta es de <strong>$14.000 COP</strong> para público general y <strong>$10.000 COP</strong> para adultos mayores de 60 años, niños menores de 12 años y estudiantes con carnet.</li>
+<li>Los descuentos en las boletas solo son efectivos si compras las boletas directamente en la taquilla del Museo. <strong>Recuerda que los descuentos no son acumulables entre sí.</strong></li>
+<li>Si compras las <strong>boletas de forma virtual</strong>, puedes reclamarlas en la <strong>fila preferencial</strong> del Museo.</li>
+<li>Cuando pagues tu <strong>boleta de forma virtual</strong>, toma captura de pantalla de la compra y <strong>acércate a la taquilla 15 minutos antes de la función para validar tu boleta.</strong></li>
+<li>Una vez compres tus boletas, el Museo no realizará la devolución ni en dinero ni en cambios de fechas, horas o películas.</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</main>
+<section class="conecta-mamm">
+<div class="container">
+<div class="col">
+<h3>Conecta con el MAMM</h3>
+<ul>
+<li>
+<a href="https://www.instagram.com/elmamm/" rel="noopener noreferrer" target="_blank">
+<svg fill="none" height="41" viewbox="0 0 40 41" width="40" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#a)">
+<mask height="41" id="b" maskunits="userSpaceOnUse" width="40" x="0" y="0">
+<path d="M24.714 25.204q1.953-1.953 1.953-4.714 0-2.76-1.954-4.713T20 13.824t-4.713 1.953-1.954 4.713 1.954 4.714q1.952 1.953 4.713 1.953 2.76 0 4.714-1.953m2.552-11.98q2.994 2.995 2.994 7.266 0 4.272-2.994 7.266T20 30.75t-7.266-2.995T9.74 20.49t2.994-7.265T20 10.23t7.266 2.995M32.37 8.12q.703.704.703 1.693t-.703 1.693a2.3 2.3 0 0 1-1.693.703q-.99 0-1.693-.703a2.3 2.3 0 0 1-.703-1.693q0-.99.703-1.693a2.3 2.3 0 0 1 1.693-.703q.99 0 1.693.703M21.98 4.084H20q-.183 0-1.992-.013a141 141 0 0 0-2.748 0q-.937.014-2.513.078-1.575.065-2.682.26t-1.862.482a6.8 6.8 0 0 0-2.292 1.51 6.8 6.8 0 0 0-1.51 2.292q-.286.755-.482 1.862-.195 1.107-.26 2.683a97 97 0 0 0-.078 2.513q-.014.937 0 2.747l.013 1.992-.013 1.992a141 141 0 0 0 0 2.748q.012.937.078 2.513.065 1.575.26 2.682t.482 1.862q.52 1.302 1.51 2.292a6.8 6.8 0 0 0 2.292 1.51q.755.287 1.862.482t2.682.26 2.513.078q.937.015 2.748 0L20 36.898q.183 0 1.992.013 1.81.012 2.748 0a97 97 0 0 0 2.513-.079q1.575-.065 2.682-.26t1.862-.482a6.8 6.8 0 0 0 2.292-1.51 6.8 6.8 0 0 0 1.51-2.292q.286-.755.482-1.862.195-1.107.26-2.682.066-1.575.078-2.513.014-.937 0-2.748l-.013-1.992.013-1.992a141 141 0 0 0 0-2.747 96 96 0 0 0-.078-2.513q-.065-1.576-.26-2.683t-.482-1.862a6.8 6.8 0 0 0-1.51-2.291 6.8 6.8 0 0 0-2.292-1.51q-.755-.288-1.862-.482-1.107-.196-2.682-.26a97 97 0 0 0-2.513-.079q-.937-.013-2.76.013m17.89 8.151q.13 2.292.13 8.255t-.13 8.255q-.26 5.418-3.23 8.386-2.968 2.968-8.385 3.229-2.292.13-8.255.13t-8.255-.13q-5.416-.26-8.386-3.23Q.391 34.164.13 28.746 0 26.455 0 20.49q0-5.963.13-8.255.26-5.417 3.23-8.385Q6.327.88 11.744.62 14.037.49 20 .49t8.255.13q5.416.26 8.386 3.23 2.968 2.968 3.229 8.385" fill="#fff"></path>
+</mask>
+<g fill="#fff" mask="url(#b)">
+<path d="M24.714 25.204q1.953-1.953 1.953-4.714 0-2.76-1.954-4.713T20 13.824t-4.713 1.953-1.954 4.713 1.954 4.714q1.952 1.953 4.713 1.953 2.76 0 4.714-1.953m2.552-11.98q2.994 2.995 2.994 7.266 0 4.272-2.994 7.266T20 30.75t-7.266-2.995T9.74 20.49t2.994-7.265T20 10.23t7.266 2.995M32.37 8.12q.703.704.703 1.693t-.703 1.693a2.3 2.3 0 0 1-1.693.703q-.99 0-1.693-.703a2.3 2.3 0 0 1-.703-1.693q0-.99.703-1.693a2.3 2.3 0 0 1 1.693-.703q.99 0 1.693.703M21.98 4.084H20q-.183 0-1.992-.013a141 141 0 0 0-2.748 0q-.937.014-2.513.078-1.575.065-2.682.26t-1.862.482a6.8 6.8 0 0 0-2.292 1.51 6.8 6.8 0 0 0-1.51 2.292q-.286.755-.482 1.862-.195 1.107-.26 2.683a97 97 0 0 0-.078 2.513q-.014.937 0 2.747l.013 1.992-.013 1.992a141 141 0 0 0 0 2.748q.012.937.078 2.513.065 1.575.26 2.682t.482 1.862q.52 1.302 1.51 2.292a6.8 6.8 0 0 0 2.292 1.51q.755.287 1.862.482t2.682.26 2.513.078q.937.015 2.748 0L20 36.898q.183 0 1.992.013 1.81.012 2.748 0a97 97 0 0 0 2.513-.079q1.575-.065 2.682-.26t1.862-.482a6.8 6.8 0 0 0 2.292-1.51 6.8 6.8 0 0 0 1.51-2.292q.286-.755.482-1.862.195-1.107.26-2.682.066-1.575.078-2.513.014-.937 0-2.748l-.013-1.992.013-1.992a141 141 0 0 0 0-2.747 96 96 0 0 0-.078-2.513q-.065-1.576-.26-2.683t-.482-1.862a6.8 6.8 0 0 0-1.51-2.291 6.8 6.8 0 0 0-2.292-1.51q-.755-.288-1.862-.482-1.107-.196-2.682-.26a97 97 0 0 0-2.513-.079q-.937-.013-2.76.013m17.89 8.151q.13 2.292.13 8.255t-.13 8.255q-.26 5.418-3.23 8.386-2.968 2.968-8.385 3.229-2.292.13-8.255.13t-8.255-.13q-5.416-.26-8.386-3.23Q.391 34.164.13 28.746 0 26.455 0 20.49q0-5.963.13-8.255.26-5.417 3.23-8.385Q6.327.88 11.744.62 14.037.49 20 .49t8.255.13q5.416.26 8.386 3.23 2.968 2.968 3.229 8.385"></path>
+<path d="M24.714 25.204q1.953-1.953 1.953-4.714 0-2.76-1.954-4.713T20 13.824t-4.713 1.953-1.954 4.713 1.954 4.714q1.952 1.953 4.713 1.953 2.76 0 4.714-1.953m2.552-11.98q2.994 2.995 2.994 7.266 0 4.272-2.994 7.266T20 30.75t-7.266-2.995T9.74 20.49t2.994-7.265T20 10.23t7.266 2.995M32.37 8.12q.703.704.703 1.693t-.703 1.693a2.3 2.3 0 0 1-1.693.703q-.99 0-1.693-.703a2.3 2.3 0 0 1-.703-1.693q0-.99.703-1.693a2.3 2.3 0 0 1 1.693-.703q.99 0 1.693.703M21.98 4.084H20q-.183 0-1.992-.013a141 141 0 0 0-2.748 0q-.937.014-2.513.078-1.575.065-2.682.26t-1.862.482a6.8 6.8 0 0 0-2.292 1.51 6.8 6.8 0 0 0-1.51 2.292q-.286.755-.482 1.862-.195 1.107-.26 2.683a97 97 0 0 0-.078 2.513q-.014.937 0 2.747l.013 1.992-.013 1.992a141 141 0 0 0 0 2.748q.012.937.078 2.513.065 1.575.26 2.682t.482 1.862q.52 1.302 1.51 2.292a6.8 6.8 0 0 0 2.292 1.51q.755.287 1.862.482t2.682.26 2.513.078q.937.015 2.748 0L20 36.898q.183 0 1.992.013 1.81.012 2.748 0a97 97 0 0 0 2.513-.079q1.575-.065 2.682-.26t1.862-.482a6.8 6.8 0 0 0 2.292-1.51 6.8 6.8 0 0 0 1.51-2.292q.286-.755.482-1.862.195-1.107.26-2.682.066-1.575.078-2.513.014-.937 0-2.748l-.013-1.992.013-1.992a141 141 0 0 0 0-2.747 96 96 0 0 0-.078-2.513q-.065-1.576-.26-2.683t-.482-1.862a6.8 6.8 0 0 0-1.51-2.291 6.8 6.8 0 0 0-2.292-1.51q-.755-.288-1.862-.482-1.107-.196-2.682-.26a97 97 0 0 0-2.513-.079q-.937-.013-2.76.013m17.89 8.151q.13 2.292.13 8.255t-.13 8.255q-.26 5.418-3.23 8.386-2.968 2.968-8.385 3.229-2.292.13-8.255.13t-8.255-.13q-5.416-.26-8.386-3.23Q.391 34.164.13 28.746 0 26.455 0 20.49q0-5.963.13-8.255.26-5.417 3.23-8.385Q6.327.88 11.744.62 14.037.49 20 .49t8.255.13q5.416.26 8.386 3.23 2.968 2.968 3.229 8.385"></path>
+</g>
+</g>
+<defs>
+<clippath id="a">
+<path d="M0 .49h40v40H0z" fill="#fff"></path>
+</clippath>
+</defs>
+</svg>
+</a>
+</li>
+<li>
+<a href="https://www.facebook.com/mammedellin" rel="noopener noreferrer" target="_blank">
+<svg fill="none" height="41" viewbox="0 0 40 41" width="40" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_387_9891)">
+<mask height="41" id="mask0_387_9891" maskunits="userSpaceOnUse" width="40" x="0" y="0">
+<path d="M27.5 40.4902V25.4902H32.5L33.75 19.2402H27.5V16.7402C27.5 14.2402 28.7525 12.9902 31.25 12.9902H33.75V6.74023C32.5 6.74023 30.95 6.74023 28.75 6.74023C24.1562 6.74023 21.25 10.3415 21.25 15.4902V19.2402H16.25V25.4902H21.25V40.4902H2.5C1.12 40.4902 0 39.3702 0 37.9902V2.99023C0 1.61023 1.12 0.490234 2.5 0.490234H37.5C38.88 0.490234 40 1.61023 40 2.99023V37.9902C40 39.3702 38.88 40.4902 37.5 40.4902H27.5Z" fill="white"></path>
+</mask>
+<g mask="url(#mask0_387_9891)">
+<path d="M27.5 40.4902V25.4902H32.5L33.75 19.2402H27.5V16.7402C27.5 14.2402 28.7525 12.9902 31.25 12.9902H33.75V6.74023C32.5 6.74023 30.95 6.74023 28.75 6.74023C24.1562 6.74023 21.25 10.3415 21.25 15.4902V19.2402H16.25V25.4902H21.25V40.4902H2.5C1.12 40.4902 0 39.3702 0 37.9902V2.99023C0 1.61023 1.12 0.490234 2.5 0.490234H37.5C38.88 0.490234 40 1.61023 40 2.99023V37.9902C40 39.3702 38.88 40.4902 37.5 40.4902H27.5Z" fill="white"></path>
+<path d="M27.5 40.4902V25.4902H32.5L33.75 19.2402H27.5V16.7402C27.5 14.2402 28.7525 12.9902 31.25 12.9902H33.75V6.74023C32.5 6.74023 30.95 6.74023 28.75 6.74023C24.1562 6.74023 21.25 10.3415 21.25 15.4902V19.2402H16.25V25.4902H21.25V40.4902H2.5C1.12 40.4902 0 39.3702 0 37.9902V2.99023C0 1.61023 1.12 0.490234 2.5 0.490234H37.5C38.88 0.490234 40 1.61023 40 2.99023V37.9902C40 39.3702 38.88 40.4902 37.5 40.4902H27.5Z" fill="white"></path>
+</g>
+</g>
+<defs>
+<clippath id="clip0_387_9891">
+<rect fill="white" height="40" transform="translate(0 0.490234)" width="40"></rect>
+</clippath>
+</defs>
+</svg>
+</a>
+</li>
+<li>
+<a href="https://twitter.com/MAMmedellin" rel="noopener noreferrer" target="_blank">
+<svg fill="none" height="41" viewbox="0 0 40 41" width="40" xmlns="http://www.w3.org/2000/svg">
+<path d="M40 8.088a17.1 17.1 0 0 1-4.725 1.295 8.15 8.15 0 0 0 3.608-4.533 16.4 16.4 0 0 1-5.2 1.985 8.22 8.22 0 0 0-5.99-2.595c-4.54 0-8.196 3.685-8.196 8.203 0 .65.055 1.275.19 1.87-6.817-.333-12.85-3.6-16.902-8.578A8.26 8.26 0 0 0 1.663 9.88a8.21 8.21 0 0 0 3.642 6.815 8.1 8.1 0 0 1-3.705-1.01v.09c0 3.985 2.843 7.295 6.57 8.058a8.2 8.2 0 0 1-2.15.27c-.525 0-1.055-.03-1.552-.14 1.062 3.247 4.077 5.635 7.662 5.712a16.48 16.48 0 0 1-10.167 3.498c-.673 0-1.318-.03-1.963-.113 3.633 2.343 7.938 3.68 12.58 3.68 15.09 0 23.34-12.5 23.34-23.335 0-.362-.013-.712-.03-1.06 1.627-1.155 2.995-2.597 4.11-4.257" fill="#fff"></path>
+<path d="M40 8.088a17.1 17.1 0 0 1-4.725 1.295 8.15 8.15 0 0 0 3.608-4.533 16.4 16.4 0 0 1-5.2 1.985 8.22 8.22 0 0 0-5.99-2.595c-4.54 0-8.196 3.685-8.196 8.203 0 .65.055 1.275.19 1.87-6.817-.333-12.85-3.6-16.902-8.578A8.26 8.26 0 0 0 1.663 9.88a8.21 8.21 0 0 0 3.642 6.815 8.1 8.1 0 0 1-3.705-1.01v.09c0 3.985 2.843 7.295 6.57 8.058a8.2 8.2 0 0 1-2.15.27c-.525 0-1.055-.03-1.552-.14 1.062 3.247 4.077 5.635 7.662 5.712a16.48 16.48 0 0 1-10.167 3.498c-.673 0-1.318-.03-1.963-.113 3.633 2.343 7.938 3.68 12.58 3.68 15.09 0 23.34-12.5 23.34-23.335 0-.362-.013-.712-.03-1.06 1.627-1.155 2.995-2.597 4.11-4.257" fill="#fff"></path>
+</svg>
+</a>
+</li>
+<li>
+<a href="https://www.tiktok.com/@mammedellin" rel="noopener noreferrer" target="_blank">
+<svg height="800" viewbox="0 0 24 24" width="800" xmlns="http://www.w3.org/2000/svg">
+<path d="M21 2H3a1 1 0 0 0-1 1v18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1m-3.281 8.725a4 4 0 0 1-.328.017A3.57 3.57 0 0 1 14.4 9.129v5.493a4.061 4.061 0 1 1-4.06-4.06c.085 0 .167.008.251.013v2a2.067 2.067 0 1 0-.251 4.119 2.123 2.123 0 0 0 2.16-2.045l.02-9.331h1.914A3.564 3.564 0 0 0 17.719 8.5Z"></path>
+</svg>
+</a>
+</li>
+<li>
+<a href="https://www.youtube.com/channel/UCvoDj3kXZcUjLrGF-8Tk5Ng" rel="noopener noreferrer" target="_blank">
+<svg fill="none" height="41" viewbox="0 0 40 41" width="40" xmlns="http://www.w3.org/2000/svg">
+<path d="M37.958 11.118a4.7 4.7 0 0 0-3.305-3.305C31.718 7.01 19.98 7.01 19.98 7.01s-11.738 0-14.672.772c-1.576.432-2.873 1.73-3.305 3.336-.773 2.935-.773 9.02-.773 9.02s0 6.116.773 9.02a4.7 4.7 0 0 0 3.305 3.305c2.965.803 14.673.803 14.673.803s11.737 0 14.672-.773a4.7 4.7 0 0 0 3.305-3.305c.772-2.934.772-9.02.772-9.02s.031-6.115-.772-9.05M16.243 25.76V14.516l9.76 5.622z" fill="#fff"></path>
+<path d="M37.958 11.118a4.7 4.7 0 0 0-3.305-3.305C31.718 7.01 19.98 7.01 19.98 7.01s-11.738 0-14.672.772c-1.576.432-2.873 1.73-3.305 3.336-.773 2.935-.773 9.02-.773 9.02s0 6.116.773 9.02a4.7 4.7 0 0 0 3.305 3.305c2.965.803 14.673.803 14.673.803s11.737 0 14.672-.773a4.7 4.7 0 0 0 3.305-3.305c.772-2.934.772-9.02.772-9.02s.031-6.115-.772-9.05M16.243 25.76V14.516l9.76 5.622z" fill="#fff"></path>
+</svg>
+</a>
+</li>
+<li>
+<a href="https://www.tripadvisor.co/Attraction_Review-g297478-d2267623-Reviews-Medellin_Museum_of_Modern_Art-Medellin_Antioquia_Department.html" rel="noopener noreferrer" target="_blank">
+<svg height="800" viewbox="0 0 97.75 97.75" width="800" xml:space="preserve" xmlns="http://www.w3.org/2000/svg">
+<path d="M67.211 46.07c-3.291 0-5.971 2.648-5.982 5.917-.012 3.252 2.681 5.959 5.939 5.967 3.266.01 5.949-2.674 5.947-5.943-.002-3.279-2.65-5.941-5.904-5.941m0 8.95c-1.686 0-3.043-1.332-3.039-2.983.002-1.716 1.318-3.039 3.02-3.041 1.666-.002 3.031 1.362 3.017 3.021-.02 1.655-1.361 3.003-2.998 3.003M30.512 37.514c-7.9-.07-14.787 6.523-14.65 14.921.129 7.832 6.584 14.472 14.814 14.4 8.047-.068 14.516-6.641 14.531-14.6a14.646 14.646 0 0 0-14.695-14.721m.236 23.586c-5.293.242-9.564-3.977-9.555-9.1.01-5.191 4.287-9.162 9.125-9.074 5.023-.006 9.1 4.049 9.086 9.07a9.1 9.1 0 0 1-8.656 9.104"></path>
+<path d="M48.875 0C21.883 0 0 21.883 0 48.875S21.883 97.75 48.875 97.75 97.75 75.867 97.75 48.875 75.867 0 48.875 0m28.096 67.852c-2.984 1.896-6.283 2.795-9.807 2.814-1.48.01-2.955-.189-4.4-.564-3.522-.914-6.545-2.672-9.035-5.33-.33-.35-.639-.713-.987-1.108l-3.939 5.871-3.873-5.787c-.088.045-.113.051-.131.065a1 1 0 0 0-.076.082c-3.012 3.556-6.801 5.734-11.414 6.465a17.8 17.8 0 0 1-7.604-.428c-3.533-.971-6.537-2.834-8.963-5.586-2.371-2.688-3.846-5.812-4.398-9.363-.633-3.312.137-6.508.33-7.282.559-2.252 1.531-4.322 2.867-6.225a.72.72 0 0 0 .082-.535c-.545-1.998-1.482-3.816-2.582-5.557-.279-.441-.613-.85-.922-1.275v-.148c.061.008.123.02.184.02q5.546.004 11.094-.004c.162 0 .34-.066.479-.154 2.598-1.668 5.367-2.988 8.275-4.016a45 45 0 0 1 6.424-1.742 52 52 0 0 1 6.389-.838c5.238-.404 9.426.15 12.211.539 2.053.289 4.064.807 6.051 1.416a41.4 41.4 0 0 1 9.818 4.477c.213.133.5.217.752.217 3.613.016 7.227.01 10.84.014.291 0 .582.031.871.047 0 .07.01.1-.002.117l-.508.775c-1.225 1.879-2.273 3.848-2.893 6.021-.066.232-.082.428.076.658 3.219 4.621 4.243 9.693 2.899 15.162-1.181 4.795-3.929 8.533-8.108 11.182"></path>
+<path d="M30.236 46.07c-3.209.006-5.898 2.715-5.891 5.936.008 3.26 2.695 5.941 5.963 5.949 3.248.008 5.939-2.697 5.932-5.965-.01-3.299-2.676-5.926-6.004-5.92m.075 8.981c-1.723.002-3.051-1.328-3.051-3.061 0-1.701 1.326-3.021 3.043-3.023a3.043 3.043 0 0 1 3.057 3.035c.005 1.672-1.366 3.043-3.049 3.049M66.902 37.57c-8.019.164-14.295 6.627-14.367 14.622 0 8.121 6.59 14.756 14.682 14.725 8.123-.029 14.682-6.477 14.676-14.688-.004-8.463-6.87-14.825-14.991-14.659m.66 23.532a9.104 9.104 0 0 1-9.487-9.094c.002-5.154 4.252-9.17 9.112-9.082 5.027-.01 9.099 4.039 9.099 9.061-.001 5.04-4.003 8.935-8.724 9.115"></path>
+<path d="M54.732 38.639c3.248-2.98 7.117-4.543 11.506-4.875-5.209-2.314-10.701-3.299-16.355-3.408-6.424-.125-12.674.822-18.643 3.326 4.463.271 8.383 1.828 11.695 4.838 3.305 3.008 5.242 6.756 5.945 11.166.724-4.358 2.608-8.073 5.852-11.047"></path>
+</svg>
+</a>
+</li>
+</ul>
+</div>
+<div class="col">
+<h4>Suscríbete al newsletter</h4>
+<p>Recibe nuestra programación en tu correo</p>
+<a class="button" href="https://www.elmamm.org/suscribete-al-newsletter/">Suscríbete</a>
+</div>
+</div>
+</section>
+<footer>
+<div class="container">
+<div class="topRow">
+<div class="col">
+<div class="logo">
+<img alt="MAMM" height="60" src="https://www.elmamm.org/content/themes/mamm-theme/dist/svg/logo-mamm.svg?ver=2.0.13" width="250"/>
+</div>
+<div class="address">
+<p><a href="https://goo.gl/maps/Hmqznzbr2m4xi3hr7" rel="noopener" target="_blank">Ciudad Del Río · Carrera 44 N° 19A-100<br/>
+                                Medellín</a></p>
+<p><a href="tel:6044442622" rel="noopener" target="_blank">Teléfono: 6044442622</a>
+</p>
+<p><a href="mailto:info@elmamm.org" rel="noopener" target="_blank">info@elmamm.org</a></p>
+</div>
+</div>
+<div class="col">
+<h4>Acerca del MAMM</h4>
+<ul>
+<li><a href="https://www.elmamm.org/quienes-somos/" target="">Quiénes somos</a>
+</li>
+<li><a href="https://www.elmamm.org/nuestra-historia/" target="">Nuestra historia</a>
+</li>
+<li><a href="https://www.elmamm.org/informes-de-gestion/" target="">Informes de gestión</a>
+</li>
+<li><a href="https://www.elmamm.org/asi-lo-hacemos/" target="">Así lo hacemos</a>
+</li>
+<li><a href="https://www.elmamm.org/pilares-y-aliados/" target="">Pilares y aliados</a>
+</li>
+<li><a href="https://www.elmamm.org/informacion-legal/" target="">Información legal</a>
+</li>
+</ul>
+</div>
+<div class="col">
+<h4>Servicios</h4>
+<ul>
+<li><a href="https://www.elmamm.org/alquiler-de-espacios/" target="">Alquiler de espacios</a>
+</li>
+<li><a href="https://www.elmamm.org/sala-de-estudio/" target="">Sala de Estudio</a>
+</li>
+</ul>
+</div>
+<div class="col">
+<h4>Noticias</h4>
+<ul>
+<li><a href="https://www.elmamm.org/noticias/" target="">Conoce lo último</a>
+</li>
+</ul>
+</div>
+</div>
+<div class="bottomRow">
+<div class="col">
+<a class="logoCelsia" href="https://www.celsia.com/es/" rel="nofollow" target="_blank" title="Celsia">
+<p>Desarrollado con el apoyo de </p>
+<img alt="Celsia" height="16" src="https://www.elmamm.org/content/themes/mamm-theme/dist/svg/logo-celsia.svg?ver=2.0.13" width="120"/>
+</a>
+<p>©2026 MAMM - Museo de Arte Moderno de Medellín
+                                            | <a href="https://www.elmamm.org/terminos/" target="">Términos</a>
+                                                                | <a href="https://www.elmamm.org/privacidad/" target="">Privacidad</a>
+</p>
+</div>
+<div class="col">
+<a href="https://www.ilogica.cl" rel="nofollow" target="_blank" title="Sí, otra vez nosotros.">
+<img alt="Otra más de Ilógica" height="16" src="https://www.elmamm.org/content/themes/mamm-theme/dist/svg/ilogica.svg?ver=2.0.13" width="120"/>
+</a>
+</div>
+</div>
+</div>
+</footer>
+
+ 
+
+
+
+
+
+
+
+
+
+
+<iframe height="0" width="0"></iframe></body></html>

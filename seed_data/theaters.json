@@ -1,12 +1,24 @@
 {
   "Medellín": [
     {
+      "name": "Museo de Arte Moderno de Medellín",
+      "slug": "museo-de-arte-moderno-de-medellin",
+      "chain": "",
+      "address": "Cra 44 #19a-100, El Poblado, Medellín",
+      "neighborhood": "Ciudad del Río",
+      "phone": "6044442622",
+      "screen_count": 1,
+      "website": "https://www.elmamm.org/cine/#semana",
+      "scraper_type": "mamm",
+      "download_source_url": "https://www.elmamm.org/cine/#semana"
+    },
+    {
       "name": "Royal Films - Multicine La 65",
       "slug": "royal-films-multicine-la-65-medellin",
       "chain": "Royal Films",
       "address": "Calle 47D No. 65-115",
       "neighborhood": "Naranjal",
-      "phone": "(604) 605 1587",
+      "phone": "(604) 605 158",
       "screen_count": 6,
       "website": "https://cinemasroyalfilms.com/cartelera/medell%C3%ADn/multicine-jumbo-la-65",
       "colombia_dot_com_url": "https://www.colombia.com/cine/royal-films-multicine-la-65-medellin-s124"
