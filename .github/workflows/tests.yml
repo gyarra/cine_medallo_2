@@ -25,17 +25,23 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra dev
 
+
       - name: Run Django checks
         run: uv run python manage.py check
         env:
           DJANGO_SETTINGS_MODULE: config.settings_test
+          TMDB_READ_ACCESS_TOKEN: ${{ secrets.TMDB_READ_ACCESS_TOKEN }}
+
 
       - name: Check for missing migrations
         run: uv run python manage.py makemigrations --check --dry-run
         env:
           DJANGO_SETTINGS_MODULE: config.settings_test
+          TMDB_READ_ACCESS_TOKEN: ${{ secrets.TMDB_READ_ACCESS_TOKEN }}
+
 
       - name: Run tests
         run: uv run pytest
         env:
           DJANGO_SETTINGS_MODULE: config.settings_test
+          TMDB_READ_ACCESS_TOKEN: ${{ secrets.TMDB_READ_ACCESS_TOKEN }}
