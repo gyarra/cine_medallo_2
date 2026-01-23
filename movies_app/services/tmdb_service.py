@@ -79,6 +79,16 @@ class TMDBVideo:
 
 
 @dataclass
+class TMDBReleaseDateEntry:
+    """Represents a release date entry with certification for a country."""
+
+    iso_3166_1: str
+    certification: str
+    release_date: str
+    type: int
+
+
+@dataclass
 class TMDBMovieResult:
     """Represents a movie result from TMDB API."""
 
@@ -127,6 +137,7 @@ class TMDBMovieDetails:
     cast: list[TMDBCastMember] | None
     crew: list[TMDBCrewMember] | None
     videos: list[TMDBVideo] | None
+    certification: str | None
 
     @property
     def directors(self) -> list[TMDBCrewMember]:
@@ -335,12 +346,44 @@ class TMDBService:
             return None
         return f"https://image.tmdb.org/t/p/{size}{poster_path}"
 
+    def _extract_certification(self, release_dates_data: dict) -> str | None:
+        """
+        Extract certification from TMDB release_dates response.
+
+        Prioritizes US certification, then CO (Colombia), then any available.
+        Only considers theatrical release types (type 3) or premiere (type 1).
+        """
+        results = release_dates_data.get("results", [])
+        certifications_by_country: dict[str, str] = {}
+
+        for country_data in results:
+            country_code = country_data.get("iso_3166_1", "")
+            release_dates = country_data.get("release_dates", [])
+
+            for rd in release_dates:
+                cert = rd.get("certification", "").strip()
+                release_type = rd.get("type", 0)
+                # Type 3 = Theatrical, Type 1 = Premiere
+                if cert and release_type in (1, 3):
+                    certifications_by_country[country_code] = cert
+                    break
+
+        # Priority: US, then CO, then first available
+        if "US" in certifications_by_country:
+            return certifications_by_country["US"]
+        if "CO" in certifications_by_country:
+            return certifications_by_country["CO"]
+        if certifications_by_country:
+            return next(iter(certifications_by_country.values()))
+        return None
+
     def get_movie_details(
         self,
         tmdb_id: int,
         language: str = "es-ES",
         include_credits: bool = False,
         include_videos: bool = False,
+        include_release_dates: bool = False,
     ) -> TMDBMovieDetails:
         """
         Get detailed information for a specific movie by TMDB ID.
@@ -353,6 +396,7 @@ class TMDBService:
             language: Language for results (default: "es-ES" for Spanish)
             include_credits: If True, includes cast and crew in single API call
             include_videos: If True, includes trailers and other videos in single API call
+            include_release_dates: If True, includes release dates with certifications
 
         Returns:
             TMDBMovieDetails with full movie information
@@ -366,6 +410,8 @@ class TMDBService:
             append_responses.append("credits")
         if include_videos:
             append_responses.append("videos")
+        if include_release_dates:
+            append_responses.append("release_dates")
         if append_responses:
             params["append_to_response"] = ",".join(append_responses)
 
@@ -439,6 +485,10 @@ class TMDBService:
                 for v in videos_data.get("results", [])
             ]
 
+        certification: str | None = None
+        if include_release_dates and "release_dates" in data:
+            certification = self._extract_certification(data["release_dates"])
+
         return TMDBMovieDetails(
             id=data["id"],
             title=data.get("title", ""),
@@ -465,4 +515,5 @@ class TMDBService:
             cast=cast,
             crew=crew,
             videos=videos,
+            certification=certification,
         )

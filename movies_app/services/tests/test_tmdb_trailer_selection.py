@@ -59,6 +59,7 @@ def _create_movie_details(videos: list[TMDBVideo] | None) -> TMDBMovieDetails:
         cast=None,
         crew=None,
         videos=videos,
+        certification=None,
     )
 
 

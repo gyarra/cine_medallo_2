@@ -195,6 +195,7 @@ class TestGetOrCreateMovie:
             cast=None,
             crew=None,
             videos=None,
+            certification="PG-13",
         )
         return mock
 

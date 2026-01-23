@@ -271,6 +271,7 @@ class Movie(models.Model):
                 tmdb_id,
                 include_credits=True,
                 include_videos=True,
+                include_release_dates=True,
             )
             movie_data = cls._apply_tmdb_details(movie_data, details, storage_service)
         except Exception as e:
@@ -322,6 +323,10 @@ class Movie(models.Model):
         best_trailer = details.get_best_trailer()
         if best_trailer and best_trailer.youtube_url:
             movie_data["trailer_url"] = best_trailer.youtube_url
+
+        # Age rating (certification)
+        if details.certification:
+            movie_data["age_rating"] = details.certification
 
         return movie_data
 
