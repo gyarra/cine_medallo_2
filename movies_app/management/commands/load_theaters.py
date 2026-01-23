@@ -109,7 +109,9 @@ class Command(BaseCommand):
                     "phone": data.get("phone", ""),
                     "screen_count": data.get("screen_count"),
                     "website": data.get("website", ""),
-                    "colombia_dot_com_url": data.get("colombia_dot_com_url", ""),
+                    "colombia_dot_com_url": data.get("colombia_dot_com_url"),
+                    "scraper_type": data.get("scraper_type"),
+                    "download_source_url": data.get("download_source_url"),
                 }
 
                 theater = Theater.objects.filter(slug=slug).first()
