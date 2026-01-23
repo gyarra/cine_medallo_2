@@ -780,9 +780,18 @@ def _get_or_create_movie(
 
         # Step 6: Create new movie
         movie = Movie.create_from_tmdb(best_match, tmdb_service, storage_service)
+
+        # Set fields from colombia.com data
+        fields_to_update: list[str] = []
         if movie_url:
             movie.colombia_dot_com_url = movie_url
-            movie.save(update_fields=["colombia_dot_com_url"])
+            fields_to_update.append("colombia_dot_com_url")
+        if metadata and metadata.classification and not movie.age_rating:
+            movie.age_rating = metadata.classification
+            fields_to_update.append("age_rating")
+        if fields_to_update:
+            movie.save(update_fields=fields_to_update)
+
         logger.info(f"Created movie: {movie}")
 
         return MovieLookupResult(movie=movie, is_new=True, tmdb_called=True)
@@ -822,7 +831,7 @@ def save_showtimes_for_theater(theater: Theater) -> TaskReport:
         )
         return TaskReport(total_showtimes=0, tmdb_calls=0, new_movies=[])
 
-    logger.info(f"Found {len(date_options)} dates for {theater.name}: {date_options}\n\n")
+    logger.info(f"Found {len(date_options)} dates for {theater.name}: {date_options}\n")
 
     tmdb_service = TMDBService()
     storage_service = _create_storage_service()
