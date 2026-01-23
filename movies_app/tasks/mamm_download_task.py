@@ -1,10 +1,8 @@
 """
-MAMM (elmamm.org) Scraper
+MAMM (elmamm.org) Scraper Task
 
-Utilities for scraping movie showtime data from
+Celery task for scraping movie showtime data from
 Museo de Arte Moderno de Medellín (MAMM).
-
-Invoked via management command: python manage.py mamm_download
 
 The weekly schedule is at: https://www.elmamm.org/cine/#semana
 Individual movie pages are at: https://www.elmamm.org/producto/<slug>/
@@ -12,16 +10,19 @@ Individual movie pages are at: https://www.elmamm.org/producto/<slug>/
 
 from __future__ import annotations
 
+import asyncio
 import datetime
 import logging
 import re
+import traceback
 import zoneinfo
 from dataclasses import dataclass
 
-import requests
 from bs4 import BeautifulSoup
+from camoufox.async_api import AsyncCamoufox
 from django.db import transaction
 
+from config.celery_app import app
 from movies_app.models import Movie, MovieSourceUrl, OperationalIssue, Showtime, Theater
 from movies_app.services.movie_lookup_result import MovieLookupResult
 from movies_app.services.movie_lookup_service import MovieLookupService
@@ -30,11 +31,13 @@ from movies_app.tasks.download_utilities import MovieMetadata, TaskReport
 
 logger = logging.getLogger(__name__)
 
+# Browser configuration
+BROWSER_TIMEOUT_SECONDS = 120
+
 BOGOTA_TZ = zoneinfo.ZoneInfo("America/Bogota")
 MAMM_BASE_URL = "https://www.elmamm.org"
 MAMM_CINE_URL = "https://www.elmamm.org/cine/"
 SOURCE_NAME = "mamm"
-REQUEST_TIMEOUT_SECONDS = 30
 
 SPANISH_MONTHS = {
     "ene": 1, "feb": 2, "mar": 3, "abr": 4, "may": 5, "jun": 6,
@@ -66,11 +69,34 @@ class MAMMMovieMetadata:
     trailer_url: str
 
 
+async def _scrape_page_async(url: str) -> str:
+    """Fetch HTML content from a URL using Camoufox browser."""
+    logger.info(f"Scraping page: {url}")
+
+    browser_options = {
+        "headless": True,
+    }
+
+    async with AsyncCamoufox(**browser_options) as browser:
+        context = await browser.new_context()  # pyright: ignore[reportAttributeAccessIssue]
+        page = await context.new_page()
+
+        try:
+            await page.goto(
+                url,
+                wait_until="domcontentloaded",
+                timeout=BROWSER_TIMEOUT_SECONDS * 1000,
+            )
+            html_content = await page.content()
+        finally:
+            await context.close()
+
+    return html_content
+
+
 def _fetch_html(url: str) -> str:
-    """Fetch HTML content from a URL."""
-    response = requests.get(url, timeout=REQUEST_TIMEOUT_SECONDS)
-    response.raise_for_status()
-    return response.text
+    """Synchronous wrapper to fetch HTML using async Camoufox."""
+    return asyncio.run(_scrape_page_async(url))
 
 
 def _parse_time_string(time_str: str) -> datetime.time | None:
@@ -431,11 +457,15 @@ def save_showtimes_from_html(html_content: str) -> TaskReport:
     )
 
 
-def scrape_and_save_mamm_showtimes() -> TaskReport:
+@app.task
+def mamm_download_task():
     """
-    Main entry point: scrape MAMM website and save showtimes.
+    Celery task to download movie showtime data from MAMM.
+
+    Scrapes the weekly schedule from elmamm.org/cine/,
+    fetches TMDB data, and saves showtimes to the database.
     """
-    logger.info("Starting MAMM scraper...")
+    logger.info("Starting mamm_download_task")
 
     try:
         html_content = _fetch_html(MAMM_CINE_URL)
@@ -443,8 +473,9 @@ def scrape_and_save_mamm_showtimes() -> TaskReport:
         logger.error(f"Failed to fetch MAMM cine page: {e}")
         OperationalIssue.objects.create(
             name="MAMM Page Fetch Failed",
-            task="scrape_and_save_mamm_showtimes",
+            task="mamm_download_task",
             error_message=f"Failed to fetch MAMM cine page: {e}",
+            traceback=traceback.format_exc(),
             context={"url": MAMM_CINE_URL},
             severity=OperationalIssue.Severity.ERROR,
         )

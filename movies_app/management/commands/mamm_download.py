@@ -24,8 +24,9 @@ Examples:
 from django.core.management.base import BaseCommand
 
 from movies_app.tasks.mamm_download_task import (
+    _fetch_html,
+    MAMM_CINE_URL,
     save_showtimes_from_html,
-    scrape_and_save_mamm_showtimes,
 )
 
 
@@ -46,10 +47,11 @@ class Command(BaseCommand):
             self.stdout.write(f"Loading HTML from file: {file_path}")
             with open(file_path, encoding="utf-8") as f:
                 html_content = f.read()
-            report = save_showtimes_from_html(html_content)
         else:
             self.stdout.write("Fetching MAMM schedule from web...")
-            report = scrape_and_save_mamm_showtimes()
+            html_content = _fetch_html(MAMM_CINE_URL)
+
+        report = save_showtimes_from_html(html_content)
 
         self.stdout.write(
             self.style.SUCCESS(
