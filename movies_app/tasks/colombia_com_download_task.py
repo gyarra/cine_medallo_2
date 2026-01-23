@@ -11,19 +11,22 @@ import datetime
 import logging
 import re
 import traceback
-import unicodedata
 import zoneinfo
 from dataclasses import dataclass
 
 from bs4 import BeautifulSoup
-from django.conf import settings
 from django.db import transaction
 from camoufox.async_api import AsyncCamoufox
 
 from config.celery_app import app
-from movies_app.models import APICallCounter, Movie, OperationalIssue, Showtime, Theater, UnfindableMovieUrl
-from movies_app.services.supabase_storage_service import SupabaseStorageService
-from movies_app.services.tmdb_service import TMDBMovieResult, TMDBService, TMDBServiceError
+from movies_app.models import Movie, OperationalIssue, Showtime, Theater, UnfindableMovieUrl
+from movies_app.services.tmdb_service import TMDBService
+from movies_app.services.movie_lookup_result import MovieLookupResult
+from movies_app.tasks.download_utilities import (
+    MovieMetadata,
+    TaskReport,
+)
+from movies_app.services.movie_lookup_service import MovieLookupService
 
 logger = logging.getLogger(__name__)
 
@@ -36,24 +39,8 @@ BOGOTA_TZ = zoneinfo.ZoneInfo("America/Bogota")
 # Base URL for colombia.com
 COLOMBIA_COM_BASE_URL = "https://www.colombia.com"
 
-
-def _create_storage_service() -> SupabaseStorageService | None:
-    """Create a Supabase storage service if credentials are configured."""
-    bucket_url = settings.SUPABASE_IMAGES_BUCKET_URL
-    access_key_id = settings.SUPABASE_IMAGES_BUCKET_ACCESS_KEY_ID
-    secret_access_key = settings.SUPABASE_IMAGES_BUCKET_SECRET_ACCESS_KEY
-    bucket_name = settings.SUPABASE_IMAGES_BUCKET_NAME
-
-    if not all([bucket_url, access_key_id, secret_access_key, bucket_name]):
-        logger.debug("Supabase storage not configured, images will use TMDB URLs")
-        return None
-
-    return SupabaseStorageService(
-        bucket_url=bucket_url,
-        access_key_id=access_key_id,
-        secret_access_key=secret_access_key,
-        bucket_name=bucket_name,
-    )
+# Source name for logging
+SOURCE_NAME = "colombia.com"
 
 
 @dataclass
@@ -63,48 +50,10 @@ class ShowtimeDescription:
 
 
 @dataclass
-class MovieMetadata:
-    genre: str
-    duration_minutes: int | None
-    classification: str
-    director: str
-    actors: list[str]
-    release_date: str
-    original_title: str | None
-
-
-@dataclass
 class MovieShowtimes:
     movie_name: str
     movie_url: str | None
     descriptions: list[ShowtimeDescription]
-
-
-@dataclass
-class MovieLookupResult:
-    movie: Movie | None
-    is_new: bool
-    tmdb_called: bool
-
-
-@dataclass
-class TaskReport:
-    total_showtimes: int
-    tmdb_calls: int
-    new_movies: list[str]
-
-    def print_report(self) -> None:
-        logger.info("\n\n")
-        logger.info("=" * 50)
-        logger.info("TASK REPORT")
-        logger.info("=" * 50)
-        logger.info(f"Total showtimes added: {self.total_showtimes}")
-        logger.info(f"TMDB API calls made: {self.tmdb_calls}")
-        logger.info(f"New movies added: {len(self.new_movies)}")
-        if self.new_movies:
-            for movie_title in self.new_movies:
-                logger.info(f"  - {movie_title}")
-        logger.info("=" * 50)
 
 
 def _parse_time_string(time_str: str) -> datetime.time | None:
@@ -283,14 +232,19 @@ def _extract_movie_metadata_from_html(html_content: str) -> MovieMetadata | None
         if "Fecha de estreno:" in fecha_text:
             release_date = fecha_text.replace("Fecha de estreno:", "").strip()
 
+    # Parse the release date into standardized format
+    parsed_date = _parse_release_date_from_colombia_date(release_date)
+    parsed_year = _parse_release_year_from_colombia_date(release_date)
+
     return MovieMetadata(
         genre=genre,
         duration_minutes=duration_minutes,
         classification=classification,
         director=director,
         actors=actors,
-        release_date=release_date,
         original_title=original_title,
+        release_date=parsed_date,
+        release_year=parsed_year,
     )
 
 
@@ -418,281 +372,54 @@ async def _scrape_theater_html_async(
     return html_content
 
 
-def _normalize_name(name: str) -> str:
-    """Normalize a name for comparison by lowercasing and removing accents/punctuation."""
-    normalized = unicodedata.normalize("NFD", name.lower())
-    return "".join(c for c in normalized if unicodedata.category(c) != "Mn").strip()
-
-
-def _find_best_tmdb_match(
-    results: list[TMDBMovieResult],
-    movie_name: str,
-    metadata: MovieMetadata | None,
-    tmdb_service: TMDBService,
-) -> TMDBMovieResult | None:
+def _scrape_and_create_metadata(movie_url: str, movie_name: str) -> MovieMetadata | None:
     """
-    Find the best matching TMDB result using colombia.com metadata for verification.
+    Scrape metadata from a colombia.com movie page.
 
-    Matching priority:
-    1. Exact release date match
-    2. Release year match (within 1 year tolerance)
-    3. Director/actors match (fetches details from TMDB)
-    4. Title similarity
-
-    Returns the best match, or None if no suitable match is found.
+    Returns MovieMetadata or None if scraping fails.
     """
-    logger.debug(f"=== _find_best_tmdb_match START for '{movie_name}' ===")
-    logger.debug(f"  TMDB results count: {len(results)}")
-    logger.debug(f"  Has metadata: {metadata is not None}")
-
-    if not results:
-        logger.debug("  No TMDB results, returning None")
+    try:
+        movie_html = asyncio.run(_scrape_movie_page_async(movie_url))
+        metadata = _extract_movie_metadata_from_html(movie_html)
+        if metadata:
+            logger.info(
+                f"Scraped metadata for '{movie_name}': "
+                f"genre={metadata.genre}, duration={metadata.duration_minutes}, "
+                f"release_date={metadata.release_date}, director={metadata.director}, "
+                f"original_title={metadata.original_title}"
+            )
+        return metadata
+    except Exception as e:
+        logger.warning(f"Failed to scrape movie page for '{movie_name}': {e}")
+        OperationalIssue.objects.create(
+            name="Movie Page Scrape Failed",
+            task="_get_or_create_movie_colombia",
+            error_message=f"Failed to scrape colombia.com movie page for '{movie_name}': {e}",
+            traceback=traceback.format_exc(),
+            context={"movie_name": movie_name, "movie_url": movie_url},
+            severity=OperationalIssue.Severity.WARNING,
+        )
         return None
 
-    # If no metadata, fall back to first result
-    if not metadata:
-        logger.info(f"No metadata available for '{movie_name}', using first TMDB result")
-        logger.debug(f"  Falling back to first result: '{results[0].title}' (id={results[0].id})")
-        OperationalIssue.objects.create(
-            name="No Colombia.com Metadata",
-            task="_find_best_tmdb_match",
-            error_message=f"Could not extract metadata from colombia.com for '{movie_name}'",
-            context={"movie_name": movie_name},
-            severity=OperationalIssue.Severity.WARNING,
-        )
-        return results[0]
 
-    logger.debug(f"  Metadata: director='{metadata.director}', actors={metadata.actors}")
-    logger.debug(f"  Metadata: release_date='{metadata.release_date}', duration={metadata.duration_minutes}")
-
-    colombia_date = _parse_release_date_from_colombia_date(metadata.release_date)
-    colombia_year = _parse_release_year_from_colombia_date(metadata.release_date)
-    logger.debug(f"  Parsed colombia_date={colombia_date}, colombia_year={colombia_year}")
-
-    if not colombia_year:
-        logger.warning(f"Could not parse release date from '{metadata.release_date}' for '{movie_name}'")
-        OperationalIssue.objects.create(
-            name="Missing Colombia.com Release Date",
-            task="_find_best_tmdb_match",
-            error_message=f"Could not parse release date from colombia.com for '{movie_name}'",
-            context={
-                "movie_name": movie_name,
-                "release_date_raw": metadata.release_date,
-                "metadata": {
-                    "genre": metadata.genre,
-                    "duration_minutes": metadata.duration_minutes,
-                    "director": metadata.director,
-                },
-            },
-            severity=OperationalIssue.Severity.WARNING,
-        )
-
-    best_match: TMDBMovieResult | None = None
-    best_score = -1
-    has_date_match = False
-
-    logger.debug(f"  --- Starting loop over {len(results)} TMDB results ---")
-
-    for idx, result in enumerate(results):
-        logger.debug(f"  [{idx}] Evaluating: '{result.title}' (id={result.id}, release={result.release_date})")
-        score = 0
-
-        # Parse TMDB date
-        tmdb_date: datetime.date | None = None
-        tmdb_year: int | None = None
-        if result.release_date:
-            try:
-                tmdb_date = datetime.datetime.strptime(result.release_date, "%Y-%m-%d").date()
-                tmdb_year = tmdb_date.year
-            except ValueError:
-                logger.debug(f"      Failed to parse TMDB date: '{result.release_date}'")
-
-        logger.debug(f"      tmdb_date={tmdb_date}, tmdb_year={tmdb_year}")
-
-        # Priority 1: Exact date match (strongest signal) - return immediately
-        if colombia_date and tmdb_date and colombia_date == tmdb_date:
-            logger.info(
-                f"Exact date match for '{movie_name}': '{result.title}' "
-                f"(id={result.id}, date={tmdb_date})"
-            )
-            logger.debug("  === EARLY RETURN: Exact date match ===")
-            return result
-
-        # Priority 2: Year match
-        elif colombia_year and tmdb_year:
-            year_diff = abs(colombia_year - tmdb_year)
-            logger.debug(f"      Year comparison: colombia={colombia_year}, tmdb={tmdb_year}, diff={year_diff}")
-            if year_diff == 0:
-                score += 100
-                has_date_match = True
-                logger.debug("      +100 (same year)")
-            elif year_diff == 1:
-                # Allow 1 year difference for release timing differences between countries
-                score += 50
-                has_date_match = True
-                logger.debug("      +50 (year diff = 1)")
-            else:
-                # Significant year mismatch is a strong negative signal
-                score -= 50
-                logger.debug("      -50 (year diff > 1)")
-
-        # Title similarity bonus
-        movie_name_lower = movie_name.lower()
-        tmdb_title_lower = result.title.lower()
-        original_title_lower = result.original_title.lower()
-
-        if movie_name_lower == tmdb_title_lower:
-            score += 30
-            logger.debug("      +30 (exact title match)")
-        elif movie_name_lower in tmdb_title_lower or tmdb_title_lower in movie_name_lower:
-            score += 15
-            logger.debug("      +15 (partial title match)")
-
-        if movie_name_lower == original_title_lower:
-            score += 20
-            logger.debug("      +20 (exact original_title match)")
-        elif movie_name_lower in original_title_lower or original_title_lower in movie_name_lower:
-            score += 10
-            logger.debug("      +10 (partial original_title match)")
-
-        # Popularity boost (TMDB orders by relevance, so add small position-based bonus)
-        position_bonus = max(0, 10 - idx)
-        score += position_bonus
-        logger.debug(f"      +{position_bonus} (position bonus)")
-
-        # Director/actors matching - only fetch details if we have metadata to compare
-        # and limit to top 5 results to avoid excessive API calls
-        director_matched = False
-        actor_matched = False
-        if metadata and (metadata.director or metadata.actors) and idx < 5:
-            logger.debug("      Fetching TMDB details for credits comparison...")
-            try:
-                APICallCounter.increment("tmdb")
-                details = tmdb_service.get_movie_details(result.id, include_credits=True)
-                logger.debug(f"      Got details: {len(details.directors)} directors, {len(details.cast) if details.cast else 0} cast")
-
-                # Director matching
-                if metadata.director and details.directors:
-                    colombia_director = _normalize_name(metadata.director)
-                    tmdb_director_names = [d.name for d in details.directors]
-                    logger.debug(f"      Director comparison: colombia='{colombia_director}', tmdb={tmdb_director_names}")
-                    for tmdb_director in details.directors:
-                        if _normalize_name(tmdb_director.name) == colombia_director:
-                            score += 150
-                            director_matched = True
-                            logger.debug(f"      +150 (director match: {tmdb_director.name})")
-                            break
-
-                # Actors matching - check if any colombia.com actor appears in TMDB cast
-                if metadata.actors and details.cast:
-                    colombia_actors = {_normalize_name(a) for a in metadata.actors}
-                    tmdb_actors = {_normalize_name(c.name) for c in details.cast[:15]}  # Top 15 cast
-                    matching_actors = colombia_actors & tmdb_actors
-                    logger.debug(f"      Actor comparison: colombia={colombia_actors}")
-                    logger.debug(f"      Actor comparison: tmdb={tmdb_actors}")
-                    logger.debug(f"      Matching actors: {matching_actors}")
-                    if matching_actors:
-                        # Score based on number of matching actors
-                        actor_score = min(len(matching_actors) * 30, 90)  # Cap at 90
-                        score += actor_score
-                        actor_matched = True
-                        logger.debug(f"      +{actor_score} (actor match: {len(matching_actors)} actors)")
-            except TMDBServiceError as e:
-                logger.warning(f"Failed to fetch details for TMDB id {result.id}: {e}")
-                OperationalIssue.objects.create(
-                    name="TMDB Details Fetch Failed",
-                    task="_find_best_tmdb_match",
-                    error_message=f"Failed to fetch TMDB details for movie id {result.id}: {e}",
-                    context={"movie_name": movie_name, "tmdb_id": result.id, "tmdb_title": result.title},
-                    severity=OperationalIssue.Severity.WARNING,
-                )
-
-        logger.debug(
-            f"      FINAL SCORE: {score} (director_matched={director_matched}, actor_matched={actor_matched})"
-        )
-
-        if score > best_score:
-            logger.debug(f"      New best match! (previous best_score={best_score})")
-            best_score = score
-            best_match = result
-
-    logger.debug("  --- Loop complete ---")
-
-    # Log operational issue if we couldn't match by date
-    if not has_date_match and (colombia_date or colombia_year):
-        tmdb_dates = [
-            f"{r.title}: {r.release_date}" for r in results[:5]  # First 5 results
-        ]
-        logger.debug("  No date match found, creating OperationalIssue")
-        OperationalIssue.objects.create(
-            name="No TMDB Date Match",
-            task="_find_best_tmdb_match",
-            error_message=f"No TMDB result matched release date for '{movie_name}'",
-            context={
-                "movie_name": movie_name,
-                "colombia_date": str(colombia_date) if colombia_date else None,
-                "colombia_year": colombia_year,
-                "tmdb_results": tmdb_dates,
-            },
-            severity=OperationalIssue.Severity.WARNING,
-        )
-
-    if best_match:
-        logger.info(
-            f"Selected TMDB match for '{movie_name}': '{best_match.title}' "
-            f"(id={best_match.id}, score={best_score}, date_matched={has_date_match})"
-        )
-        logger.debug(f"=== _find_best_tmdb_match END: returning '{best_match.title}' ===")
-    else:
-        logger.warning(f"No suitable TMDB match found for '{movie_name}'")
-        logger.debug("=== _find_best_tmdb_match END: returning None ===")
-
-    return best_match
-
-
-def _record_unfindable_url(
-    url: str,
-    movie_title: str,
-    original_title: str | None,
-    reason: UnfindableMovieUrl.Reason,
-) -> None:
-    """Record a URL as unfindable to avoid future redundant lookups."""
-    obj, created = UnfindableMovieUrl.objects.update_or_create(
-        url=url,
-        defaults={
-            "movie_title": movie_title,
-            "original_title": original_title or "",
-            "reason": reason,
-        },
-    )
-    if not created:
-        obj.attempts += 1
-        obj.save(update_fields=["attempts"])
-
-    OperationalIssue.objects.create(
-        name="Unfindable Movie URL",
-        task="_get_or_create_movie",
-        error_message=f"Could not match movie to TMDB: {movie_title}",
-        context={"movie_url": url, "reason": reason, "original_title": original_title},
-        severity=OperationalIssue.Severity.WARNING,
-    )
-
-
-def _get_or_create_movie(
+def _get_or_create_movie_colombia(
     movie_name: str,
     movie_url: str | None,
     tmdb_service: TMDBService,
-    storage_service: SupabaseStorageService | None,
+    storage_service,
 ) -> MovieLookupResult:
     """
-    Get or create a movie, prioritizing lookup by colombia.com URL.
+    Get or create a movie from colombia.com listing.
 
-    Lookup order:
-    1. By colombia_dot_com_url (if provided) - avoids TMDB API call
-    2. Check if URL is known to be unfindable - avoids redundant TMDB calls
-    3. By TMDB search with metadata matching
+    This wraps the generic get_or_create_movie with colombia.com-specific logic:
+    1. Checks for existing movie by URL first
+    2. Checks if URL is known to be unfindable
+    3. Scrapes metadata from colombia.com movie page
+    4. Uses classification as age_rating_colombia fallback
     """
-    # Step 1: Try to find existing movie by colombia.com URL
+    lookup_service = MovieLookupService(tmdb_service, storage_service, SOURCE_NAME)
+
+    # Step 1: Check for existing movie by URL first (avoid scraping if we already have it)
     if movie_url:
         existing_movie = Movie.objects.filter(colombia_dot_com_url=movie_url).first()
         if existing_movie:
@@ -703,108 +430,35 @@ def _get_or_create_movie(
         if unfindable:
             unfindable.attempts += 1
             unfindable.save(update_fields=["attempts", "last_seen"])
-            logger.debug(f"Skipping TMDB lookup for known unfindable URL: {movie_url}")
+            logger.debug(f"Skipping processing for known unfindable URL: {movie_url}")
             return MovieLookupResult(movie=None, is_new=False, tmdb_called=False)
 
     # Step 2: Scrape metadata from colombia.com movie page
-    # We do this before TMDB search because the original title (in parentheses) is often
-    # a much better match in TMDB than the translated Spanish name, which may vary by region.
     metadata: MovieMetadata | None = None
     if movie_url:
-        try:
-            movie_html = asyncio.run(_scrape_movie_page_async(movie_url))
-            metadata = _extract_movie_metadata_from_html(movie_html)
-            if metadata:
-                logger.info(
-                    f"Scraped metadata for '{movie_name}': "
-                    f"genre={metadata.genre}, duration={metadata.duration_minutes}, "
-                    f"release_date={metadata.release_date}, director={metadata.director}, "
-                    f"original_title={metadata.original_title}"
-                )
-        except Exception as e:
-            logger.warning(f"Failed to scrape movie page for '{movie_name}': {e}")
-            OperationalIssue.objects.create(
-                name="Movie Page Scrape Failed",
-                task="_get_or_create_movie",
-                error_message=f"Failed to scrape colombia.com movie page for '{movie_name}': {e}",
-                traceback=traceback.format_exc(),
-                context={"movie_name": movie_name, "movie_url": movie_url},
-                severity=OperationalIssue.Severity.WARNING,
+        metadata = _scrape_and_create_metadata(movie_url, movie_name)
+        if metadata is None:
+            # Record as unfindable due to metadata scrape failure, but DO NOT return—proceed to TMDB lookup
+            lookup_service.record_unfindable_url(
+                movie_url, movie_name, None, UnfindableMovieUrl.Reason.NO_METADATA
             )
-            # Record as unfindable due to metadata scrape failure
-            if movie_url:
-                _record_unfindable_url(
-                    movie_url, movie_name, None, UnfindableMovieUrl.Reason.NO_METADATA
-                )
-            return MovieLookupResult(movie=None, is_new=False, tmdb_called=False)
 
-    # Step 3: Search TMDB (use original title if available for better matching)
-    search_name = metadata.original_title if metadata and metadata.original_title else movie_name
+    # Step 3: Use generic get_or_create_movie
+    result = lookup_service.get_or_create_movie(
+        movie_name=movie_name,
+        source_url=movie_url,
+        source_url_field="colombia_dot_com_url",
+        metadata=metadata,
+    )
 
-    try:
-        logger.info(f"Searching TMDB for: '{search_name}' (listing name: '{movie_name}')")
-        APICallCounter.increment("tmdb")
-        response = tmdb_service.search_movie(search_name)
+    # Step 4: Use colombia.com classification as fallback if TMDB has no Colombia certification
+    if result.movie and result.is_new and metadata and metadata.classification:
+        if not result.movie.age_rating_colombia:
+            result.movie.age_rating_colombia = metadata.classification
+            result.movie.save(update_fields=["age_rating_colombia"])
+            logger.info(f"Using colombia.com classification '{metadata.classification}' for {result.movie}")
 
-        if not response.results:
-            logger.warning(f"No TMDB results found for: {search_name}")
-            if movie_url:
-                _record_unfindable_url(
-                    movie_url,
-                    movie_name,
-                    metadata.original_title if metadata else None,
-                    UnfindableMovieUrl.Reason.NO_TMDB_RESULTS,
-                )
-            return MovieLookupResult(movie=None, is_new=False, tmdb_called=True)
-
-        # Step 4: Find best matching TMDB result
-        best_match = _find_best_tmdb_match(response.results, movie_name, metadata, tmdb_service)
-        if not best_match:
-            if movie_url:
-                _record_unfindable_url(
-                    movie_url,
-                    movie_name,
-                    metadata.original_title if metadata else None,
-                    UnfindableMovieUrl.Reason.NO_MATCH,
-                )
-            return MovieLookupResult(movie=None, is_new=False, tmdb_called=True)
-
-        # Step 5: Check if this match already exists in DB
-        existing_movie = Movie.objects.filter(tmdb_id=best_match.id).first()
-        if existing_movie:
-            # Add colombia.com URL if the movie doesn't have one yet
-            if movie_url and not existing_movie.colombia_dot_com_url:
-                existing_movie.colombia_dot_com_url = movie_url
-                existing_movie.save(update_fields=["colombia_dot_com_url"])
-            return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=True)
-
-        # Step 6: Create new movie
-        movie = Movie.create_from_tmdb(best_match, tmdb_service, storage_service)
-        if movie_url:
-            movie.colombia_dot_com_url = movie_url
-            movie.save(update_fields=["colombia_dot_com_url"])
-
-        # Step 7: Use colombia.com classification as fallback if TMDB has no Colombia certification
-        if not movie.age_rating_colombia and metadata and metadata.classification:
-            movie.age_rating_colombia = metadata.classification
-            movie.save(update_fields=["age_rating_colombia"])
-            logger.info(f"Using colombia.com classification '{metadata.classification}' for {movie}")
-
-        logger.info(f"Created movie: {movie}")
-
-        return MovieLookupResult(movie=movie, is_new=True, tmdb_called=True)
-
-    except TMDBServiceError as e:
-        logger.error(f"TMDB error for '{movie_name}': {e}")
-        OperationalIssue.objects.create(
-            name="TMDB API Error",
-            task="_get_or_create_movie",
-            error_message=str(e),
-            traceback=traceback.format_exc(),
-            context={"movie_name": movie_name, "movie_url": movie_url},
-            severity=OperationalIssue.Severity.ERROR,
-        )
-        return MovieLookupResult(movie=None, is_new=False, tmdb_called=True)
+    return result
 
 
 # TODO: When we have more than one worker, this transaction will cause problems.
@@ -834,7 +488,8 @@ def save_showtimes_for_theater(theater: Theater) -> TaskReport:
     logger.info(f"Found {len(date_options)} dates for {theater.name}: {date_options}\n\n")
 
     tmdb_service = TMDBService()
-    storage_service = _create_storage_service()
+    lookup_service = MovieLookupService(tmdb_service, None, SOURCE_NAME)
+    storage_service = lookup_service.create_storage_service()
     total_showtimes = 0
     total_tmdb_calls = 0
     all_new_movies: list[str] = []
@@ -875,7 +530,7 @@ def _save_showtimes_for_theater_for_date(
     theater: Theater,
     target_date: datetime.date | None,
     tmdb_service: TMDBService,
-    storage_service: SupabaseStorageService | None,
+    storage_service,
     html_content: str | None,
 ) -> TaskReport:
     """
@@ -909,7 +564,7 @@ def _save_showtimes_for_theater_for_date(
     new_movies: list[str] = []
 
     for movie_showtime in movie_showtimes_list:
-        lookup_result = _get_or_create_movie(
+        lookup_result = _get_or_create_movie_colombia(
             movie_name=movie_showtime.movie_name,
             movie_url=movie_showtime.movie_url,
             tmdb_service=tmdb_service,

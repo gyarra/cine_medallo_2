@@ -1,3 +1,4 @@
+import datetime
 import os
 from unittest.mock import MagicMock, patch
 
@@ -83,7 +84,9 @@ class TestExtractMovieMetadata:
         assert "Aleksa Palladino" in metadata.actors
         assert "Jadon Cal" in metadata.actors
         assert "Sean Bridgers" in metadata.actors
-        assert "Ene 15 / 2026" in metadata.release_date
+        # ...existing code...
+        assert metadata.release_date == datetime.date(2026, 1, 15)
+        assert metadata.release_year == 2026
         assert metadata.original_title == "The Painted"  # From "La Maldición De Evelyn (The Painted)"
 
     def test_extracts_original_title_from_parentheses(self):
@@ -137,7 +140,7 @@ class TestExtractMovieMetadata:
         assert _parse_release_year_from_colombia_date("Invalid") is None
 
     def test_parse_release_date_from_colombia_date(self):
-        import datetime
+        # ...existing code...
 
         from movies_app.tasks.colombia_com_download_task import (
             _parse_release_date_from_colombia_date,
@@ -248,7 +251,10 @@ class TestGetOrCreateMovie:
     def test_finds_existing_movie_by_url(self, mock_tmdb_service):
         """Happy path: movie exists and can be found by colombia_dot_com_url."""
         from movies_app.models import Movie
-        from movies_app.tasks.colombia_com_download_task import _get_or_create_movie
+        from movies_app.tasks.colombia_com_download_task import (
+            MovieMetadata,
+            _get_or_create_movie_colombia,
+        )
 
         movie = Movie.objects.create(
             tmdb_id=12345,
@@ -259,12 +265,25 @@ class TestGetOrCreateMovie:
             colombia_dot_com_url="https://www.colombia.com/cine/peliculas/avatar-fuego-y-cenizas",
         )
 
-        result = _get_or_create_movie(
-            movie_name="Avatar: Fuego Y Cenizas",
-            movie_url="https://www.colombia.com/cine/peliculas/avatar-fuego-y-cenizas",
-            tmdb_service=mock_tmdb_service,
-            storage_service=None,
-        )
+        with patch(
+            "movies_app.tasks.colombia_com_download_task._scrape_and_create_metadata"
+        ) as mock_scrape:
+            mock_scrape.return_value = MovieMetadata(
+                genre="Ciencia Ficción",
+                duration_minutes=180,
+                classification="PG-13",
+                director="James Cameron",
+                actors=["Sam Worthington"],
+                release_date=datetime.date(2025, 12, 19),
+                release_year=2025,
+                original_title=None,
+            )
+            result = _get_or_create_movie_colombia(
+                movie_name="Avatar: Fuego Y Cenizas",
+                movie_url="https://www.colombia.com/cine/peliculas/avatar-fuego-y-cenizas",
+                tmdb_service=mock_tmdb_service,
+                storage_service=None,
+            )
 
         assert result.movie == movie
         assert result.is_new is False
@@ -276,7 +295,10 @@ class TestGetOrCreateMovie:
     ):
         """Movie exists in DB but doesn't have a URL - finds it via TMDB search."""
         from movies_app.models import Movie
-        from movies_app.tasks.colombia_com_download_task import _get_or_create_movie
+        from movies_app.tasks.colombia_com_download_task import (
+            MovieMetadata,
+            _get_or_create_movie_colombia,
+        )
 
         movie = Movie.objects.create(
             tmdb_id=12345,
@@ -289,12 +311,25 @@ class TestGetOrCreateMovie:
 
         mock_tmdb_service.search_movie.return_value = sample_tmdb_results
 
-        result = _get_or_create_movie(
-            movie_name="Avatar: Fuego Y Cenizas",
-            movie_url="https://www.colombia.com/cine/peliculas/avatar-fuego-y-cenizas",
-            tmdb_service=mock_tmdb_service,
-            storage_service=None,
-        )
+        with patch(
+            "movies_app.tasks.colombia_com_download_task._scrape_and_create_metadata"
+        ) as mock_scrape:
+            mock_scrape.return_value = MovieMetadata(
+                genre="Ciencia Ficción",
+                duration_minutes=180,
+                classification="PG-13",
+                director="James Cameron",
+                actors=["Sam Worthington"],
+                release_date=datetime.date(2025, 12, 19),
+                release_year=2025,
+                original_title=None,
+            )
+            result = _get_or_create_movie_colombia(
+                movie_name="Avatar: Fuego Y Cenizas",
+                movie_url="https://www.colombia.com/cine/peliculas/avatar-fuego-y-cenizas",
+                tmdb_service=mock_tmdb_service,
+                storage_service=None,
+            )
 
         assert result.movie == movie
         assert result.is_new is False
@@ -307,7 +342,7 @@ class TestGetOrCreateMovie:
     def test_creates_new_movie_when_not_in_db(self, mock_tmdb_service, sample_tmdb_results):
         """Movie does not exist in DB - creates new movie from best TMDB match."""
         from movies_app.models import Movie
-        from movies_app.tasks.colombia_com_download_task import _get_or_create_movie
+        from movies_app.tasks.colombia_com_download_task import _get_or_create_movie_colombia
 
         mock_tmdb_service.search_movie.return_value = sample_tmdb_results
 
@@ -327,11 +362,12 @@ class TestGetOrCreateMovie:
                     classification="PG-13",
                     director="James Cameron",
                     actors=["Sam Worthington", "Zoe Saldaña"],
-                    release_date="Dic 19 / 2025",
+                    release_date=datetime.date(2025, 12, 19),
+                    release_year=2025,
                     original_title=None,
                 )
 
-                result = _get_or_create_movie(
+                result = _get_or_create_movie_colombia(
                     movie_name="Avatar: Fuego Y Cenizas",
                     movie_url="https://www.colombia.com/cine/peliculas/avatar-fuego-y-cenizas",
                     tmdb_service=mock_tmdb_service,
@@ -351,7 +387,7 @@ class TestGetOrCreateMovie:
         self, mock_tmdb_service, sample_tmdb_results
     ):
         """When TMDB returns multiple results, selects the one matching colombia.com release year."""
-        from movies_app.tasks.colombia_com_download_task import _get_or_create_movie
+        from movies_app.tasks.colombia_com_download_task import _get_or_create_movie_colombia
 
         mock_tmdb_service.search_movie.return_value = sample_tmdb_results
 
@@ -372,11 +408,12 @@ class TestGetOrCreateMovie:
                     classification="PG-13",
                     director="James Cameron",
                     actors=["Sam Worthington"],
-                    release_date="Dic 19 / 2025",
+                    release_date=datetime.date(2025, 12, 19),
+                    release_year=2025,
                     original_title=None,
                 )
 
-                result = _get_or_create_movie(
+                result = _get_or_create_movie_colombia(
                     movie_name="Avatar",
                     movie_url="https://www.colombia.com/cine/peliculas/avatar",
                     tmdb_service=mock_tmdb_service,
@@ -389,18 +426,34 @@ class TestGetOrCreateMovie:
     def test_no_tmdb_results_returns_none(self, mock_tmdb_service):
         """When TMDB returns no results, returns None movie."""
         from movies_app.services.tmdb_service import TMDBSearchResponse
-        from movies_app.tasks.colombia_com_download_task import _get_or_create_movie
+        from movies_app.tasks.colombia_com_download_task import (
+            MovieMetadata,
+            _get_or_create_movie_colombia,
+        )
 
         mock_tmdb_service.search_movie.return_value = TMDBSearchResponse(
             page=1, total_pages=0, total_results=0, results=[]
         )
 
-        result = _get_or_create_movie(
-            movie_name="Nonexistent Movie XYZ123",
-            movie_url="https://www.colombia.com/cine/peliculas/nonexistent",
-            tmdb_service=mock_tmdb_service,
-            storage_service=None,
-        )
+        with patch(
+            "movies_app.tasks.colombia_com_download_task._scrape_and_create_metadata"
+        ) as mock_scrape:
+            mock_scrape.return_value = MovieMetadata(
+                genre="Unknown",
+                duration_minutes=None,
+                classification="",
+                director="",
+                actors=[],
+                release_date=None,
+                release_year=None,
+                original_title=None,
+            )
+            result = _get_or_create_movie_colombia(
+                movie_name="Nonexistent Movie XYZ123",
+                movie_url="https://www.colombia.com/cine/peliculas/nonexistent",
+                tmdb_service=mock_tmdb_service,
+                storage_service=None,
+            )
 
         assert result.movie is None
         assert result.is_new is False
@@ -410,19 +463,35 @@ class TestGetOrCreateMovie:
         """When TMDB returns no results, records the URL as unfindable."""
         from movies_app.models import UnfindableMovieUrl
         from movies_app.services.tmdb_service import TMDBSearchResponse
-        from movies_app.tasks.colombia_com_download_task import _get_or_create_movie
+        from movies_app.tasks.colombia_com_download_task import (
+            MovieMetadata,
+            _get_or_create_movie_colombia,
+        )
 
         mock_tmdb_service.search_movie.return_value = TMDBSearchResponse(
             page=1, total_pages=0, total_results=0, results=[]
         )
 
         movie_url = "https://www.colombia.com/cine/peliculas/unfindable-movie"
-        _get_or_create_movie(
-            movie_name="Unfindable Movie",
-            movie_url=movie_url,
-            tmdb_service=mock_tmdb_service,
-            storage_service=None,
-        )
+        with patch(
+            "movies_app.tasks.colombia_com_download_task._scrape_and_create_metadata"
+        ) as mock_scrape:
+            mock_scrape.return_value = MovieMetadata(
+                genre="Unknown",
+                duration_minutes=None,
+                classification="",
+                director="",
+                actors=[],
+                release_date=None,
+                release_year=None,
+                original_title=None,
+            )
+            _get_or_create_movie_colombia(
+                movie_name="Unfindable Movie",
+                movie_url=movie_url,
+                tmdb_service=mock_tmdb_service,
+                storage_service=None,
+            )
 
         unfindable = UnfindableMovieUrl.objects.get(url=movie_url)
         assert unfindable.movie_title == "Unfindable Movie"
@@ -432,7 +501,7 @@ class TestGetOrCreateMovie:
     def test_skips_tmdb_lookup_for_known_unfindable_url(self, mock_tmdb_service):
         """When URL is already in unfindable cache, skips TMDB lookup entirely."""
         from movies_app.models import UnfindableMovieUrl
-        from movies_app.tasks.colombia_com_download_task import _get_or_create_movie
+        from movies_app.tasks.colombia_com_download_task import _get_or_create_movie_colombia
 
         movie_url = "https://www.colombia.com/cine/peliculas/cached-unfindable"
         UnfindableMovieUrl.objects.create(
@@ -442,7 +511,7 @@ class TestGetOrCreateMovie:
             attempts=3,
         )
 
-        result = _get_or_create_movie(
+        result = _get_or_create_movie_colombia(
             movie_name="Cached Unfindable Movie",
             movie_url=movie_url,
             tmdb_service=mock_tmdb_service,
@@ -456,7 +525,7 @@ class TestGetOrCreateMovie:
     def test_increments_attempts_for_known_unfindable_url(self, mock_tmdb_service):
         """When encountering a known unfindable URL, increments the attempts counter."""
         from movies_app.models import UnfindableMovieUrl
-        from movies_app.tasks.colombia_com_download_task import _get_or_create_movie
+        from movies_app.tasks.colombia_com_download_task import _get_or_create_movie_colombia
 
         movie_url = "https://www.colombia.com/cine/peliculas/repeat-unfindable"
         UnfindableMovieUrl.objects.create(
@@ -466,7 +535,7 @@ class TestGetOrCreateMovie:
             attempts=5,
         )
 
-        _get_or_create_movie(
+        _get_or_create_movie_colombia(
             movie_name="Repeat Unfindable Movie",
             movie_url=movie_url,
             tmdb_service=mock_tmdb_service,
