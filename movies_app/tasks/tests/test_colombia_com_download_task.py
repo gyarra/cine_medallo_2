@@ -84,7 +84,7 @@ class TestExtractMovieMetadata:
         assert "Aleksa Palladino" in metadata.actors
         assert "Jadon Cal" in metadata.actors
         assert "Sean Bridgers" in metadata.actors
-        import datetime
+        # ...existing code...
         assert metadata.release_date == datetime.date(2026, 1, 15)
         assert metadata.release_year == 2026
         assert metadata.original_title == "The Painted"  # From "La Maldición De Evelyn (The Painted)"
@@ -140,7 +140,7 @@ class TestExtractMovieMetadata:
         assert _parse_release_year_from_colombia_date("Invalid") is None
 
     def test_parse_release_date_from_colombia_date(self):
-        import datetime
+        # ...existing code...
 
         from movies_app.tasks.colombia_com_download_task import (
             _parse_release_date_from_colombia_date,

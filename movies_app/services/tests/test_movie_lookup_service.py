@@ -13,8 +13,6 @@ from movies_app.services.tmdb_service import TMDBService, TMDBMovieResult
 from movies_app.services.supabase_storage_service import SupabaseStorageService
 
 
-
-
 @pytest.fixture
 def tmdb_service():
     # Return a real TMDBService instance (will be mocked in test)
@@ -25,7 +23,7 @@ def storage_service():
     # Use a MagicMock for storage service
     return MagicMock(spec=SupabaseStorageService)
 
-    # (removed duplicate, keep only the correct test below)
+
 @pytest.mark.django_db
 def test_find_best_tmdb_match_real_data(tmdb_service, storage_service, monkeypatch):
     movie_name = "Inception"
@@ -67,8 +65,9 @@ def test_find_best_tmdb_match_real_data(tmdb_service, storage_service, monkeypat
     assert best.original_title.lower() == "inception"
     assert best.title == "Origen"
 
-@pytest.mark.django_db
-def test_normalize_name():
-    assert MovieLookupService.normalize_name("José") == "jose"
-    assert MovieLookupService.normalize_name("Café!") == "cafe!"
-    assert MovieLookupService.normalize_name("  Movie Title  ") == "movie title"
+class TestMovieLookupService:
+    @pytest.mark.django_db
+    def test_normalize_name(self):
+        assert MovieLookupService.normalize_name("José") == "jose"
+        assert MovieLookupService.normalize_name("Café!") == "cafe!"
+        assert MovieLookupService.normalize_name("  Movie Title  ") == "movie title"

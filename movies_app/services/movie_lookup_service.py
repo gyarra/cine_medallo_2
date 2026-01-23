@@ -21,7 +21,8 @@ class MovieLookupService:
         self.storage_service = storage_service
         self.source_name = source_name
 
-    def create_storage_service(self) -> SupabaseStorageService | None:
+    @staticmethod
+    def create_storage_service() -> SupabaseStorageService | None:
         bucket_url = settings.SUPABASE_IMAGES_BUCKET_URL
         access_key_id = settings.SUPABASE_IMAGES_BUCKET_ACCESS_KEY_ID
         secret_access_key = settings.SUPABASE_IMAGES_BUCKET_SECRET_ACCESS_KEY

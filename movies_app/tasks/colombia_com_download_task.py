@@ -438,11 +438,10 @@ def _get_or_create_movie_colombia(
     if movie_url:
         metadata = _scrape_and_create_metadata(movie_url, movie_name)
         if metadata is None:
-            # Record as unfindable due to metadata scrape failure
+            # Record as unfindable due to metadata scrape failure, but DO NOT return—proceed to TMDB lookup
             lookup_service.record_unfindable_url(
                 movie_url, movie_name, None, UnfindableMovieUrl.Reason.NO_METADATA
             )
-            return MovieLookupResult(movie=None, is_new=False, tmdb_called=False)
 
     # Step 3: Use generic get_or_create_movie
     result = lookup_service.get_or_create_movie(
