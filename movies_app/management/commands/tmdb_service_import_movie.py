@@ -138,8 +138,24 @@ class Command(BaseCommand):
         self.stdout.write(f"  Original Title: {movie.original_title}")
         self.stdout.write(f"  Year: {movie.year}")
         self.stdout.write(f"  Rating: {movie.tmdb_rating}/10")
+        if movie.duration_minutes:
+            self.stdout.write(f"  Duration: {movie.duration_minutes} minutes")
+        if movie.genre:
+            self.stdout.write(f"  Genre: {movie.genre}")
+        if movie.age_rating_colombia:
+            self.stdout.write(f"  Age Rating (Colombia): {movie.age_rating_colombia}")
+        if movie.director:
+            self.stdout.write(f"  Director: {movie.director}")
+        if movie.cast_summary:
+            self.stdout.write(f"  Cast: {movie.cast_summary}")
         if movie.poster_url:
             self.stdout.write(f"  Poster: {movie.poster_url}")
+        if movie.backdrop_url:
+            self.stdout.write(f"  Backdrop: {movie.backdrop_url}")
+        if movie.trailer_url:
+            self.stdout.write(f"  Trailer: {movie.trailer_url}")
+        if movie.imdb_id:
+            self.stdout.write(f"  IMDB: {movie.imdb_url}")
         if movie.synopsis:
             synopsis = movie.synopsis[:150] + "..." if len(movie.synopsis) > 150 else movie.synopsis
             self.stdout.write(f"  Synopsis: {synopsis}")

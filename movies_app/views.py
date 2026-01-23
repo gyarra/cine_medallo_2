@@ -484,17 +484,19 @@ def movie_detail(request, slug):
             </nav>
         </header>
         <div class="max-w-5xl mx-auto p-8 px-10">
-            <div class="flex gap-8 bg-white p-6 rounded-lg shadow">
+            <div class="flex gap-8 bg-white p-6 rounded-lg shadow max-md:flex-col">
                 {poster_html}
-                <div class="flex-1">
+                <div class="flex-1 flex flex-col">
                     <h1 class="m-0 mb-2 text-gray-800 text-3xl">{movie.title_es}</h1>
                     {original_title}
                     <div class="text-gray-500 text-sm mb-4">
-                        {year_str} {f"· {duration_str}" if duration_str else ""} {f"· {movie.genre}" if movie.genre else ""} {f"· {movie.age_rating}" if movie.age_rating else ""}
+                        {year_str} {f"· {duration_str}" if duration_str else ""} {f"· {movie.genre}" if movie.genre else ""} {f"· {movie.age_rating_colombia}" if movie.age_rating_colombia else ""}
                     </div>
                     <div class="text-brand-red">{rating_str}</div>
-                    <div class="text-gray-600 leading-relaxed mt-4">{movie.synopsis or ""}</div>
-                    {links_html}
+                    <div class="text-gray-600 leading-relaxed mt-4 order-1 md:order-3">{movie.synopsis or ""}</div>
+                    {f'<div class="mt-4 text-gray-600 text-sm order-2 md:order-1"><span class="font-semibold text-gray-700">Director:</span> {movie.director}</div>' if movie.director else ""}
+                    {f'<div class="mt-2 text-gray-600 text-sm order-3 md:order-2"><span class="font-semibold text-gray-700">Reparto:</span> {movie.cast_summary}</div>' if movie.cast_summary else ""}
+                    <div class="order-4">{links_html}</div>
                 </div>
             </div>
 

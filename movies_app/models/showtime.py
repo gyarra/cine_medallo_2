@@ -25,6 +25,7 @@ class Showtime(models.Model):
         default="",
         help_text="Screening format (e.g., '2D', '3D', 'IMAX', 'XD')",
     )
+    # TODO: name this translation_type or similar. Add a different field for original language. This field name is confusing.
     language = models.CharField(
         max_length=50,
         blank=True,

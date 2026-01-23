@@ -346,35 +346,29 @@ class TMDBService:
             return None
         return f"https://image.tmdb.org/t/p/{size}{poster_path}"
 
-    def _extract_certification(self, release_dates_data: dict) -> str | None:
+    def _extract_certification_colombia(self, release_dates_data: dict) -> str | None:
         """
-        Extract certification from TMDB release_dates response.
+        Extract Colombian certification from TMDB release_dates response.
 
-        Prioritizes US certification, then CO (Colombia), then any available.
+        Only returns certification for Colombia (CO).
         Only considers theatrical release types (type 3) or premiere (type 1).
         """
         results = release_dates_data.get("results", [])
-        certifications_by_country: dict[str, str] = {}
+
+        logger.info("Results: %s", results)
 
         for country_data in results:
-            country_code = country_data.get("iso_3166_1", "")
-            release_dates = country_data.get("release_dates", [])
+            if country_data.get("iso_3166_1") != "CO":
+                continue
 
+            release_dates = country_data.get("release_dates", [])
             for rd in release_dates:
                 cert = rd.get("certification", "").strip()
                 release_type = rd.get("type", 0)
                 # Type 3 = Theatrical, Type 1 = Premiere
                 if cert and release_type in (1, 3):
-                    certifications_by_country[country_code] = cert
-                    break
+                    return cert
 
-        # Priority: US, then CO, then first available
-        if "US" in certifications_by_country:
-            return certifications_by_country["US"]
-        if "CO" in certifications_by_country:
-            return certifications_by_country["CO"]
-        if certifications_by_country:
-            return next(iter(certifications_by_country.values()))
         return None
 
     def get_movie_details(
@@ -487,7 +481,7 @@ class TMDBService:
 
         certification: str | None = None
         if include_release_dates and "release_dates" in data:
-            certification = self._extract_certification(data["release_dates"])
+            certification = self._extract_certification_colombia(data["release_dates"])
 
         return TMDBMovieDetails(
             id=data["id"],

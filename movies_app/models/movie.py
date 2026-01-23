@@ -54,11 +54,11 @@ class Movie(models.Model):
         default="",
         help_text="Primary genre(s)",
     )
-    age_rating = models.CharField(
+    age_rating_colombia = models.CharField(
         max_length=10,
         blank=True,
         default="",
-        help_text="Age rating (e.g., 'PG-13', 'R', '+15')",
+        help_text="Colombian age rating from TMDB (e.g., '+12', '+15', '+18')",
     )
     synopsis = models.TextField(
         blank=True,
@@ -324,9 +324,9 @@ class Movie(models.Model):
         if best_trailer and best_trailer.youtube_url:
             movie_data["trailer_url"] = best_trailer.youtube_url
 
-        # Age rating (certification)
+        # Colombian age rating (certification)
         if details.certification:
-            movie_data["age_rating"] = details.certification
+            movie_data["age_rating_colombia"] = details.certification
 
         return movie_data
 

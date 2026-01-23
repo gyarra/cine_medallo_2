@@ -783,6 +783,13 @@ def _get_or_create_movie(
         if movie_url:
             movie.colombia_dot_com_url = movie_url
             movie.save(update_fields=["colombia_dot_com_url"])
+
+        # Step 7: Use colombia.com classification as fallback if TMDB has no Colombia certification
+        if not movie.age_rating_colombia and metadata and metadata.classification:
+            movie.age_rating_colombia = metadata.classification
+            movie.save(update_fields=["age_rating_colombia"])
+            logger.info(f"Using colombia.com classification '{metadata.classification}' for {movie}")
+
         logger.info(f"Created movie: {movie}")
 
         return MovieLookupResult(movie=movie, is_new=True, tmdb_called=True)
@@ -800,6 +807,8 @@ def _get_or_create_movie(
         return MovieLookupResult(movie=None, is_new=False, tmdb_called=True)
 
 
+# TODO: When we have more than one worker, this transaction will cause problems.
+# If another worker adds a movie while this adds the same movie, the transaction will fail.
 @transaction.atomic
 def save_showtimes_for_theater(theater: Theater) -> TaskReport:
     """
