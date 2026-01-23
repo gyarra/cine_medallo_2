@@ -21,14 +21,12 @@ from camoufox.async_api import AsyncCamoufox
 from config.celery_app import app
 from movies_app.models import Movie, OperationalIssue, Showtime, Theater, UnfindableMovieUrl
 from movies_app.services.tmdb_service import TMDBService
+from movies_app.services.movie_lookup_result import MovieLookupResult
 from movies_app.tasks.download_utilities import (
-    MovieLookupResult,
     MovieMetadata,
     TaskReport,
-    create_storage_service,
-    get_or_create_movie,
-    record_unfindable_url,
 )
+from movies_app.services.movie_lookup_service import MovieLookupService
 
 logger = logging.getLogger(__name__)
 
@@ -419,6 +417,8 @@ def _get_or_create_movie_colombia(
     3. Scrapes metadata from colombia.com movie page
     4. Uses classification as age_rating_colombia fallback
     """
+    lookup_service = MovieLookupService(tmdb_service, storage_service, SOURCE_NAME)
+
     # Step 1: Check for existing movie by URL first (avoid scraping if we already have it)
     if movie_url:
         existing_movie = Movie.objects.filter(colombia_dot_com_url=movie_url).first()
@@ -439,20 +439,17 @@ def _get_or_create_movie_colombia(
         metadata = _scrape_and_create_metadata(movie_url, movie_name)
         if metadata is None:
             # Record as unfindable due to metadata scrape failure
-            record_unfindable_url(
-                movie_url, movie_name, None, UnfindableMovieUrl.Reason.NO_METADATA, SOURCE_NAME
+            lookup_service.record_unfindable_url(
+                movie_url, movie_name, None, UnfindableMovieUrl.Reason.NO_METADATA
             )
             return MovieLookupResult(movie=None, is_new=False, tmdb_called=False)
 
     # Step 3: Use generic get_or_create_movie
-    result = get_or_create_movie(
+    result = lookup_service.get_or_create_movie(
         movie_name=movie_name,
         source_url=movie_url,
         source_url_field="colombia_dot_com_url",
         metadata=metadata,
-        tmdb_service=tmdb_service,
-        storage_service=storage_service,
-        source_name=SOURCE_NAME,
     )
 
     # Step 4: Use colombia.com classification as fallback if TMDB has no Colombia certification
@@ -492,7 +489,8 @@ def save_showtimes_for_theater(theater: Theater) -> TaskReport:
     logger.info(f"Found {len(date_options)} dates for {theater.name}: {date_options}\n\n")
 
     tmdb_service = TMDBService()
-    storage_service = create_storage_service()
+    lookup_service = MovieLookupService(tmdb_service, None, SOURCE_NAME)
+    storage_service = lookup_service.create_storage_service()
     total_showtimes = 0
     total_tmdb_calls = 0
     all_new_movies: list[str] = []
