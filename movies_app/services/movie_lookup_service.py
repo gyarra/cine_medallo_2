@@ -2,7 +2,6 @@
 MovieLookupService: Service for movie lookup, TMDB matching, and deduplication.
 """
 
-
 import datetime
 import logging
 import traceback

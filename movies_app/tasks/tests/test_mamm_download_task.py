@@ -3,11 +3,19 @@ import os
 
 import pytest
 
+from movies_app.models import Showtime, Theater
+from movies_app.tasks.mamm_download_task import (
+    _extract_movie_metadata_from_html,
+    _extract_showtimes_from_html,
+    _get_mamm_theater,
+    _parse_date_string,
+    _parse_time_string,
+    save_showtimes_from_html,
+)
+
 
 class TestExtractShowtimesFromHtml:
     def test_extracts_showtimes_from_mamm_schedule_html(self):
-        from movies_app.tasks.mamm_download_task import _extract_showtimes_from_html
-
         html_snapshot_path = os.path.join(
             os.path.dirname(__file__),
             "html_snapshot",
@@ -27,8 +35,6 @@ class TestExtractShowtimesFromHtml:
         assert "Resurrección" in movie_titles
 
     def test_extracts_correct_showtime_data(self):
-        from movies_app.tasks.mamm_download_task import _extract_showtimes_from_html
-
         html_snapshot_path = os.path.join(
             os.path.dirname(__file__),
             "html_snapshot",
@@ -48,8 +54,6 @@ class TestExtractShowtimesFromHtml:
         assert first_perfect_blue.date is not None
 
     def test_extracts_movie_urls(self):
-        from movies_app.tasks.mamm_download_task import _extract_showtimes_from_html
-
         html_snapshot_path = os.path.join(
             os.path.dirname(__file__),
             "html_snapshot",
@@ -69,8 +73,6 @@ class TestExtractShowtimesFromHtml:
             assert st.movie_url.startswith("https://www.elmamm.org/producto/")
 
     def test_extracts_special_labels(self):
-        from movies_app.tasks.mamm_download_task import _extract_showtimes_from_html
-
         html_snapshot_path = os.path.join(
             os.path.dirname(__file__),
             "html_snapshot",
@@ -91,57 +93,41 @@ class TestExtractShowtimesFromHtml:
 
 class TestParseTimeString:
     def test_parses_pm_times(self):
-        from movies_app.tasks.mamm_download_task import _parse_time_string
-
         assert _parse_time_string("2:00 pm") == datetime.time(14, 0)
         assert _parse_time_string("9:30 pm") == datetime.time(21, 30)
         assert _parse_time_string("12:00 pm") == datetime.time(12, 0)
 
     def test_parses_am_times(self):
-        from movies_app.tasks.mamm_download_task import _parse_time_string
-
         assert _parse_time_string("10:00 am") == datetime.time(10, 0)
         assert _parse_time_string("12:00 am") == datetime.time(0, 0)
 
     def test_parses_times_with_periods(self):
-        from movies_app.tasks.mamm_download_task import _parse_time_string
-
         assert _parse_time_string("2:00 p.m.") == datetime.time(14, 0)
         assert _parse_time_string("10:30 a.m.") == datetime.time(10, 30)
 
     def test_returns_none_for_invalid_time(self):
-        from movies_app.tasks.mamm_download_task import _parse_time_string
-
         assert _parse_time_string("invalid") is None
         assert _parse_time_string("") is None
 
 
 class TestParseDateString:
     def test_parses_spanish_dates(self):
-        from movies_app.tasks.mamm_download_task import _parse_date_string
-
         assert _parse_date_string("viernes 23 Ene", 2025) == datetime.date(2025, 1, 23)
         assert _parse_date_string("sábado 24 Ene", 2025) == datetime.date(2025, 1, 24)
         assert _parse_date_string("domingo 25 Ene", 2025) == datetime.date(2025, 1, 25)
 
     def test_parses_different_months(self):
-        from movies_app.tasks.mamm_download_task import _parse_date_string
-
         assert _parse_date_string("15 Feb", 2025) == datetime.date(2025, 2, 15)
         assert _parse_date_string("1 Dic", 2025) == datetime.date(2025, 12, 1)
         assert _parse_date_string("31 Jul", 2025) == datetime.date(2025, 7, 31)
 
     def test_returns_none_for_invalid_date(self):
-        from movies_app.tasks.mamm_download_task import _parse_date_string
-
         assert _parse_date_string("invalid", 2025) is None
         assert _parse_date_string("", 2025) is None
 
 
 class TestExtractMovieMetadataFromHtml:
     def test_extracts_metadata_from_movie_detail_page(self):
-        from movies_app.tasks.mamm_download_task import _extract_movie_metadata_from_html
-
         html_snapshot_path = os.path.join(
             os.path.dirname(__file__),
             "html_snapshot",
@@ -157,8 +143,6 @@ class TestExtractMovieMetadataFromHtml:
         assert metadata.title != ""
 
     def test_returns_none_for_empty_html(self):
-        from movies_app.tasks.mamm_download_task import _extract_movie_metadata_from_html
-
         metadata = _extract_movie_metadata_from_html("<html></html>")
         assert metadata is None
 
@@ -166,9 +150,6 @@ class TestExtractMovieMetadataFromHtml:
 @pytest.mark.django_db
 class TestSaveShowtimesFromHtml:
     def test_saves_showtimes_from_html(self, mamm_theater):
-        from movies_app.models import Showtime
-        from movies_app.tasks.mamm_download_task import save_showtimes_from_html
-
         html_snapshot_path = os.path.join(
             os.path.dirname(__file__),
             "html_snapshot",
@@ -184,30 +165,10 @@ class TestSaveShowtimesFromHtml:
         assert Showtime.objects.filter(theater=mamm_theater).exists()
 
     def test_raises_if_theater_not_found(self):
-        from movies_app.models import Theater
-        from movies_app.tasks.mamm_download_task import _get_mamm_theater
-
         Theater.objects.filter(slug="museo-de-arte-moderno-de-medellin").delete()
 
         with pytest.raises(Theater.DoesNotExist):
             _get_mamm_theater()
 
 
-@pytest.fixture
-def mamm_theater():
-    from movies_app.models import Theater
-
-    theater, _ = Theater.objects.get_or_create(
-        slug="museo-de-arte-moderno-de-medellin",
-        defaults={
-            "name": "Museo de Arte Moderno de Medellín",
-            "chain": "",
-            "address": "Cra 44 #19a-100, El Poblado, Medellín",
-            "city": "Medellín",
-            "neighborhood": "Ciudad del Río",
-            "website": "https://www.elmamm.org/cine/#semana",
-            "screen_count": 1,
-            "is_active": True,
-        },
-    )
-    return theater
+# mamm_theater fixture is now in conftest.py
