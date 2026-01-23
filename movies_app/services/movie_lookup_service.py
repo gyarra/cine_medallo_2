@@ -324,7 +324,7 @@ class MovieLookupService:
             existing_movie = Movie.objects.filter(tmdb_id=best_match.id).first()
             if existing_movie:
                 if source_url:
-                    MovieSourceUrl.objects.get_or_create(
+                    MovieSourceUrl.objects.update_or_create(
                         movie=existing_movie,
                         scraper_type=scraper_type,
                         defaults={"url": source_url},

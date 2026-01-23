@@ -57,5 +57,10 @@ class MovieSourceUrl(models.Model):
             models.Index(fields=["scraper_type", "url"]),
         ]
 
+    def get_scraper_type_display(self) -> str:
+        """Return display value for scraper_type (Django auto-generates this)."""
+        ...
+
     def __str__(self) -> str:
-        return f"{self.movie.title_es} - {self.ScraperType(self.scraper_type).label}"
+        scraper_label = self.get_scraper_type_display()
+        return f"{self.movie.title_es} - {scraper_label}"

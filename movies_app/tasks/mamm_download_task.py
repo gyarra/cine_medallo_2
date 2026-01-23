@@ -1,8 +1,10 @@
 """
-MAMM (elmamm.org) Scraper Task
+MAMM (elmamm.org) Scraper
 
-Celery task and utilities for scraping movie showtime data from
+Utilities for scraping movie showtime data from
 Museo de Arte Moderno de Medellín (MAMM).
+
+Invoked via management command: python manage.py mamm_download
 
 The weekly schedule is at: https://www.elmamm.org/cine/#semana
 Individual movie pages are at: https://www.elmamm.org/producto/<slug>/
@@ -152,8 +154,11 @@ def _extract_showtimes_from_html(html_content: str) -> list[MAMMShowtime]:
             logger.warning(f"Could not parse date: {day_text}")
             continue
 
-        if parsed_date < today and parsed_date.month < today.month:
-            parsed_date = datetime.date(reference_year + 1, parsed_date.month, parsed_date.day)
+        delta_days = (parsed_date - today).days
+        if delta_days > 180:
+            parsed_date = parsed_date.replace(year=parsed_date.year - 1)
+        elif delta_days < -180:
+            parsed_date = parsed_date.replace(year=parsed_date.year + 1)
 
         cards = col.find_all("div", class_="card")
 
