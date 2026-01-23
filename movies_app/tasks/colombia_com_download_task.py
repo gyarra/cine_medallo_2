@@ -19,7 +19,7 @@ from django.db import transaction
 from camoufox.async_api import AsyncCamoufox
 
 from config.celery_app import app
-from movies_app.models import Movie, OperationalIssue, Showtime, Theater, UnfindableMovieUrl
+from movies_app.models import MovieSourceUrl, OperationalIssue, Showtime, Theater, UnfindableMovieUrl
 from movies_app.services.tmdb_service import TMDBService
 from movies_app.services.movie_lookup_result import MovieLookupResult
 from movies_app.tasks.download_utilities import (
@@ -421,9 +421,12 @@ def _get_or_create_movie_colombia(
 
     # Step 1: Check for existing movie by URL first (avoid scraping if we already have it)
     if movie_url:
-        existing_movie = Movie.objects.filter(colombia_dot_com_url=movie_url).first()
-        if existing_movie:
-            return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=False)
+        existing_source_url = MovieSourceUrl.objects.filter(
+            scraper_type=MovieSourceUrl.ScraperType.COLOMBIA_COM,
+            url=movie_url,
+        ).select_related("movie").first()
+        if existing_source_url:
+            return MovieLookupResult(movie=existing_source_url.movie, is_new=False, tmdb_called=False)
 
         # Step 1b: Check if this URL is already known to be unfindable
         unfindable = UnfindableMovieUrl.objects.filter(url=movie_url).first()
@@ -447,7 +450,7 @@ def _get_or_create_movie_colombia(
     result = lookup_service.get_or_create_movie(
         movie_name=movie_name,
         source_url=movie_url,
-        source_url_field="colombia_dot_com_url",
+        scraper_type=MovieSourceUrl.ScraperType.COLOMBIA_COM,
         metadata=metadata,
     )
 

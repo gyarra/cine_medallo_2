@@ -249,8 +249,8 @@ class TestGetOrCreateMovie:
         )
 
     def test_finds_existing_movie_by_url(self, mock_tmdb_service):
-        """Happy path: movie exists and can be found by colombia_dot_com_url."""
-        from movies_app.models import Movie
+        """Happy path: movie exists and can be found via MovieSourceUrl."""
+        from movies_app.models import Movie, MovieSourceUrl
         from movies_app.tasks.colombia_com_download_task import (
             MovieMetadata,
             _get_or_create_movie_colombia,
@@ -262,7 +262,11 @@ class TestGetOrCreateMovie:
             original_title="Avatar: Fire and Ash",
             slug="avatar-fuego-y-cenizas",
             year=2025,
-            colombia_dot_com_url="https://www.colombia.com/cine/peliculas/avatar-fuego-y-cenizas",
+        )
+        MovieSourceUrl.objects.create(
+            movie=movie,
+            scraper_type=MovieSourceUrl.ScraperType.COLOMBIA_COM,
+            url="https://www.colombia.com/cine/peliculas/avatar-fuego-y-cenizas",
         )
 
         with patch(
@@ -294,7 +298,7 @@ class TestGetOrCreateMovie:
         self, mock_tmdb_service, sample_tmdb_results
     ):
         """Movie exists in DB but doesn't have a URL - finds it via TMDB search."""
-        from movies_app.models import Movie
+        from movies_app.models import Movie, MovieSourceUrl
         from movies_app.tasks.colombia_com_download_task import (
             MovieMetadata,
             _get_or_create_movie_colombia,
@@ -306,7 +310,6 @@ class TestGetOrCreateMovie:
             original_title="Avatar: Fire and Ash",
             slug="avatar-fuego-y-cenizas",
             year=2025,
-            colombia_dot_com_url=None,
         )
 
         mock_tmdb_service.search_movie.return_value = sample_tmdb_results
@@ -336,12 +339,14 @@ class TestGetOrCreateMovie:
         assert result.tmdb_called is True
         mock_tmdb_service.search_movie.assert_called_once()
 
-        movie.refresh_from_db()
-        assert movie.colombia_dot_com_url == "https://www.colombia.com/cine/peliculas/avatar-fuego-y-cenizas"
+        source_url = MovieSourceUrl.objects.get(
+            movie=movie, scraper_type=MovieSourceUrl.ScraperType.COLOMBIA_COM
+        )
+        assert source_url.url == "https://www.colombia.com/cine/peliculas/avatar-fuego-y-cenizas"
 
     def test_creates_new_movie_when_not_in_db(self, mock_tmdb_service, sample_tmdb_results):
         """Movie does not exist in DB - creates new movie from best TMDB match."""
-        from movies_app.models import Movie
+        from movies_app.models import Movie, MovieSourceUrl
         from movies_app.tasks.colombia_com_download_task import _get_or_create_movie_colombia
 
         mock_tmdb_service.search_movie.return_value = sample_tmdb_results
@@ -378,7 +383,11 @@ class TestGetOrCreateMovie:
         assert result.is_new is True
         assert result.tmdb_called is True
         assert result.movie.tmdb_id == 12345
-        assert result.movie.colombia_dot_com_url == "https://www.colombia.com/cine/peliculas/avatar-fuego-y-cenizas"
+
+        source_url = MovieSourceUrl.objects.get(
+            movie=result.movie, scraper_type=MovieSourceUrl.ScraperType.COLOMBIA_COM
+        )
+        assert source_url.url == "https://www.colombia.com/cine/peliculas/avatar-fuego-y-cenizas"
 
         db_movie = Movie.objects.get(tmdb_id=12345)
         assert db_movie is not None
