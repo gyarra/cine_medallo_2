@@ -74,7 +74,7 @@ async def _scrape_page_async(url: str) -> str:
     logger.info(f"Scraping page: {url}")
 
     browser_options = {
-        "headless": True,
+        "headless": False,
     }
 
     async with AsyncCamoufox(**browser_options) as browser:
