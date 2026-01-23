@@ -178,23 +178,19 @@ class TestSaveShowtimesFromHtml:
         with open(html_snapshot_path, encoding="utf-8") as f:
             html_content = f.read()
 
-        report = save_showtimes_from_html(html_content, mamm_theater)
+        report = save_showtimes_from_html(html_content)
 
         assert report.total_showtimes > 0
         assert Showtime.objects.filter(theater=mamm_theater).exists()
 
-    def test_creates_theater_if_not_provided(self):
+    def test_raises_if_theater_not_found(self):
         from movies_app.models import Theater
-        from movies_app.tasks.mamm_download_task import _get_or_create_mamm_theater
+        from movies_app.tasks.mamm_download_task import _get_mamm_theater
 
-        theater = _get_or_create_mamm_theater()
+        Theater.objects.filter(slug="museo-de-arte-moderno-de-medellin").delete()
 
-        assert theater is not None
-        assert theater.slug == "mamm"
-        assert theater.name == "MAMM - Museo de Arte Moderno de Medellín"
-
-        theater_from_db = Theater.objects.get(slug="mamm")
-        assert theater_from_db == theater
+        with pytest.raises(Theater.DoesNotExist):
+            _get_mamm_theater()
 
 
 @pytest.fixture
@@ -202,14 +198,14 @@ def mamm_theater():
     from movies_app.models import Theater
 
     theater, _ = Theater.objects.get_or_create(
-        slug="mamm",
+        slug="museo-de-arte-moderno-de-medellin",
         defaults={
-            "name": "MAMM - Test Theater",
-            "chain": "MAMM",
-            "address": "Test Address",
+            "name": "Museo de Arte Moderno de Medellín",
+            "chain": "",
+            "address": "Cra 44 #19a-100, El Poblado, Medellín",
             "city": "Medellín",
-            "neighborhood": "Test",
-            "website": "https://www.elmamm.org/cine/",
+            "neighborhood": "Ciudad del Río",
+            "website": "https://www.elmamm.org/cine/#semana",
             "screen_count": 1,
             "is_active": True,
         },

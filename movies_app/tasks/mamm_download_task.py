@@ -344,42 +344,28 @@ def _get_or_create_movie_mamm(
     return result
 
 
-def _get_or_create_mamm_theater() -> Theater:
+def _get_mamm_theater() -> Theater:
     """
-    Get or create the MAMM theater record.
+    Get the MAMM theater record.
+
+    Raises:
+        Theater.DoesNotExist: If the MAMM theater is not found in the database.
     """
-    theater, created = Theater.objects.get_or_create(
-        slug="mamm",
-        defaults={
-            "name": "MAMM - Museo de Arte Moderno de Medellín",
-            "chain": "MAMM",
-            "address": "Carrera 44 # 19A-100, Ciudad del Río",
-            "city": "Medellín",
-            "neighborhood": "Ciudad del Río",
-            "website": "https://www.elmamm.org/cine/",
-            "screen_count": 1,
-            "is_active": True,
-        },
-    )
-    if created:
-        logger.info(f"Created MAMM theater: {theater}")
-    return theater
+    return Theater.objects.get(slug="museo-de-arte-moderno-de-medellin")
 
 
 @transaction.atomic
-def save_showtimes_from_html(html_content: str, theater: Theater | None) -> TaskReport:
+def save_showtimes_from_html(html_content: str) -> TaskReport:
     """
     Parse MAMM schedule HTML and save showtimes to the database.
 
     Args:
         html_content: HTML content from the MAMM cine page
-        theater: The MAMM theater object (if None, will be fetched/created)
 
     Returns:
         TaskReport with stats
     """
-    if theater is None:
-        theater = _get_or_create_mamm_theater()
+    theater = _get_mamm_theater()
 
     showtimes = _extract_showtimes_from_html(html_content)
     logger.info(f"Extracted {len(showtimes)} showtimes from MAMM schedule")
@@ -446,8 +432,6 @@ def scrape_and_save_mamm_showtimes() -> TaskReport:
     """
     logger.info("Starting MAMM scraper...")
 
-    theater = _get_or_create_mamm_theater()
-
     try:
         html_content = _fetch_html(MAMM_CINE_URL)
     except Exception as e:
@@ -461,7 +445,7 @@ def scrape_and_save_mamm_showtimes() -> TaskReport:
         )
         raise
 
-    report = save_showtimes_from_html(html_content, theater)
+    report = save_showtimes_from_html(html_content)
     report.print_report()
 
     return report

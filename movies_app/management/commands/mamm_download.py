@@ -46,7 +46,7 @@ class Command(BaseCommand):
             self.stdout.write(f"Loading HTML from file: {file_path}")
             with open(file_path, encoding="utf-8") as f:
                 html_content = f.read()
-            report = save_showtimes_from_html(html_content, theater=None)
+            report = save_showtimes_from_html(html_content)
         else:
             self.stdout.write("Fetching MAMM schedule from web...")
             report = scrape_and_save_mamm_showtimes()
