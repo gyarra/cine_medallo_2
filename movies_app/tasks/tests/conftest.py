@@ -7,7 +7,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from movies_app.models import Theater
-from movies_app.services.tmdb_service import TMDBMovieResult, TMDBSearchResponse
+from movies_app.services.tmdb_service import (
+    TMDBGenre,
+    TMDBMovieDetails,
+    TMDBMovieResult,
+    TMDBProductionCompany,
+    TMDBSearchResponse,
+)
 
 
 @pytest.fixture
@@ -96,14 +102,42 @@ def mock_tmdb_for_tasks():
         ],
     )
 
-    with patch("movies_app.services.tmdb_service.TMDBService") as mock_class:
-        mock_instance = MagicMock()
-        mock_instance.search_movie.return_value = mock_response
-        mock_instance.get_movie_details.return_value = MagicMock(
-            directors=[],
-            cast=[],
-            videos=None,
-            release_dates=None,
-        )
-        mock_class.return_value = mock_instance
+    mock_instance = MagicMock()
+    mock_instance.search_movie.return_value = mock_response
+    mock_instance.get_movie_details.return_value = TMDBMovieDetails(
+        id=99999,
+        title="Mocked Movie",
+        original_title="Mocked Movie Original",
+        overview="A mocked movie for testing",
+        release_date="2025-01-15",
+        popularity=50.0,
+        vote_average=6.5,
+        vote_count=500,
+        poster_path="/mocked_poster.jpg",
+        backdrop_path="/mocked_backdrop.jpg",
+        genres=[TMDBGenre(id=18, name="Drama")],
+        original_language="es",
+        adult=False,
+        video=False,
+        runtime=120,
+        budget=1000000,
+        revenue=5000000,
+        status="Released",
+        tagline="A test movie",
+        homepage="",
+        imdb_id="tt9999999",
+        production_companies=[
+            TMDBProductionCompany(id=1, name="Test Studio", logo_path=None, origin_country="CO")
+        ],
+        cast=None,
+        crew=None,
+        videos=None,
+        certification=None,
+    )
+
+    # Patch TMDBService where it's imported/used in task modules
+    with patch("movies_app.tasks.mamm_download_task.TMDBService") as mamm_mock, \
+         patch("movies_app.tasks.colombia_com_download_task.TMDBService") as colombia_mock:
+        mamm_mock.return_value = mock_instance
+        colombia_mock.return_value = mock_instance
         yield mock_instance

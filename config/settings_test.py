@@ -41,7 +41,7 @@ LOGGING = {
     "loggers": {
         "movies_app": {
             "handlers": ["console"],
-            "level": "DEBUG",
+            "level": "INFO",
             "propagate": False,
         },
     },
