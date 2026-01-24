@@ -130,7 +130,9 @@ class Command(BaseCommand):
 
         # Create the movie with storage service for image uploads
         storage_service = _create_storage_service()
-        movie = Movie.create_from_tmdb(selected_movie, service, storage_service, None)
+        movie = Movie.create_from_tmdb(
+            selected_movie, service, storage_service, title_override=None
+        )
 
         self.stdout.write(self.style.SUCCESS(f"\nSuccessfully imported: {movie}"))
         self.stdout.write(f"  Database ID: {movie.id}")  # pyright: ignore[reportAttributeAccessIssue]

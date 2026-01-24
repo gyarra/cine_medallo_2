@@ -332,7 +332,7 @@ class MovieLookupService:
                 return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=True)
 
             movie = Movie.create_from_tmdb(
-                best_match, self.tmdb_service, self.storage_service, movie_name
+                best_match, self.tmdb_service, self.storage_service, title_override=movie_name
             )
             if source_url:
                 MovieSourceUrl.objects.create(

@@ -357,5 +357,7 @@ class Movie(models.Model):
             movie = cls.objects.get(tmdb_id=tmdb_result.id)
             return movie, False
         except cls.DoesNotExist:
-            movie = cls.create_from_tmdb(tmdb_result, tmdb_service, storage_service, title_override)
+            movie = cls.create_from_tmdb(
+                tmdb_result, tmdb_service, storage_service, title_override=title_override
+            )
             return movie, True
