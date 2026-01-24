@@ -167,6 +167,7 @@ class Movie(models.Model):
         tmdb_result: TMDBMovieResult,
         tmdb_service: TMDBService | None,
         storage_service: SupabaseStorageService | None,
+        title_override: str | None,
     ) -> Movie:
         """
         Create a Movie instance from a TMDB search result.
@@ -181,6 +182,7 @@ class Movie(models.Model):
             tmdb_result: A TMDBMovieResult from the TMDB API
             tmdb_service: Optional TMDBService for fetching full details
             storage_service: Optional SupabaseStorageService for uploading images
+            title_override: Optional title to use instead of TMDB title (e.g., from scraped listing)
 
         Returns:
             A new saved Movie instance
@@ -204,8 +206,9 @@ class Movie(models.Model):
             )
 
         # Base movie data from search result
+        # Use title_override (from scraper) if provided, otherwise use TMDB title
         movie_data = {
-            "title_es": tmdb_result.title,
+            "title_es": title_override or tmdb_result.title,
             "original_title": tmdb_result.original_title,
             "year": year,
             "synopsis": tmdb_result.overview,
@@ -336,6 +339,7 @@ class Movie(models.Model):
         tmdb_result: TMDBMovieResult,
         tmdb_service: TMDBService | None,
         storage_service: SupabaseStorageService | None,
+        title_override: str | None,
     ) -> tuple[Movie, bool]:
         """
         Get existing movie by tmdb_id or create a new one from TMDB result.
@@ -344,6 +348,7 @@ class Movie(models.Model):
             tmdb_result: A TMDBMovieResult from the TMDB API
             tmdb_service: Optional TMDBService for fetching full details
             storage_service: Optional SupabaseStorageService for uploading images
+            title_override: Optional title to use instead of TMDB title (e.g., from scraped listing)
 
         Returns:
             Tuple of (Movie instance, created boolean)
@@ -352,5 +357,7 @@ class Movie(models.Model):
             movie = cls.objects.get(tmdb_id=tmdb_result.id)
             return movie, False
         except cls.DoesNotExist:
-            movie = cls.create_from_tmdb(tmdb_result, tmdb_service, storage_service)
+            movie = cls.create_from_tmdb(
+                tmdb_result, tmdb_service, storage_service, title_override=title_override
+            )
             return movie, True
