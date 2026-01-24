@@ -19,6 +19,7 @@ class Showtime(models.Model):
     )
     start_date = models.DateField()
     start_time = models.TimeField()
+
     format = models.CharField(
         max_length=50,
         blank=True,
@@ -44,6 +45,7 @@ class Showtime(models.Model):
         default="",
         help_text="URL where this showtime was scraped from",
     )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

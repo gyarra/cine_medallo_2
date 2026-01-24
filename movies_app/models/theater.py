@@ -6,17 +6,22 @@ from movies_app.models.movie_source_url import MovieSourceUrl
 class Theater(models.Model):
     """Represents a movie theater/cinema location."""
 
+    # Core details
     name = models.CharField(max_length=200)
     slug = models.SlugField(max_length=200, unique=True)
     chain = models.CharField(max_length=100, blank=True)
+    screen_count = models.PositiveIntegerField(null=True, blank=True)
+
+    # Contact and location details
     address = models.CharField(max_length=300)
     city = models.CharField(max_length=100, default="Medellín")
     neighborhood = models.CharField(max_length=100, blank=True)
+    phone = models.CharField(max_length=50, blank=True)
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    phone = models.CharField(max_length=50, blank=True)
-    screen_count = models.PositiveIntegerField(null=True, blank=True)
     website = models.URLField(blank=True)
+
+    # Scraper-related fields
     colombia_dot_com_url = models.URLField(null=True, blank=True)
     scraper_type = models.CharField(
         max_length=50,
@@ -30,6 +35,7 @@ class Theater(models.Model):
         blank=True,
         help_text="URL to scrape for showtimes (may differ from colombia_dot_com_url)",
     )
+
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
