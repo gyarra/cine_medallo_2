@@ -2,8 +2,8 @@
 Django management command for cleaning HTML snapshot files.
 
 Usage:
-    python manage.py html_clean_snapshot_command <html_file_path>
-    python manage.py html_clean_snapshot_command /path/to/file.html --dry-run
+    python manage.py html_clean_snapshot <html_file_path>
+    python manage.py html_clean_snapshot /path/to/file.html --dry-run
 """
 import os
 from pathlib import Path
@@ -55,10 +55,10 @@ class Command(BaseCommand):
             links_count = self._validate_article_links(file_path)
 
             if links_count > 0:
-                self.stdout.write(self.style.SUCCESS('✅ Cleaning completed successfully!'))
+                self.stdout.write(self.style.SUCCESS("Cleaning completed successfully."))
             else:
                 self.stdout.write(
-                    self.style.WARNING('⚠️  Warning: No article links found after cleaning. Please verify the file.')
+                    self.style.WARNING("Warning: No article links found after cleaning. Please verify the file.")
                 )
 
         except Exception as e:
@@ -122,9 +122,9 @@ class Command(BaseCommand):
 
         reduction_percentage = (1 - cleaned_size/original_size) * 100
 
-        self.stdout.write(f"✅ Successfully cleaned HTML file: {file_path}")
+        self.stdout.write(f"Successfully cleaned HTML file: {file_path}")
         self.stdout.write(
-            f"📊 Statistics:"
+            f"Statistics:"
             f"\n   - Scripts removed: {scripts_removed}"
             f"\n   - Style blocks removed: {styles_removed}"
             f"\n   - Inline styles removed: {inline_styles_removed}"
@@ -160,7 +160,7 @@ class Command(BaseCommand):
                 links.add(href)
 
         self.stdout.write(
-            f"🔗 Article links validation:"
+            f"Article links validation:"
             f"\n   - Links found: {len(links)}"
         )
         if len(links) > 0:

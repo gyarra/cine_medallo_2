@@ -9,7 +9,7 @@ Usage:
 
 
 from django.conf import settings
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 from movies_app.models import Movie
 from movies_app.services.supabase_storage_service import SupabaseStorageService
@@ -76,8 +76,7 @@ class Command(BaseCommand):
                 year=year,
             )
         except TMDBServiceError as e:
-            self.stderr.write(self.style.ERROR(f"Error: {e}"))
-            return
+            raise CommandError(f"TMDB API error: {e}")
 
         if response.total_results == 0:
             self.stdout.write(self.style.WARNING("No movies found."))
@@ -110,12 +109,10 @@ class Command(BaseCommand):
                     return
                 selected_index = int(choice) - 1
             except (ValueError, EOFError):
-                self.stderr.write(self.style.ERROR("Invalid selection."))
-                return
+                raise CommandError("Invalid selection.")
 
         if selected_index < 0 or selected_index >= len(response.results):
-            self.stderr.write(self.style.ERROR("Invalid selection."))
-            return
+            raise CommandError("Invalid selection.")
 
         selected_movie = response.results[selected_index]
 

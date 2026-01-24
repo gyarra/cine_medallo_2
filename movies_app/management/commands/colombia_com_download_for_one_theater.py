@@ -58,14 +58,14 @@ class Command(BaseCommand):
         self.stdout.write("Scraping showtimes and saving to database...\n\n\n")
 
         try:
-            showtimes_saved = save_showtimes_for_theater(theater)
+            report = save_showtimes_for_theater(theater)
         except TimeoutError:
             raise CommandError(f"Timeout while scraping {theater.colombia_dot_com_url}")
         except Exception as e:
             raise CommandError(f"Error scraping theater: {e}")
 
         self.stdout.write(
-            self.style.SUCCESS(f"\nSaved {showtimes_saved} showtimes to database")
+            self.style.SUCCESS(f"\nSaved {report.total_showtimes} showtimes to database")
         )
 
     def _list_theaters(self):

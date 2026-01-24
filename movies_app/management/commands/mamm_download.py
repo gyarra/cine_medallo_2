@@ -19,7 +19,7 @@ from movies_app.tasks.mamm_download_task import mamm_download_task
 class Command(BaseCommand):
     help = "Download movie showtimes from MAMM (elmamm.org)"
 
-    def handle(self, *args, **options):  # type: ignore[no-untyped-def]
+    def handle(self, *args, **options):
         self.stdout.write("Executing mamm_download_task...")
         mamm_download_task()
         self.stdout.write(self.style.SUCCESS("Task completed."))

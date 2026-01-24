@@ -23,7 +23,7 @@ The file is organized by city, with each city containing an array of theaters.
 import json
 from pathlib import Path
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 from movies_app.models import Theater
 
@@ -53,8 +53,7 @@ class Command(BaseCommand):
         seed_file = Path(__file__).resolve().parent.parent.parent.parent / "seed_data" / "theaters.json"
 
         if not seed_file.exists():
-            self.stderr.write(self.style.ERROR(f"Seed file not found: {seed_file}"))
-            return
+            raise CommandError(f"Seed file not found: {seed_file}")
 
         with open(seed_file) as f:
             theaters_by_city = json.load(f)
@@ -67,16 +66,10 @@ class Command(BaseCommand):
         load_all = options["all_theaters"]
 
         if not cities_to_load and not load_all:
-            self.stderr.write(
-                self.style.ERROR("Must specify --city or --all-theaters")
-            )
-            return
+            raise CommandError("Must specify --city or --all-theaters")
 
         if cities_to_load and load_all:
-            self.stderr.write(
-                self.style.ERROR("Cannot use both --city and --all-theaters")
-            )
-            return
+            raise CommandError("Cannot use both --city and --all-theaters")
 
         if load_all:
             cities_to_load = list(theaters_by_city.keys())
@@ -84,11 +77,10 @@ class Command(BaseCommand):
             # Validate requested cities exist
             invalid_cities = set(cities_to_load) - set(theaters_by_city.keys())
             if invalid_cities:
-                self.stderr.write(
-                    self.style.ERROR(f"Unknown cities: {', '.join(invalid_cities)}")
+                available = ", ".join(theaters_by_city.keys())
+                raise CommandError(
+                    f"Unknown cities: {', '.join(invalid_cities)}. Available: {available}"
                 )
-                self.stderr.write(f"Available cities: {', '.join(theaters_by_city.keys())}")
-                return
 
         created_count = 0
         updated_count = 0
