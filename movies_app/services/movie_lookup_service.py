@@ -6,7 +6,7 @@ import datetime
 import logging
 import traceback
 import unicodedata
-from django.conf import settings
+
 from movies_app.models import APICallCounter, Movie, MovieSourceUrl, OperationalIssue, UnfindableMovieUrl
 from movies_app.services.supabase_storage_service import SupabaseStorageService
 from movies_app.services.tmdb_service import TMDBMovieResult, TMDBService, TMDBServiceError
@@ -19,24 +19,6 @@ class MovieLookupService:
         self.tmdb_service = tmdb_service
         self.storage_service = storage_service
         self.source_name = source_name
-
-    @staticmethod
-    def create_storage_service() -> SupabaseStorageService | None:
-        bucket_url = settings.SUPABASE_IMAGES_BUCKET_URL
-        access_key_id = settings.SUPABASE_IMAGES_BUCKET_ACCESS_KEY_ID
-        secret_access_key = settings.SUPABASE_IMAGES_BUCKET_SECRET_ACCESS_KEY
-        bucket_name = settings.SUPABASE_IMAGES_BUCKET_NAME
-
-        if not all([bucket_url, access_key_id, secret_access_key, bucket_name]):
-            logger.debug("Supabase storage not configured, images will use TMDB URLs")
-            return None
-
-        return SupabaseStorageService(
-            bucket_url=bucket_url,
-            access_key_id=access_key_id,
-            secret_access_key=secret_access_key,
-            bucket_name=bucket_name,
-        )
 
     @staticmethod
     def normalize_name(name: str) -> str:

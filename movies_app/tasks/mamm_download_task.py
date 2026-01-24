@@ -26,6 +26,7 @@ from config.celery_app import app
 from movies_app.models import Movie, MovieSourceUrl, OperationalIssue, Showtime, Theater
 from movies_app.services.movie_lookup_result import MovieLookupResult
 from movies_app.services.movie_lookup_service import MovieLookupService
+from movies_app.services.supabase_storage_service import SupabaseStorageService
 from movies_app.services.tmdb_service import TMDBService
 from movies_app.tasks.download_utilities import MovieMetadata, TaskReport
 
@@ -162,7 +163,8 @@ def _extract_showtimes_from_html(html_content: str) -> list[MAMMShowtime]:
     today = datetime.datetime.now(BOGOTA_TZ).date()
     reference_year = today.year
 
-    columns = schedule_section.find_all("div", class_="col")
+    all_columns = schedule_section.find_all("div", class_="col")
+    columns = [col for col in all_columns if "past-day" not in (col.get("class") or [])]
 
     for col in columns:
         day_div = col.find("div", class_="day")
@@ -180,6 +182,8 @@ def _extract_showtimes_from_html(html_content: str) -> list[MAMMShowtime]:
             logger.warning(f"Could not parse date: {day_text}")
             continue
 
+        # Handle weeks that span the end of year
+        # If it is Jan 1, 2026 and we see "28 Dic", we need to adjust the year accordingly
         delta_days = (parsed_date - today).days
         if delta_days > 180:
             parsed_date = parsed_date.replace(year=parsed_date.year - 1)
@@ -399,10 +403,10 @@ def save_showtimes_from_html(html_content: str) -> TaskReport:
     theater = _get_mamm_theater()
 
     showtimes = _extract_showtimes_from_html(html_content)
-    logger.info(f"Extracted {len(showtimes)} showtimes from MAMM schedule")
+    logger.info(f"Extracted {len(showtimes)} showtimes from MAMM schedule\n\n")
 
     tmdb_service = TMDBService()
-    storage_service = MovieLookupService.create_storage_service()
+    storage_service = SupabaseStorageService.create_from_settings()
     lookup_service = MovieLookupService(tmdb_service, storage_service, SOURCE_NAME)
 
     total_showtimes = 0

@@ -22,6 +22,7 @@ from config.celery_app import app
 from movies_app.models import MovieSourceUrl, OperationalIssue, Showtime, Theater, UnfindableMovieUrl
 from movies_app.services.tmdb_service import TMDBService
 from movies_app.services.movie_lookup_result import MovieLookupResult
+from movies_app.services.supabase_storage_service import SupabaseStorageService
 from movies_app.tasks.download_utilities import (
     MovieMetadata,
     TaskReport,
@@ -491,8 +492,7 @@ def save_showtimes_for_theater(theater: Theater) -> TaskReport:
     logger.info(f"Found {len(date_options)} dates for {theater.name}: {date_options}\n\n")
 
     tmdb_service = TMDBService()
-    lookup_service = MovieLookupService(tmdb_service, None, SOURCE_NAME)
-    storage_service = lookup_service.create_storage_service()
+    storage_service = SupabaseStorageService.create_from_settings()
     total_showtimes = 0
     total_tmdb_calls = 0
     all_new_movies: list[str] = []

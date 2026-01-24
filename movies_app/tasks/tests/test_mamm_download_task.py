@@ -1,10 +1,12 @@
 import datetime
 import os
+from unittest.mock import patch
 
 import pytest
 
 from movies_app.models import Showtime, Theater
 from movies_app.tasks.mamm_download_task import (
+    BOGOTA_TZ,
     _extract_movie_metadata_from_html,
     _extract_showtimes_from_html,
     _get_mamm_theater,
@@ -124,6 +126,85 @@ class TestParseDateString:
     def test_returns_none_for_invalid_date(self):
         assert _parse_date_string("invalid", 2025) is None
         assert _parse_date_string("", 2025) is None
+
+
+def _make_schedule_html(day_text: str) -> str:
+    """Create minimal HTML for testing date parsing in _extract_showtimes_from_html."""
+    return f"""
+    <html>
+    <body>
+    <section class="schedule-week">
+        <div class="col">
+            <div class="day">
+                <p class="small">{day_text}</p>
+            </div>
+            <div class="card">
+                <a href="https://www.elmamm.org/producto/test-movie/">
+                    <p class="small">7:00 pm</p>
+                    <h3>Test Movie</h3>
+                </a>
+            </div>
+        </div>
+    </section>
+    </body>
+    </html>
+    """
+
+
+class TestYearBoundaryAdjustment:
+    """Tests for the year boundary logic that adjusts dates crossing Dec/Jan."""
+
+    def test_no_adjustment_when_date_is_within_normal_range(self):
+        """When today is Jan 15 and we parse 'viernes 20 Ene', no adjustment needed."""
+        mock_now = datetime.datetime(2027, 1, 15, 12, 0, 0, tzinfo=BOGOTA_TZ)
+        html = _make_schedule_html("viernes 20 Ene")
+
+        with patch("movies_app.tasks.mamm_download_task.datetime") as mock_datetime:
+            mock_datetime.datetime.now.return_value = mock_now
+            mock_datetime.date = datetime.date
+            mock_datetime.time = datetime.time
+
+            showtimes = _extract_showtimes_from_html(html)
+
+        assert len(showtimes) == 1
+        assert showtimes[0].date == datetime.date(2027, 1, 20)
+
+    def test_increments_year_when_date_appears_far_in_past(self):
+        """
+        When today is Dec 28, 2025 and we parse '3 Jan', the initial parse gives
+        3 Jan, 2025 which is in the past. Test that the years is adjusted correctly.
+        """
+        # Today is Dec 28, 2025
+        mock_now = datetime.datetime(2025, 12, 28, 12, 0, 0, tzinfo=BOGOTA_TZ)
+        # The schedule containes Jan 3
+        html = _make_schedule_html("viernes 3 Ene")
+
+        with patch("movies_app.tasks.mamm_download_task.datetime") as mock_datetime:
+            mock_datetime.datetime.now.return_value = mock_now
+            mock_datetime.date = datetime.date
+            mock_datetime.time = datetime.time
+
+            showtimes = _extract_showtimes_from_html(html)
+
+        assert len(showtimes) == 1
+        assert showtimes[0].date == datetime.date(2026, 1, 3)
+
+    def test_decrements_year_when_date_appears_far_in_future(self):
+        """
+        When today is Jan 3, 2026 and we parse '28 Dic', the year should be 2025.
+        """
+        mock_now = datetime.datetime(2026, 1, 3, 12, 0, 0, tzinfo=BOGOTA_TZ)
+        html = _make_schedule_html("domingo 28 Dic")
+
+        with patch("movies_app.tasks.mamm_download_task.datetime") as mock_datetime:
+            mock_datetime.datetime.now.return_value = mock_now
+            mock_datetime.date = datetime.date
+            mock_datetime.time = datetime.time
+
+            showtimes = _extract_showtimes_from_html(html)
+
+        assert len(showtimes) == 1
+        assert showtimes[0].date == datetime.date(2025, 12, 28)
 
 
 class TestExtractMovieMetadataFromHtml:
