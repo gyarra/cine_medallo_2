@@ -1,181 +1,4 @@
 {
-  "Medellín": [
-    {
-      "name": "Museo de Arte Moderno de Medellín",
-      "slug": "museo-de-arte-moderno-de-medellin",
-      "chain": "",
-      "address": "Cra 44 #19a-100, El Poblado, Medellín",
-      "neighborhood": "Ciudad del Río",
-      "phone": "6044442622",
-      "screen_count": 1,
-      "website": "https://www.elmamm.org/cine/#semana",
-      "scraper_type": "mamm",
-      "download_source_url": "https://www.elmamm.org/cine/#semana"
-    },
-    {
-      "name": "Royal Films - Multicine La 65",
-      "slug": "royal-films-multicine-la-65-medellin",
-      "chain": "Royal Films",
-      "address": "Calle 47D No. 65-115",
-      "neighborhood": "Naranjal",
-      "phone": "(604) 605 158",
-      "screen_count": 6,
-      "website": "https://cinemasroyalfilms.com/cartelera/medell%C3%ADn/multicine-jumbo-la-65",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/royal-films-multicine-la-65-medellin-s124"
-    },
-    {
-      "name": "Cine Colombia - Multiplex Unicentro",
-      "slug": "cine-colombia-multiplex-unicentro-medellin",
-      "chain": "Cine Colombia",
-      "address": "Carrera 66B No. 34-1 a 34-155",
-      "neighborhood": "Unicentro",
-      "phone": "43602463",
-      "website": "https://www.cinecolombia.com/cinemas/unicentro-medellin/",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/cine-colombia-unicentro-medellin-s15"
-    },
-    {
-      "name": "Procinal - Aventura",
-      "slug": "procinal-aventura-medellin",
-      "chain": "Procinal",
-      "address": "Carrera 52A # 65-86",
-      "neighborhood": "Aventura",
-      "phone": "(4) 444 2244",
-      "screen_count": 4,
-      "website": "https://procinal.com",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-aventura-medellin-s269"
-    },
-    {
-      "name": "Royal Films - Multicine Premium Plaza",
-      "slug": "royal-films-multicine-premium-plaza-medellin",
-      "chain": "Royal Films",
-      "address": "Av. El Poblado # 43A, C.C. Premium Plaza",
-      "neighborhood": "El Poblado",
-      "phone": "(604) 605 1587",
-      "website": "https://cinemasroyalfilms.com/cartelera/medell%C3%ADn/multicine-premium-plaza",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/royal-films-premium-plaza-medellin-s125"
-    },
-    {
-      "name": "Procinal - Florida",
-      "slug": "procinal-florida-medellin",
-      "chain": "Procinal",
-      "address": "Cl. 71 #65-150",
-      "neighborhood": "Florida",
-      "phone": "(4) 444 2244",
-      "website": "https://procinal.com",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-florida-medellin-s200"
-    },
-    {
-      "name": "Royal Films - Multicine Bosque Plaza",
-      "slug": "royal-films-multicine-bosque-plaza-medellin",
-      "chain": "Royal Films",
-      "address": "Cra. 52 No. 71-52, C.C. Bosque Plaza piso 3",
-      "neighborhood": "Bosque Plaza",
-      "phone": "(604) 605 1587",
-      "website": "https://cinemasroyalfilms.com/cartelera/medell%C3%ADn/multicine-bosque-plaza",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/royal-films-bosque-plaza-medellin-s246"
-    },
-    {
-      "name": "Cine Colombia - Multiplex Molinos",
-      "slug": "cine-colombia-multiplex-molinos-medellin",
-      "chain": "Cine Colombia",
-      "address": "Calle 30A No. 82A-26, C.C. Los Molinos",
-      "neighborhood": "Los Molinos",
-      "phone": "3602463",
-      "website": "https://www.cinecolombia.com/cinemas/molinos/",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/cine-colombia-molinos-medellin-s97"
-    },
-    {
-      "name": "Procinal - Terminal del Sur",
-      "slug": "procinal-terminal-del-sur-medellin",
-      "chain": "Procinal",
-      "address": "Terminal del Sur, Cra 65 No. 8B-091",
-      "neighborhood": "Terminal Sur",
-      "phone": "(4) 444 2244",
-      "website": "https://procinal.com",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-terminal-del-sur-medellin-s142"
-    },
-    {
-      "name": "Procinal - La Central",
-      "slug": "procinal-la-central-medellin",
-      "chain": "Procinal",
-      "address": "C.C. La Central, sector Buenos Aires (Calle 49 entre Cras 25 y 19)",
-      "neighborhood": "Buenos Aires",
-      "phone": "(4) 444 2244",
-      "website": "https://procinal.com",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-la-central-medellin-s290"
-    },
-    {
-      "name": "Procinal - Monterrey",
-      "slug": "procinal-monterrey-medellin",
-      "chain": "Procinal",
-      "address": "Cra 48 #10-45, C.C. Monterrey",
-      "neighborhood": "El Poblado",
-      "phone": "(4) 444 2244",
-      "website": "https://procinal.com",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-monterrey-medellin-s110"
-    },
-    {
-      "name": "Procinal - Las Américas",
-      "slug": "procinal-las-americas-medellin",
-      "chain": "Procinal",
-      "address": "Dg. 75B No. 2A-120",
-      "neighborhood": "Las Américas",
-      "phone": "(4) 444 2244",
-      "website": "https://procinal.com",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-las-americas-medellin-s111"
-    },
-    {
-      "name": "Cinemark Arkadia",
-      "slug": "cinemark-arkadia-medellin",
-      "chain": "Cinemark",
-      "address": "Carrera 70 # 1-19, C.C. Arkadia",
-      "neighborhood": "Belén",
-      "screen_count": 9,
-      "website": "https://www.cinemark.com.co",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/cinemark-arkadia-medellin-s304"
-    },
-    {
-      "name": "Cine Colombia - Multiplex Vizcaya",
-      "slug": "cine-colombia-multiplex-vizcaya-medellin",
-      "chain": "Cine Colombia",
-      "address": "Calle 10 N° 32-115, C.C. Vizcaya",
-      "neighborhood": "El Poblado",
-      "phone": "43602463",
-      "website": "https://www.cinecolombia.com/cinemas/vizcaya/",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/cine-colombia-vizcaya-medellin-s16"
-    },
-    {
-      "name": "Cine Colombia - Multiplex Oviedo",
-      "slug": "cine-colombia-multiplex-oviedo-medellin",
-      "chain": "Cine Colombia",
-      "address": "C.C. Oviedo, Cra. 43A/43C sector 6 Sur",
-      "neighborhood": "El Poblado",
-      "phone": "43602463",
-      "website": "https://www.cinecolombia.com/cinemas/oviedo/",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/cine-colombia-oviedo-medellin-s72"
-    },
-    {
-      "name": "Cine Colombia - Multiplex Santafé Medellín",
-      "slug": "cine-colombia-multiplex-santafe-medellin",
-      "chain": "Cine Colombia",
-      "address": "C.C. Santafé, Cl. 7 Sur #42-70",
-      "neighborhood": "El Poblado",
-      "phone": "43602463",
-      "website": "https://www.cinecolombia.com/cinemas/santafe-medellin/",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/cine-colombia-santafe-medellin-s153"
-    },
-    {
-      "name": "Cinemark El Tesoro",
-      "slug": "cinemark-el-tesoro-medellin",
-      "chain": "Cinemark",
-      "address": "Transversal Superior Cra. 25A # 1A Sur-45, C.C. El Tesoro",
-      "neighborhood": "El Poblado",
-      "phone": "018000 121 122",
-      "screen_count": 9,
-      "website": "https://www.cinemark.com.co",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/cinemark-el-tesoro-medellin-s79"
-    }
-  ],
   "Bello": [
     {
       "name": "Procinal - Parque Fabricato",
@@ -232,26 +55,193 @@
       "colombia_dot_com_url": "https://www.colombia.com/cine/royal-films-arrayanes-plaza-itagui-s294"
     }
   ],
-  "Sabaneta": [
+  "La Ceja": [
     {
-      "name": "Procinal - Mayorca",
-      "slug": "procinal-mayorca-sabaneta",
+      "name": "Procinal - La Ceja",
+      "slug": "procinal-la-ceja",
       "chain": "Procinal",
-      "address": "Cra 48 #50 Sur-128, C.C. Mayorca Mega Plaza",
-      "neighborhood": "Mayorca",
+      "address": "C.C. Viva La Ceja",
+      "neighborhood": "Viva La Ceja",
       "phone": "(4) 444 2244",
       "website": "https://procinal.com",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-mayorca-sabaneta-s59"
+      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-viva-la-ceja-la-ceja-s271"
+    }
+  ],
+  "Medellín": [
+    {
+      "name": "Cine Colombia - Multiplex Molinos",
+      "slug": "cine-colombia-multiplex-molinos-medellin",
+      "chain": "Cine Colombia",
+      "address": "Calle 30A No. 82A-26, C.C. Los Molinos",
+      "neighborhood": "Los Molinos",
+      "phone": "3602463",
+      "website": "https://www.cinecolombia.com/cinemas/molinos/",
+      "colombia_dot_com_url": "https://www.colombia.com/cine/cine-colombia-molinos-medellin-s97"
     },
     {
-      "name": "Procinal - Aves María",
-      "slug": "procinal-aves-maria-sabaneta",
+      "name": "Cine Colombia - Multiplex Oviedo",
+      "slug": "cine-colombia-multiplex-oviedo-medellin",
+      "chain": "Cine Colombia",
+      "address": "C.C. Oviedo, Cra. 43A/43C sector 6 Sur",
+      "neighborhood": "El Poblado",
+      "phone": "43602463",
+      "website": "https://www.cinecolombia.com/cinemas/oviedo/",
+      "colombia_dot_com_url": "https://www.colombia.com/cine/cine-colombia-oviedo-medellin-s72"
+    },
+    {
+      "name": "Cine Colombia - Multiplex Santafé Medellín",
+      "slug": "cine-colombia-multiplex-santafe-medellin",
+      "chain": "Cine Colombia",
+      "address": "C.C. Santafé, Cl. 7 Sur #42-70",
+      "neighborhood": "El Poblado",
+      "phone": "43602463",
+      "website": "https://www.cinecolombia.com/cinemas/santafe-medellin/",
+      "colombia_dot_com_url": "https://www.colombia.com/cine/cine-colombia-santafe-medellin-s153"
+    },
+    {
+      "name": "Cine Colombia - Multiplex Unicentro",
+      "slug": "cine-colombia-multiplex-unicentro-medellin",
+      "chain": "Cine Colombia",
+      "address": "Carrera 66B No. 34-1 a 34-155",
+      "neighborhood": "Unicentro",
+      "phone": "43602463",
+      "website": "https://www.cinecolombia.com/cinemas/unicentro-medellin/",
+      "colombia_dot_com_url": "https://www.colombia.com/cine/cine-colombia-unicentro-medellin-s15"
+    },
+    {
+      "name": "Cine Colombia - Multiplex Vizcaya",
+      "slug": "cine-colombia-multiplex-vizcaya-medellin",
+      "chain": "Cine Colombia",
+      "address": "Calle 10 N° 32-115, C.C. Vizcaya",
+      "neighborhood": "El Poblado",
+      "phone": "43602463",
+      "website": "https://www.cinecolombia.com/cinemas/vizcaya/",
+      "colombia_dot_com_url": "https://www.colombia.com/cine/cine-colombia-vizcaya-medellin-s16"
+    },
+    {
+      "name": "Cinemark Arkadia",
+      "slug": "cinemark-arkadia-medellin",
+      "chain": "Cinemark",
+      "address": "Carrera 70 # 1-19, C.C. Arkadia",
+      "neighborhood": "Belén",
+      "screen_count": 9,
+      "website": "https://www.cinemark.com.co",
+      "colombia_dot_com_url": "https://www.colombia.com/cine/cinemark-arkadia-medellin-s304"
+    },
+    {
+      "name": "Cinemark El Tesoro",
+      "slug": "cinemark-el-tesoro-medellin",
+      "chain": "Cinemark",
+      "address": "Transversal Superior Cra. 25A # 1A Sur-45, C.C. El Tesoro",
+      "neighborhood": "El Poblado",
+      "phone": "018000 121 122",
+      "screen_count": 9,
+      "website": "https://www.cinemark.com.co",
+      "colombia_dot_com_url": "https://www.colombia.com/cine/cinemark-el-tesoro-medellin-s79"
+    },
+    {
+      "name": "Museo de Arte Moderno de Medellín",
+      "slug": "museo-de-arte-moderno-de-medellin",
+      "chain": "",
+      "address": "Cra 44 #19a-100, El Poblado, Medellín",
+      "neighborhood": "Ciudad del Río",
+      "phone": "6044442622",
+      "screen_count": 1,
+      "website": "https://www.elmamm.org/cine/#semana",
+      "scraper_type": "mamm",
+      "download_source_url": "https://www.elmamm.org/cine/#semana"
+    },
+    {
+      "name": "Procinal - Aventura",
+      "slug": "procinal-aventura-medellin",
       "chain": "Procinal",
-      "address": "Cra. 44 #74A Sur-2 a 74A Sur-80, C.C. Aves María",
-      "neighborhood": "Aves María",
+      "address": "Carrera 52A # 65-86",
+      "neighborhood": "Aventura",
+      "phone": "(4) 444 2244",
+      "screen_count": 4,
+      "website": "https://procinal.com",
+      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-aventura-medellin-s269"
+    },
+    {
+      "name": "Procinal - Florida",
+      "slug": "procinal-florida-medellin",
+      "chain": "Procinal",
+      "address": "Cl. 71 #65-150",
+      "neighborhood": "Florida",
       "phone": "(4) 444 2244",
       "website": "https://procinal.com",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-aves-maria-sabaneta-s139"
+      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-florida-medellin-s200"
+    },
+    {
+      "name": "Procinal - La Central",
+      "slug": "procinal-la-central-medellin",
+      "chain": "Procinal",
+      "address": "C.C. La Central, sector Buenos Aires (Calle 49 entre Cras 25 y 19)",
+      "neighborhood": "Buenos Aires",
+      "phone": "(4) 444 2244",
+      "website": "https://procinal.com",
+      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-la-central-medellin-s290"
+    },
+    {
+      "name": "Procinal - Las Américas",
+      "slug": "procinal-las-americas-medellin",
+      "chain": "Procinal",
+      "address": "Dg. 75B No. 2A-120",
+      "neighborhood": "Las Américas",
+      "phone": "(4) 444 2244",
+      "website": "https://procinal.com",
+      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-las-americas-medellin-s111"
+    },
+    {
+      "name": "Procinal - Monterrey",
+      "slug": "procinal-monterrey-medellin",
+      "chain": "Procinal",
+      "address": "Cra 48 #10-45, C.C. Monterrey",
+      "neighborhood": "El Poblado",
+      "phone": "(4) 444 2244",
+      "website": "https://procinal.com",
+      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-monterrey-medellin-s110"
+    },
+    {
+      "name": "Procinal - Terminal del Sur",
+      "slug": "procinal-terminal-del-sur-medellin",
+      "chain": "Procinal",
+      "address": "Terminal del Sur, Cra 65 No. 8B-091",
+      "neighborhood": "Terminal Sur",
+      "phone": "(4) 444 2244",
+      "website": "https://procinal.com",
+      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-terminal-del-sur-medellin-s142"
+    },
+    {
+      "name": "Royal Films - Multicine Bosque Plaza",
+      "slug": "royal-films-multicine-bosque-plaza-medellin",
+      "chain": "Royal Films",
+      "address": "Cra. 52 No. 71-52, C.C. Bosque Plaza piso 3",
+      "neighborhood": "Bosque Plaza",
+      "phone": "(604) 605 1587",
+      "website": "https://cinemasroyalfilms.com/cartelera/medell%C3%ADn/multicine-bosque-plaza",
+      "colombia_dot_com_url": "https://www.colombia.com/cine/royal-films-bosque-plaza-medellin-s246"
+    },
+    {
+      "name": "Royal Films - Multicine La 65",
+      "slug": "royal-films-multicine-la-65-medellin",
+      "chain": "Royal Films",
+      "address": "Calle 47D No. 65-115",
+      "neighborhood": "Naranjal",
+      "phone": "(604) 605 158",
+      "screen_count": 6,
+      "website": "https://cinemasroyalfilms.com/cartelera/medell%C3%ADn/multicine-jumbo-la-65",
+      "colombia_dot_com_url": "https://www.colombia.com/cine/royal-films-multicine-la-65-medellin-s124"
+    },
+    {
+      "name": "Royal Films - Multicine Premium Plaza",
+      "slug": "royal-films-multicine-premium-plaza-medellin",
+      "chain": "Royal Films",
+      "address": "Av. El Poblado # 43A, C.C. Premium Plaza",
+      "neighborhood": "El Poblado",
+      "phone": "(604) 605 1587",
+      "website": "https://cinemasroyalfilms.com/cartelera/medell%C3%ADn/multicine-premium-plaza",
+      "colombia_dot_com_url": "https://www.colombia.com/cine/royal-films-premium-plaza-medellin-s125"
     }
   ],
   "Rionegro": [
@@ -266,16 +256,26 @@
       "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-san-nicolas-rionegro-s149"
     }
   ],
-  "La Ceja": [
+  "Sabaneta": [
     {
-      "name": "Procinal - La Ceja",
-      "slug": "procinal-la-ceja",
+      "name": "Procinal - Aves María",
+      "slug": "procinal-aves-maria-sabaneta",
       "chain": "Procinal",
-      "address": "C.C. Viva La Ceja",
-      "neighborhood": "Viva La Ceja",
+      "address": "Cra. 44 #74A Sur-2 a 74A Sur-80, C.C. Aves María",
+      "neighborhood": "Aves María",
       "phone": "(4) 444 2244",
       "website": "https://procinal.com",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-viva-la-ceja-la-ceja-s271"
+      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-aves-maria-sabaneta-s139"
+    },
+    {
+      "name": "Procinal - Mayorca",
+      "slug": "procinal-mayorca-sabaneta",
+      "chain": "Procinal",
+      "address": "Cra 48 #50 Sur-128, C.C. Mayorca Mega Plaza",
+      "neighborhood": "Mayorca",
+      "phone": "(4) 444 2244",
+      "website": "https://procinal.com",
+      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-mayorca-sabaneta-s59"
     }
   ]
 }
