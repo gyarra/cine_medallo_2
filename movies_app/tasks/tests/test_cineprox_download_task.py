@@ -247,10 +247,25 @@ class TestParseFormatAndLanguage:
         assert format_str == "3D"
         assert language == "Subtitulado"
 
+    def test_parses_2d_sub(self):
+        format_str, language = CineproxScraperAndHTMLParser._parse_format_and_language("2D - SUB")
+        assert format_str == "2D"
+        assert language == "Subtitulado"
+
+    def test_parses_3d_dob(self):
+        format_str, language = CineproxScraperAndHTMLParser._parse_format_and_language("3D - DOB")
+        assert format_str == "3D"
+        assert language == "Doblado"
+
     def test_parses_format_only(self):
         format_str, language = CineproxScraperAndHTMLParser._parse_format_and_language("2D")
         assert format_str == "2D"
         assert language == ""
+
+    def test_unknown_language_code_preserved(self):
+        format_str, language = CineproxScraperAndHTMLParser._parse_format_and_language("2D - ESP")
+        assert format_str == "2D"
+        assert language == "ESP"
 
 
 class TestParseReleaseDate:
