@@ -112,6 +112,7 @@ class Command(BaseCommand):
                     "colombia_dot_com_url": data.get("colombia_dot_com_url"),
                     "scraper_type": data.get("scraper_type"),
                     "download_source_url": data.get("download_source_url"),
+                    "scraper_config": data.get("scraper_config"),
                 }
 
                 theater = Theater.objects.filter(slug=slug).first()

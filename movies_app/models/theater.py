@@ -35,6 +35,11 @@ class Theater(models.Model):
         blank=True,
         help_text="URL to scrape for showtimes (may differ from colombia_dot_com_url)",
     )
+    scraper_config = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Scraper-specific configuration (e.g., city_id, theater_id for Cineprox)",
+    )
 
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)

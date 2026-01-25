@@ -8,7 +8,10 @@
       "neighborhood": "Fabricato",
       "phone": "(604) 444 2244",
       "website": "https://www.cineprox.com/cartelera/bello/parque-fabricato",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-parque-fabricato-bello-s347"
+      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-parque-fabricato-bello-s347",
+      "scraper_type": "cineprox",
+      "download_source_url": "https://www.cineprox.com/cartelera/bello/parque-fabricato",
+      "scraper_config": {"city_id": "30", "theater_id": "328"}
     },
     {
       "name": "Procinal - Puerta del Norte",
@@ -17,8 +20,11 @@
       "address": "Autopista Norte #34-67, C.C. Puerta del Norte",
       "neighborhood": "Puerta del Norte",
       "phone": "(4) 444 2244",
-      "website": "https://procinal.com",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-puerta-del-norte-bello-s61"
+      "website": "https://www.cineprox.com/cartelera/bello/parque-fabricato",
+      "colombia_dot_com_url": "https://www.cineprox.com/cartelera/bello/puerta-del-norte",
+      "scraper_type": "cineprox",
+      "download_source_url": "https://www.cineprox.com/cartelera/bello/puerta-del-norte",
+      "scraper_config": {"city_id": "30", "theater_id": "304"}
     }
   ],
   "Envigado": [
