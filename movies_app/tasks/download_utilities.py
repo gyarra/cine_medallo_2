@@ -36,15 +36,20 @@ BROWSER_TIMEOUT_SECONDS = 120
 # Translation type mapping from scraper values to database values
 TRANSLATION_TYPE_MAP = {
     # Cineprox values
-    "Doblado": Showtime.TranslationType.DOBLADO,
-    "Subtitulado": Showtime.TranslationType.SUBTITULADO,
-    "doblado": Showtime.TranslationType.DOBLADO,
-    "subtitulado": Showtime.TranslationType.SUBTITULADO,
+    "Doblada": Showtime.TranslationType.DOBLADA,
+    "Subtitulada": Showtime.TranslationType.SUBTITULADA,
+    "doblada": Showtime.TranslationType.DOBLADA,
+    "subtitulada": Showtime.TranslationType.SUBTITULADA,
     # Colombia.com values
-    "DOBLADA": Showtime.TranslationType.DOBLADO,
-    "SUBTITULADA": Showtime.TranslationType.SUBTITULADO,
-    "DOBLADO": Showtime.TranslationType.DOBLADO,
-    "SUBTITULADO": Showtime.TranslationType.SUBTITULADO,
+    "DOBLADA": Showtime.TranslationType.DOBLADA,
+    "SUBTITULADA": Showtime.TranslationType.SUBTITULADA,
+    # Masculine forms (map to feminine)
+    "Doblado": Showtime.TranslationType.DOBLADA,
+    "Subtitulado": Showtime.TranslationType.SUBTITULADA,
+    "DOBLADO": Showtime.TranslationType.DOBLADA,
+    "SUBTITULADO": Showtime.TranslationType.SUBTITULADA,
+    "doblado": Showtime.TranslationType.DOBLADA,
+    "subtitulado": Showtime.TranslationType.SUBTITULADA,
     # Original language
     "ORIGINAL": Showtime.TranslationType.ORIGINAL,
     "Original": Showtime.TranslationType.ORIGINAL,
@@ -64,7 +69,7 @@ def normalize_translation_type(value: str, task: str, context: dict[str, str]) -
         context: Additional context dict for OperationalIssue (movie, theater, etc.)
 
     Returns:
-        The normalized value (DOBLADO, SUBTITULADO, ORIGINAL, or empty string)
+        The normalized value (DOBLADA, SUBTITULADA, ORIGINAL, or empty string)
         Returns empty string and logs OperationalIssue for unknown values
     """
     normalized = TRANSLATION_TYPE_MAP.get(value)

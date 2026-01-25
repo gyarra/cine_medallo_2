@@ -1,6 +1,9 @@
 import datetime
 import os
 
+import pytest
+
+from movies_app.models import OperationalIssue
 from movies_app.tasks.cineprox_download_task import (
     CineproxScraperAndHTMLParser,
 )
@@ -145,7 +148,7 @@ class TestParseShowtimesFromDetailHtml:
         assert len(showtimes) > 0
         first_showtime = showtimes[0]
         assert first_showtime.format == "2D"
-        assert first_showtime.translation_type == "Doblado"
+        assert first_showtime.translation_type == "Doblada"
 
     def test_extracts_room_type(self):
         html_content = load_html_snapshot("cineprox_one_movie_for_one_theater.html")
@@ -240,22 +243,22 @@ class TestParseFormatAndLanguage:
     def test_parses_2d_dob(self):
         format_str, language = CineproxScraperAndHTMLParser._parse_format_and_language("2D - DOB")
         assert format_str == "2D"
-        assert language == "Doblado"
+        assert language == "Doblada"
 
     def test_parses_3d_sub(self):
         format_str, language = CineproxScraperAndHTMLParser._parse_format_and_language("3D - SUB")
         assert format_str == "3D"
-        assert language == "Subtitulado"
+        assert language == "Subtitulada"
 
     def test_parses_2d_sub(self):
         format_str, language = CineproxScraperAndHTMLParser._parse_format_and_language("2D - SUB")
         assert format_str == "2D"
-        assert language == "Subtitulado"
+        assert language == "Subtitulada"
 
     def test_parses_3d_dob(self):
         format_str, language = CineproxScraperAndHTMLParser._parse_format_and_language("3D - DOB")
         assert format_str == "3D"
-        assert language == "Doblado"
+        assert language == "Doblada"
 
     def test_parses_format_only(self):
         format_str, language = CineproxScraperAndHTMLParser._parse_format_and_language("2D")
@@ -316,3 +319,43 @@ class TestGenerateUrls:
         )
 
         assert url == "https://www.cineprox.com/detalle-pelicula/2005-sin-piedad"
+
+
+@pytest.mark.django_db
+class TestParseShowtimesOperationalIssues:
+    def test_creates_operational_issue_for_unparseable_time(self):
+        html_with_invalid_time = """
+        <div class="accordion-item">
+            <button class="accordion-button">Parque Fabricato - Bello</button>
+            <div class="accordion-collapse show">
+                <div class="tab-pane">
+                    <h5 class="tipoSala"><b>General</b></h5>
+                    <div class="col-sm-6">
+                        <div class="movie-schedule-header">2D - DOB</div>
+                        <div class="movie-schedule-card">
+                            <div class="movie-schedule-time">INVALID_TIME</div>
+                            <div class="movie-schedule-price">$21.900</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        """
+        initial_count = OperationalIssue.objects.count()
+
+        showtimes = CineproxScraperAndHTMLParser.parse_showtimes_from_detail_html(
+            html_with_invalid_time,
+            datetime.date(2026, 1, 24),
+            "Parque Fabricato",
+        )
+
+        assert len(showtimes) == 0
+        assert OperationalIssue.objects.count() == initial_count + 1
+
+        issue = OperationalIssue.objects.latest("created_at")
+        assert issue.name == "Time Parse Failed"
+        assert issue.task == "cineprox_download_task"
+        assert "INVALID_TIME" in issue.error_message
+        assert issue.context["theater"] == "Parque Fabricato"
+        assert issue.context["date"] == "2026-01-24"
+        assert issue.severity == OperationalIssue.Severity.WARNING

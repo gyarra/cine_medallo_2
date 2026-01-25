@@ -8,8 +8,8 @@ class Showtime(models.Model):
     """Represents a specific showing of a movie at a theater."""
 
     class TranslationType(models.TextChoices):
-        DOBLADO = "DOBLADO", "Doblado"
-        SUBTITULADO = "SUBTITULADO", "Subtitulado"
+        DOBLADA = "DOBLADA", "Doblada"
+        SUBTITULADA = "SUBTITULADA", "Subtitulada"
         ORIGINAL = "ORIGINAL", "Original"
 
     theater = models.ForeignKey(
@@ -36,7 +36,7 @@ class Showtime(models.Model):
         choices=TranslationType.choices,
         blank=True,
         default="",
-        help_text="Translation type (DOBLADO, SUBTITULADO, ORIGINAL)",
+        help_text="Translation type (DOBLADA, SUBTITULADA, ORIGINAL)",
     )
     screen = models.CharField(
         max_length=50,

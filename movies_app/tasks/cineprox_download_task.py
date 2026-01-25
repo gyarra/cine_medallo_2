@@ -318,9 +318,10 @@ class CineproxScraperAndHTMLParser:
                     if not parsed_time:
                         logger.warning(f"Could not parse time: {time_text}")
                         OperationalIssue.objects.create(
-                            source="CineproxScraperAndHTMLParser.parse_showtimes_from_detail_html",
-                            message=f"Could not parse time string: '{time_text}'",
-                            details=f"Theater: {theater_name}, Date: {selected_date}",
+                            name="Time Parse Failed",
+                            task="cineprox_download_task",
+                            error_message=f"Could not parse time string: '{time_text}'",
+                            context={"theater": theater_name, "date": str(selected_date)},
                             severity=OperationalIssue.Severity.WARNING,
                         )
                         continue
@@ -358,8 +359,8 @@ class CineproxScraperAndHTMLParser:
     def _parse_format_and_language(format_text: str) -> tuple[str, str]:
         """Parse format text like '2D - DOB' into format and translation_type."""
         translation_type_map = {
-            "DOB": "Doblado",
-            "SUB": "Subtitulado",
+            "DOB": "Doblada",
+            "SUB": "Subtitulada",
         }
         parts = format_text.split("-")
         format_str = parts[0].strip() if parts else ""

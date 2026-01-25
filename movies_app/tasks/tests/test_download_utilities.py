@@ -6,37 +6,53 @@ from movies_app.tasks.download_utilities import normalize_translation_type
 
 @pytest.mark.django_db
 class TestNormalizeTranslationType:
-    def test_normalizes_doblado(self):
+    def test_normalizes_doblada(self):
         result = normalize_translation_type(
-            "Doblado",
+            "Doblada",
             task="test_task",
             context={"test": "context"},
         )
-        assert result == Showtime.TranslationType.DOBLADO
+        assert result == Showtime.TranslationType.DOBLADA
 
-    def test_normalizes_doblada(self):
+    def test_normalizes_doblada_uppercase(self):
         result = normalize_translation_type(
             "DOBLADA",
             task="test_task",
             context={"test": "context"},
         )
-        assert result == Showtime.TranslationType.DOBLADO
+        assert result == Showtime.TranslationType.DOBLADA
 
-    def test_normalizes_subtitulado(self):
+    def test_normalizes_subtitulada(self):
         result = normalize_translation_type(
-            "Subtitulado",
+            "Subtitulada",
             task="test_task",
             context={"test": "context"},
         )
-        assert result == Showtime.TranslationType.SUBTITULADO
+        assert result == Showtime.TranslationType.SUBTITULADA
 
-    def test_normalizes_subtitulada(self):
+    def test_normalizes_subtitulada_uppercase(self):
         result = normalize_translation_type(
             "SUBTITULADA",
             task="test_task",
             context={"test": "context"},
         )
-        assert result == Showtime.TranslationType.SUBTITULADO
+        assert result == Showtime.TranslationType.SUBTITULADA
+
+    def test_normalizes_masculine_doblado_to_doblada(self):
+        result = normalize_translation_type(
+            "Doblado",
+            task="test_task",
+            context={"test": "context"},
+        )
+        assert result == Showtime.TranslationType.DOBLADA
+
+    def test_normalizes_masculine_subtitulado_to_subtitulada(self):
+        result = normalize_translation_type(
+            "Subtitulado",
+            task="test_task",
+            context={"test": "context"},
+        )
+        assert result == Showtime.TranslationType.SUBTITULADA
 
     def test_normalizes_original(self):
         result = normalize_translation_type(

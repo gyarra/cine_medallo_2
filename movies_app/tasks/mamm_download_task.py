@@ -131,9 +131,10 @@ class MAMMScraperAndHTMLParser:
                 if not parsed_time:
                     logger.warning(f"Could not parse time: {time_text}")
                     OperationalIssue.objects.create(
-                        source="MAMMScraperAndHTMLParser.parse_cartelera_html",
-                        message=f"Could not parse time string: '{time_text}'",
-                        details=f"Movie: {movie_title}, Date: {parsed_date}",
+                        name="Time Parse Failed",
+                        task="mamm_download_task",
+                        error_message=f"Could not parse time string: '{time_text}'",
+                        context={"movie": movie_title, "date": str(parsed_date)},
                         severity=OperationalIssue.Severity.WARNING,
                     )
                     continue
