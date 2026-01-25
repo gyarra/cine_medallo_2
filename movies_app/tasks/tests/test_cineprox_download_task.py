@@ -145,7 +145,7 @@ class TestParseShowtimesFromDetailHtml:
         assert len(showtimes) > 0
         first_showtime = showtimes[0]
         assert first_showtime.format == "2D"
-        assert first_showtime.language == "DOB"
+        assert first_showtime.language == "Doblado"
 
     def test_extracts_room_type(self):
         html_content = load_html_snapshot("cineprox_one_movie_for_one_theater.html")
@@ -240,17 +240,32 @@ class TestParseFormatAndLanguage:
     def test_parses_2d_dob(self):
         format_str, language = CineproxScraperAndHTMLParser._parse_format_and_language("2D - DOB")
         assert format_str == "2D"
-        assert language == "DOB"
+        assert language == "Doblado"
 
     def test_parses_3d_sub(self):
         format_str, language = CineproxScraperAndHTMLParser._parse_format_and_language("3D - SUB")
         assert format_str == "3D"
-        assert language == "SUB"
+        assert language == "Subtitulado"
+
+    def test_parses_2d_sub(self):
+        format_str, language = CineproxScraperAndHTMLParser._parse_format_and_language("2D - SUB")
+        assert format_str == "2D"
+        assert language == "Subtitulado"
+
+    def test_parses_3d_dob(self):
+        format_str, language = CineproxScraperAndHTMLParser._parse_format_and_language("3D - DOB")
+        assert format_str == "3D"
+        assert language == "Doblado"
 
     def test_parses_format_only(self):
         format_str, language = CineproxScraperAndHTMLParser._parse_format_and_language("2D")
         assert format_str == "2D"
         assert language == ""
+
+    def test_unknown_language_code_preserved(self):
+        format_str, language = CineproxScraperAndHTMLParser._parse_format_and_language("2D - ESP")
+        assert format_str == "2D"
+        assert language == "ESP"
 
 
 class TestParseReleaseDate:

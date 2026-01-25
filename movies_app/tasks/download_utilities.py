@@ -41,6 +41,7 @@ def parse_time_string(time_str: str) -> datetime.time | None:
     time_str = time_str.strip().lower()
     match = re.match(r"(\d{1,2}):(\d{2})\s*(a\.?m\.?|p\.?m\.?)", time_str)
     if not match:
+        logger.warning(f"Failed to parse time string: '{time_str}'")
         return None
 
     hour = int(match.group(1))
@@ -55,13 +56,18 @@ def parse_time_string(time_str: str) -> datetime.time | None:
     return datetime.time(hour, minute)
 
 
-async def fetch_page_html_async(url: str) -> str:
+async def fetch_page_html_async(url: str, wait_selector: str | None = None) -> str:
     """
     Fetch HTML content from a URL using Camoufox headless browser.
 
     This is a generic page fetcher suitable for simple page loads.
     For pages that require interactions (clicking, selecting dates),
     use a custom async function in your scraper.
+
+    Args:
+        url: The URL to fetch.
+        wait_selector: Optional CSS selector to wait for before returning HTML.
+            Useful for React/SPA pages that render content after JavaScript executes.
     """
     logger.info(f"Scraping page: {url}")
 
@@ -75,6 +81,13 @@ async def fetch_page_html_async(url: str) -> str:
                 wait_until="domcontentloaded",
                 timeout=BROWSER_TIMEOUT_SECONDS * 1000,
             )
+
+            if wait_selector:
+                await page.wait_for_selector(
+                    wait_selector,
+                    timeout=BROWSER_TIMEOUT_SECONDS * 1000,
+                )
+
             html_content = await page.content()
         finally:
             await context.close()
@@ -82,9 +95,9 @@ async def fetch_page_html_async(url: str) -> str:
     return html_content
 
 
-def fetch_page_html(url: str) -> str:
+def fetch_page_html(url: str, wait_selector: str | None = None) -> str:
     """Synchronous wrapper to fetch HTML using async Camoufox."""
-    return asyncio.run(fetch_page_html_async(url))
+    return asyncio.run(fetch_page_html_async(url, wait_selector))
 
 
 @dataclass

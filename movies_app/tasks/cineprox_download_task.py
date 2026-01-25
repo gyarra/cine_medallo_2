@@ -83,11 +83,11 @@ class CineproxScraperAndHTMLParser:
 
     @staticmethod
     def download_cartelera_html(url: str) -> str:
-        return fetch_page_html(url)
+        return fetch_page_html(url, wait_selector="div#grid")
 
     @staticmethod
     def download_movie_detail_html(url: str) -> str:
-        return fetch_page_html(url)
+        return fetch_page_html(url, wait_selector="section.pelicula")
 
     @staticmethod
     def parse_movies_from_cartelera_html(html_content: str) -> list[CineproxMovieCard]:
@@ -316,6 +316,12 @@ class CineproxScraperAndHTMLParser:
                     parsed_time = parse_time_string(time_text)
                     if not parsed_time:
                         logger.warning(f"Could not parse time: {time_text}")
+                        OperationalIssue.objects.create(
+                            source="CineproxScraperAndHTMLParser.parse_showtimes_from_detail_html",
+                            message=f"Could not parse time string: '{time_text}'",
+                            details=f"Theater: {theater_name}, Date: {selected_date}",
+                            severity=OperationalIssue.Severity.WARNING,
+                        )
                         continue
 
                     price_elem = card.find("div", class_="movie-schedule-price")
@@ -350,9 +356,14 @@ class CineproxScraperAndHTMLParser:
     @staticmethod
     def _parse_format_and_language(format_text: str) -> tuple[str, str]:
         """Parse format text like '2D - DOB' into format and language."""
+        language_map = {
+            "DOB": "Doblado",
+            "SUB": "Subtitulado",
+        }
         parts = format_text.split("-")
         format_str = parts[0].strip() if parts else ""
-        language = parts[1].strip() if len(parts) > 1 else ""
+        language_code = parts[1].strip() if len(parts) > 1 else ""
+        language = language_map.get(language_code, language_code)
         return format_str, language
 
     @staticmethod
@@ -492,6 +503,10 @@ class CineproxShowtimeSaver:
             new_movies=self.new_movies,
         )
 
+    def execute_for_theater(self, theater: Theater) -> int:
+        """Process a single theater and return the number of showtimes saved."""
+        return self._process_theater(theater)
+
     def _process_theater(self, theater: Theater) -> int:
         logger.info(f"Processing Cineprox theater: {theater.name}\n\n")
 
@@ -521,9 +536,9 @@ class CineproxShowtimeSaver:
             )
             return 0
 
-        cartelera_url = theater.colombia_dot_com_url
+        cartelera_url = theater.download_source_url
         if not cartelera_url:
-            logger.error(f"No cartelera URL for theater {theater.name}")
+            logger.error(f"No download_source_url for theater {theater.name}")
             return 0
 
         html_content = self.scraper.download_cartelera_html(cartelera_url)
@@ -543,14 +558,15 @@ class CineproxShowtimeSaver:
         active_movies = [m for m in movie_cards if m.category != "pronto"]
         logger.info(f"Found {len(movie_cards)} movies, {len(active_movies)} active (excluding 'pronto')")
 
-        total_showtimes = 0
+        all_showtimes: list[tuple[Movie, str, list[CineproxShowtime]]] = []
 
         for movie_card in active_movies:
             try:
-                showtimes_for_movie = self._process_movie(
+                movie_showtimes = self._collect_showtimes_for_movie(
                     movie_card, theater, city_id, theater_id
                 )
-                total_showtimes += showtimes_for_movie
+                if movie_showtimes:
+                    all_showtimes.append(movie_showtimes)
             except Exception as e:
                 logger.error(f"Failed to process movie {movie_card.title}: {e}")
                 OperationalIssue.objects.create(
@@ -562,15 +578,17 @@ class CineproxShowtimeSaver:
                     severity=OperationalIssue.Severity.WARNING,
                 )
 
+        total_showtimes = self._save_all_showtimes_for_theater(theater, all_showtimes)
         return total_showtimes
 
-    def _process_movie(
+    def _collect_showtimes_for_movie(
         self,
         movie_card: CineproxMovieCard,
         theater: Theater,
         city_id: str,
         theater_id: str,
-    ) -> int:
+    ) -> tuple[Movie, str, list[CineproxShowtime]] | None:
+        """Collect showtimes for a movie without saving to database."""
         detail_url = self.scraper.generate_movie_detail_url(
             movie_card.movie_id, movie_card.slug, city_id, theater_id
         )
@@ -604,7 +622,7 @@ class CineproxShowtimeSaver:
 
         if not movie:
             logger.debug(f"Skipping showtimes for unfindable movie: {movie_card.title}")
-            return 0
+            return None
 
         today = datetime.datetime.now(BOGOTA_TZ).date()
         reference_year = today.year
@@ -615,18 +633,18 @@ class CineproxShowtimeSaver:
         if not available_dates:
             available_dates = [today]
 
-        total_showtimes = 0
+        all_showtimes: list[CineproxShowtime] = []
 
         for date in available_dates:
             showtimes = self.scraper.parse_showtimes_from_detail_html(
                 html_content, date, theater.name
             )
+            all_showtimes.extend(showtimes)
 
-            if showtimes:
-                saved = self._save_showtimes_for_date(theater, movie, date, showtimes, detail_url)
-                total_showtimes += saved
+        if not all_showtimes:
+            return None
 
-        return total_showtimes
+        return (movie, detail_url, all_showtimes)
 
     def _get_or_create_movie(
         self,
@@ -682,42 +700,35 @@ class CineproxShowtimeSaver:
         )
 
     @transaction.atomic
-    def _save_showtimes_for_date(
+    def _save_all_showtimes_for_theater(
         self,
         theater: Theater,
-        movie: Movie,
-        date: datetime.date,
-        showtimes: list[CineproxShowtime],
-        source_url: str,
+        movie_showtimes: list[tuple[Movie, str, list[CineproxShowtime]]],
     ) -> int:
+        """Delete all existing showtimes for theater and save new ones atomically."""
         deleted_count, _ = Showtime.objects.filter(
             theater=theater,
-            movie=movie,
-            start_date=date,
         ).delete()
         if deleted_count:
-            logger.info(f"Deleted {deleted_count} existing showtimes for {movie.title_es} on {date}")
+            logger.info(f"Deleted {deleted_count} existing Cineprox showtimes for {theater.name}")
 
         showtimes_saved = 0
 
-        for showtime in showtimes:
-            format_str = showtime.format
-            if showtime.language:
-                format_str = f"{showtime.format} {showtime.language}"
+        for movie, source_url, showtimes in movie_showtimes:
+            for showtime in showtimes:
+                Showtime.objects.create(
+                    theater=theater,
+                    movie=movie,
+                    start_date=showtime.date,
+                    start_time=showtime.time,
+                    format=showtime.format,
+                    language=showtime.language,
+                    screen=showtime.room_type,
+                    source_url=source_url,
+                )
+                showtimes_saved += 1
 
-            Showtime.objects.create(
-                theater=theater,
-                movie=movie,
-                start_date=showtime.date,
-                start_time=showtime.time,
-                format=format_str,
-                language=showtime.language,
-                screen=showtime.room_type,
-                source_url=source_url,
-            )
-            showtimes_saved += 1
-
-        logger.info(f"Saved {showtimes_saved} showtimes for {movie.title_es} on {date}")
+        logger.info(f"Saved {showtimes_saved} showtimes for {theater.name}")
         return showtimes_saved
 
 
