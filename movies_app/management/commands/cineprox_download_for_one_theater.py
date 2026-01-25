@@ -65,7 +65,7 @@ class Command(BaseCommand):
                 f"Theater '{theater.name}' has no scraper_config configured"
             )
 
-        self.stdout.write(f"Cartelera URL: {theater.colombia_dot_com_url}")
+        self.stdout.write(f"Cartelera URL: {theater.download_source_url}")
         self.stdout.write(f"Scraper config: {theater.scraper_config}")
         self.stdout.write("Scraping showtimes and saving to database...\n\n")
 

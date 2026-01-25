@@ -41,6 +41,7 @@ def parse_time_string(time_str: str) -> datetime.time | None:
     time_str = time_str.strip().lower()
     match = re.match(r"(\d{1,2}):(\d{2})\s*(a\.?m\.?|p\.?m\.?)", time_str)
     if not match:
+        logger.warning(f"Failed to parse time string: '{time_str}'")
         return None
 
     hour = int(match.group(1))

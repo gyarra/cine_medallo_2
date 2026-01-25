@@ -316,6 +316,12 @@ class CineproxScraperAndHTMLParser:
                     parsed_time = parse_time_string(time_text)
                     if not parsed_time:
                         logger.warning(f"Could not parse time: {time_text}")
+                        OperationalIssue.objects.create(
+                            source="CineproxScraperAndHTMLParser.parse_showtimes_from_detail_html",
+                            message=f"Could not parse time string: '{time_text}'",
+                            details=f"Theater: {theater_name}, Date: {selected_date}",
+                            severity=OperationalIssue.Severity.WARNING,
+                        )
                         continue
 
                     price_elem = card.find("div", class_="movie-schedule-price")
