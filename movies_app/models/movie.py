@@ -168,6 +168,7 @@ class Movie(models.Model):
         tmdb_service: TMDBService | None,
         storage_service: SupabaseStorageService | None,
         title_override: str | None,
+        fallback_trailer_url: str | None = None,
     ) -> Movie:
         """
         Create a Movie instance from a TMDB search result.
@@ -183,6 +184,7 @@ class Movie(models.Model):
             tmdb_service: Optional TMDBService for fetching full details
             storage_service: Optional SupabaseStorageService for uploading images
             title_override: Optional title to use instead of TMDB title (e.g., from scraped listing)
+            fallback_trailer_url: Optional trailer URL to use if TMDB doesn't provide one
 
         Returns:
             A new saved Movie instance
@@ -225,6 +227,10 @@ class Movie(models.Model):
                 tmdb_service,
                 storage_service,
             )
+
+        # Use fallback trailer URL if TMDB didn't provide one
+        if not movie_data.get("trailer_url") and fallback_trailer_url:
+            movie_data["trailer_url"] = fallback_trailer_url
 
         movie = cls.objects.create(**movie_data)
         return movie

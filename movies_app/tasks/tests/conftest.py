@@ -68,10 +68,14 @@ def mock_tmdb_service():
 @pytest.fixture(autouse=True)
 def mock_storage_service():
     """Auto-mock storage service to prevent S3 uploads during tests."""
+    mock_service = MagicMock()
+    mock_service.get_existing_url.return_value = None
+    mock_service.upload_image_from_url.return_value = "https://mock-storage.example.com/test-image.jpg"
+    mock_service.download_and_upload_from_url.return_value = "https://mock-storage.example.com/test-image.jpg"
     with patch(
         "movies_app.services.supabase_storage_service.SupabaseStorageService.create_from_settings"
     ) as mock:
-        mock.return_value = None
+        mock.return_value = mock_service
         yield mock
 
 
@@ -145,7 +149,7 @@ def mock_tmdb_for_tasks():
 
 @pytest.fixture(autouse=True)
 def mock_mamm_fetch_html():
-    """Auto-mock _fetch_html for MAMM task tests to prevent real HTTP requests."""
+    """Auto-mock fetch_page_html for MAMM task tests to prevent real HTTP requests."""
     mock_html = """
     <html>
     <body>
@@ -162,5 +166,5 @@ def mock_mamm_fetch_html():
     </body>
     </html>
     """
-    with patch("movies_app.tasks.mamm_download_task._fetch_html", return_value=mock_html):
+    with patch("movies_app.tasks.mamm_download_task.fetch_page_html", return_value=mock_html):
         yield

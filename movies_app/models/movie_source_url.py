@@ -4,7 +4,12 @@ MovieSourceUrl model for storing scraper-specific URLs for movies.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from django.db import models
+
+if TYPE_CHECKING:
+    from movies_app.models import Movie
 
 
 class MovieSourceUrl(models.Model):
@@ -56,6 +61,19 @@ class MovieSourceUrl(models.Model):
         indexes = [
             models.Index(fields=["scraper_type", "url"]),
         ]
+
+    @classmethod
+    def get_movie_for_source_url(
+        cls, url: str, scraper_type: ScraperType
+    ) -> "Movie | None":
+        """Get the Movie associated with a source URL, or None if not found."""
+        source_url = cls.objects.filter(
+            scraper_type=scraper_type,
+            url=url,
+        ).select_related("movie").first()
+        if source_url:
+            return source_url.movie
+        return None
 
     def get_scraper_type_display(self) -> str:
         """Return display value for scraper_type (Django auto-generates this)."""

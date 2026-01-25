@@ -260,12 +260,12 @@ class MovieLookupService:
         metadata,
     ):
         if source_url:
-            existing_source_url = MovieSourceUrl.objects.filter(
-                scraper_type=scraper_type,
+            existing_movie = MovieSourceUrl.get_movie_for_source_url(
                 url=source_url,
-            ).select_related("movie").first()
-            if existing_source_url:
-                return MovieLookupResult(movie=existing_source_url.movie, is_new=False, tmdb_called=False)
+                scraper_type=scraper_type,
+            )
+            if existing_movie:
+                return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=False)
 
             unfindable = UnfindableMovieUrl.objects.filter(url=source_url).first()
             if unfindable:
@@ -314,7 +314,11 @@ class MovieLookupService:
                 return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=True)
 
             movie = Movie.create_from_tmdb(
-                best_match, self.tmdb_service, self.storage_service, title_override=movie_name
+                best_match,
+                self.tmdb_service,
+                self.storage_service,
+                title_override=movie_name,
+                fallback_trailer_url=metadata.trailer_url if metadata else None,
             )
             if source_url:
                 MovieSourceUrl.objects.create(
