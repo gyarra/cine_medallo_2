@@ -27,6 +27,7 @@ class MovieSourceUrl(models.Model):
         PROCINAL = "procinal", "Procinal"
         CINEMARK = "cinemark", "Cinemark"
         ROYAL_FILMS = "royal_films", "Royal Films"
+        CINEPROX = "cineprox", "Cineprox"
 
     movie = models.ForeignKey(
         "movies_app.Movie",
