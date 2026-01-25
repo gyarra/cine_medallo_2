@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from movies_app.models import Movie, Showtime
+from movies_app.models import Movie, OperationalIssue, Showtime
 from movies_app.services.tmdb_service import (
     TMDBGenre,
     TMDBMovieDetails,
@@ -409,6 +409,45 @@ class TestMAMMShowtimeSaverExecute:
         other_date_showtime = other_date_showtimes.first()
         assert other_date_showtime is not None
         assert other_date_showtime.format == "Other Date Format"
+
+
+@pytest.mark.django_db
+class TestParseShowtimesOperationalIssues:
+    def test_creates_operational_issue_for_unparseable_time(self):
+        html_with_invalid_time = """
+        <html>
+        <body>
+        <section class="schedule-week">
+            <div class="col">
+                <div class="day">
+                    <p class="small">viernes 20 Ene</p>
+                </div>
+                <div class="card">
+                    <a href="https://www.elmamm.org/producto/test-movie/">
+                        <p class="small">INVALID_TIME</p>
+                        <h3>Test Movie</h3>
+                    </a>
+                </div>
+            </div>
+        </section>
+        </body>
+        </html>
+        """
+        initial_count = OperationalIssue.objects.count()
+
+        showtimes = MAMMScraperAndHTMLParser.parse_showtimes_from_weekly_schedule_html(
+            html_with_invalid_time
+        )
+
+        assert len(showtimes) == 0
+        assert OperationalIssue.objects.count() == initial_count + 1
+
+        issue = OperationalIssue.objects.latest("created_at")
+        assert issue.name == "Time Parse Failed"
+        assert issue.task == "mamm_download_task"
+        assert "INVALID_TIME" in issue.error_message
+        assert issue.context["movie"] == "Test Movie"
+        assert issue.severity == OperationalIssue.Severity.WARNING
 
 
 # mamm_theater fixture is now in conftest.py

@@ -33,6 +33,7 @@ from movies_app.tasks.download_utilities import (
     MovieMetadata,
     TaskReport,
     fetch_page_html,
+    normalize_translation_type,
     parse_time_string,
 )
 
@@ -73,7 +74,7 @@ class CineproxShowtime:
     date: datetime.date
     time: datetime.time
     format: str
-    language: str
+    translation_type: str
     room_type: str
     price: str | None
 
@@ -83,11 +84,11 @@ class CineproxScraperAndHTMLParser:
 
     @staticmethod
     def download_cartelera_html(url: str) -> str:
-        return fetch_page_html(url, wait_selector="div#grid")
+        return fetch_page_html(url, wait_selector="div#grid", sleep_seconds_after_wait=1)
 
     @staticmethod
     def download_movie_detail_html(url: str) -> str:
-        return fetch_page_html(url, wait_selector="section.pelicula")
+        return fetch_page_html(url, wait_selector="section.pelicula", sleep_seconds_after_wait=1)
 
     @staticmethod
     def parse_movies_from_cartelera_html(html_content: str) -> list[CineproxMovieCard]:
@@ -307,7 +308,7 @@ class CineproxScraperAndHTMLParser:
                         continue
 
                     format_text = header.get_text(strip=True)
-                    format_str, language = CineproxScraperAndHTMLParser._parse_format_and_language(format_text)
+                    format_str, translation_type = CineproxScraperAndHTMLParser._parse_format_and_language(format_text)
 
                     time_elem = card.find("div", class_="movie-schedule-time")
                     if not time_elem:
@@ -317,9 +318,10 @@ class CineproxScraperAndHTMLParser:
                     if not parsed_time:
                         logger.warning(f"Could not parse time: {time_text}")
                         OperationalIssue.objects.create(
-                            source="CineproxScraperAndHTMLParser.parse_showtimes_from_detail_html",
-                            message=f"Could not parse time string: '{time_text}'",
-                            details=f"Theater: {theater_name}, Date: {selected_date}",
+                            name="Time Parse Failed",
+                            task="cineprox_download_task",
+                            error_message=f"Could not parse time string: '{time_text}'",
+                            context={"theater": theater_name, "date": str(selected_date)},
                             severity=OperationalIssue.Severity.WARNING,
                         )
                         continue
@@ -331,7 +333,7 @@ class CineproxScraperAndHTMLParser:
                         date=selected_date,
                         time=parsed_time,
                         format=format_str,
-                        language=language,
+                        translation_type=translation_type,
                         room_type=room_type,
                         price=price,
                     ))
@@ -355,16 +357,16 @@ class CineproxScraperAndHTMLParser:
 
     @staticmethod
     def _parse_format_and_language(format_text: str) -> tuple[str, str]:
-        """Parse format text like '2D - DOB' into format and language."""
-        language_map = {
-            "DOB": "Doblado",
-            "SUB": "Subtitulado",
+        """Parse format text like '2D - DOB' into format and translation_type."""
+        translation_type_map = {
+            "DOB": "Doblada",
+            "SUB": "Subtitulada",
         }
         parts = format_text.split("-")
         format_str = parts[0].strip() if parts else ""
         language_code = parts[1].strip() if len(parts) > 1 else ""
-        language = language_map.get(language_code, language_code)
-        return format_str, language
+        translation_type = translation_type_map.get(language_code, language_code)
+        return format_str, translation_type
 
     @staticmethod
     def parse_available_dates_from_detail_html(html_content: str, reference_year: int) -> list[datetime.date]:
@@ -716,13 +718,18 @@ class CineproxShowtimeSaver:
 
         for movie, source_url, showtimes in movie_showtimes:
             for showtime in showtimes:
+                translation_type = normalize_translation_type(
+                    showtime.translation_type,
+                    task="cineprox_download_task",
+                    context={"theater": theater.name, "movie": movie.title_es},
+                )
                 Showtime.objects.create(
                     theater=theater,
                     movie=movie,
                     start_date=showtime.date,
                     start_time=showtime.time,
                     format=showtime.format,
-                    language=showtime.language,
+                    translation_type=translation_type,
                     screen=showtime.room_type,
                     source_url=source_url,
                 )

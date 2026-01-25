@@ -9,6 +9,8 @@ from dataclasses import dataclass
 
 from camoufox.async_api import AsyncCamoufox
 
+from movies_app.models import OperationalIssue, Showtime
+
 """
 Common utilities for movie download tasks.
 
@@ -30,6 +32,59 @@ SPANISH_MONTHS_ABBREVIATIONS = {
 
 # Browser configuration
 BROWSER_TIMEOUT_SECONDS = 120
+
+# Translation type mapping from scraper values to database values
+TRANSLATION_TYPE_MAP = {
+    # Cineprox values
+    "Doblada": Showtime.TranslationType.DOBLADA,
+    "Subtitulada": Showtime.TranslationType.SUBTITULADA,
+    "doblada": Showtime.TranslationType.DOBLADA,
+    "subtitulada": Showtime.TranslationType.SUBTITULADA,
+    # Colombia.com values
+    "DOBLADA": Showtime.TranslationType.DOBLADA,
+    "SUBTITULADA": Showtime.TranslationType.SUBTITULADA,
+    # Masculine forms (map to feminine)
+    "Doblado": Showtime.TranslationType.DOBLADA,
+    "Subtitulado": Showtime.TranslationType.SUBTITULADA,
+    "DOBLADO": Showtime.TranslationType.DOBLADA,
+    "SUBTITULADO": Showtime.TranslationType.SUBTITULADA,
+    "doblado": Showtime.TranslationType.DOBLADA,
+    "subtitulado": Showtime.TranslationType.SUBTITULADA,
+    # Original language
+    "ORIGINAL": Showtime.TranslationType.ORIGINAL,
+    "Original": Showtime.TranslationType.ORIGINAL,
+    "original": Showtime.TranslationType.ORIGINAL,
+    # Empty values
+    "": "",
+}
+
+
+def normalize_translation_type(value: str, task: str, context: dict[str, str]) -> str:
+    """
+    Normalize a translation type value to one of the valid Showtime.TranslationType values.
+
+    Args:
+        value: The raw translation type value from the scraper
+        task: The task name for OperationalIssue logging
+        context: Additional context dict for OperationalIssue (movie, theater, etc.)
+
+    Returns:
+        The normalized value (DOBLADA, SUBTITULADA, ORIGINAL, or empty string)
+        Returns empty string and logs OperationalIssue for unknown values
+    """
+    normalized = TRANSLATION_TYPE_MAP.get(value)
+    if normalized is not None:
+        return normalized
+
+    logger.warning(f"Unknown translation type: '{value}'")
+    OperationalIssue.objects.create(
+        name="Unknown Translation Type",
+        task=task,
+        error_message=f"Unknown translation type: '{value}'",
+        context=context,
+        severity=OperationalIssue.Severity.WARNING,
+    )
+    return ""
 
 
 def parse_time_string(time_str: str) -> datetime.time | None:
@@ -56,7 +111,11 @@ def parse_time_string(time_str: str) -> datetime.time | None:
     return datetime.time(hour, minute)
 
 
-async def fetch_page_html_async(url: str, wait_selector: str | None = None) -> str:
+async def fetch_page_html_async(
+    url: str,
+    wait_selector: str | None = None,
+    sleep_seconds_after_wait: float = 0,
+) -> str:
     """
     Fetch HTML content from a URL using Camoufox headless browser.
 
@@ -68,6 +127,7 @@ async def fetch_page_html_async(url: str, wait_selector: str | None = None) -> s
         url: The URL to fetch.
         wait_selector: Optional CSS selector to wait for before returning HTML.
             Useful for React/SPA pages that render content after JavaScript executes.
+        sleep_seconds_after_wait: Optional delay after page load before capturing HTML.
     """
     logger.info(f"Scraping page: {url}")
 
@@ -88,6 +148,9 @@ async def fetch_page_html_async(url: str, wait_selector: str | None = None) -> s
                     timeout=BROWSER_TIMEOUT_SECONDS * 1000,
                 )
 
+            if sleep_seconds_after_wait > 0:
+                await asyncio.sleep(sleep_seconds_after_wait)
+
             html_content = await page.content()
         finally:
             await context.close()
@@ -95,9 +158,13 @@ async def fetch_page_html_async(url: str, wait_selector: str | None = None) -> s
     return html_content
 
 
-def fetch_page_html(url: str, wait_selector: str | None = None) -> str:
+def fetch_page_html(
+    url: str,
+    wait_selector: str | None = None,
+    sleep_seconds_after_wait: float = 0,
+) -> str:
     """Synchronous wrapper to fetch HTML using async Camoufox."""
-    return asyncio.run(fetch_page_html_async(url, wait_selector))
+    return asyncio.run(fetch_page_html_async(url, wait_selector, sleep_seconds_after_wait))
 
 
 @dataclass

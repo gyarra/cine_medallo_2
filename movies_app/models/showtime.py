@@ -7,6 +7,11 @@ from movies_app.models.theater import Theater
 class Showtime(models.Model):
     """Represents a specific showing of a movie at a theater."""
 
+    class TranslationType(models.TextChoices):
+        DOBLADA = "DOBLADA", "Doblada"
+        SUBTITULADA = "SUBTITULADA", "Subtitulada"
+        ORIGINAL = "ORIGINAL", "Original"
+
     theater = models.ForeignKey(
         Theater,
         on_delete=models.CASCADE,
@@ -26,12 +31,12 @@ class Showtime(models.Model):
         default="",
         help_text="Screening format (e.g., '2D', '3D', 'IMAX', 'XD')",
     )
-    # TODO: name this translation_type or similar. Add a different field for original language. This field name is confusing.
-    language = models.CharField(
-        max_length=50,
+    translation_type = models.CharField(
+        max_length=20,
+        choices=TranslationType.choices,
         blank=True,
         default="",
-        help_text="Audio language (e.g., 'DOBLADA', 'SUBTITULADA', 'Original')",
+        help_text="Translation type (DOBLADA, SUBTITULADA, ORIGINAL)",
     )
     screen = models.CharField(
         max_length=50,
