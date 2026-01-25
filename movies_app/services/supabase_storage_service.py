@@ -4,6 +4,7 @@ import boto3
 import requests
 from botocore.config import Config
 from botocore.exceptions import ClientError
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,25 @@ class SupabaseStorageService:
     """
     Service for uploading and managing images in Supabase S3-compatible storage.
     """
+
+    @classmethod
+    def create_from_settings(cls) -> "SupabaseStorageService | None":
+        """Create a storage service from Django settings, or None if not configured."""
+        bucket_url = settings.SUPABASE_IMAGES_BUCKET_URL
+        access_key_id = settings.SUPABASE_IMAGES_BUCKET_ACCESS_KEY_ID
+        secret_access_key = settings.SUPABASE_IMAGES_BUCKET_SECRET_ACCESS_KEY
+        bucket_name = settings.SUPABASE_IMAGES_BUCKET_NAME
+
+        if not all([bucket_url, access_key_id, secret_access_key, bucket_name]):
+            logger.debug("Supabase storage not configured, images will use TMDB URLs")
+            return None
+
+        return cls(
+            bucket_url=bucket_url,
+            access_key_id=access_key_id,
+            secret_access_key=secret_access_key,
+            bucket_name=bucket_name,
+        )
 
     def __init__(
         self,

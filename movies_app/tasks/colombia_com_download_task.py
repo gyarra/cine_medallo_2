@@ -11,30 +11,28 @@ import datetime
 import logging
 import re
 import traceback
-import zoneinfo
 from dataclasses import dataclass
 
 from bs4 import BeautifulSoup
-from django.db import transaction
 from camoufox.async_api import AsyncCamoufox
+from django.db import transaction
 
 from config.celery_app import app
 from movies_app.models import MovieSourceUrl, OperationalIssue, Showtime, Theater, UnfindableMovieUrl
-from movies_app.services.tmdb_service import TMDBService
 from movies_app.services.movie_lookup_result import MovieLookupResult
+from movies_app.services.movie_lookup_service import MovieLookupService
+from movies_app.services.supabase_storage_service import SupabaseStorageService
+from movies_app.services.tmdb_service import TMDBService
 from movies_app.tasks.download_utilities import (
+    BOGOTA_TZ,
+    BROWSER_TIMEOUT_SECONDS,
     MovieMetadata,
     TaskReport,
+    fetch_page_html,
+    parse_time_string,
 )
-from movies_app.services.movie_lookup_service import MovieLookupService
 
 logger = logging.getLogger(__name__)
-
-# Browser configuration
-BROWSER_TIMEOUT_SECONDS = 120
-
-# Colombia timezone
-BOGOTA_TZ = zoneinfo.ZoneInfo("America/Bogota")
 
 # Base URL for colombia.com
 COLOMBIA_COM_BASE_URL = "https://www.colombia.com"
@@ -54,25 +52,6 @@ class MovieShowtimes:
     movie_name: str
     movie_url: str | None
     descriptions: list[ShowtimeDescription]
-
-
-def _parse_time_string(time_str: str) -> datetime.time | None:
-    """Parse time string like '12:50 pm' or '4:30 pm' to datetime.time."""
-    time_str = time_str.strip().lower()
-    match = re.match(r"(\d{1,2}):(\d{2})\s*(am|pm)", time_str)
-    if not match:
-        return None
-
-    hour = int(match.group(1))
-    minute = int(match.group(2))
-    period = match.group(3)
-
-    if period == "pm" and hour != 12:
-        hour += 12
-    elif period == "am" and hour == 12:
-        hour = 0
-
-    return datetime.time(hour, minute)
 
 
 def _extract_showtimes_from_html(html_content: str) -> list[MovieShowtimes]:
@@ -123,7 +102,7 @@ def _extract_showtimes_from_html(html_content: str) -> list[MovieShowtimes]:
                 time_items = times_div.find_all("li")
                 for li in time_items:
                     time_text = li.get_text(strip=True)
-                    parsed_time = _parse_time_string(time_text)
+                    parsed_time = parse_time_string(time_text)
                     if parsed_time:
                         start_times.append(parsed_time)
 
@@ -297,31 +276,6 @@ def _parse_release_date_from_colombia_date(release_date_str: str) -> datetime.da
     return None
 
 
-async def _scrape_movie_page_async(movie_url: str) -> str:
-    """Fetch HTML content from a movie's colombia.com page."""
-    logger.info(f"Scraping movie page: {movie_url}")
-
-    browser_options = {
-        "headless": True,
-    }
-
-    async with AsyncCamoufox(**browser_options) as browser:
-        context = await browser.new_context()  # pyright: ignore[reportAttributeAccessIssue]
-        page = await context.new_page()
-
-        try:
-            await page.goto(
-                movie_url,
-                wait_until="domcontentloaded",
-                timeout=BROWSER_TIMEOUT_SECONDS * 1000,
-            )
-            html_content = await page.content()
-        finally:
-            await context.close()
-
-    return html_content
-
-
 async def _scrape_theater_html_async(
     theater: Theater,
     target_date: datetime.date | None,
@@ -379,7 +333,7 @@ def _scrape_and_create_metadata(movie_url: str, movie_name: str) -> MovieMetadat
     Returns MovieMetadata or None if scraping fails.
     """
     try:
-        movie_html = asyncio.run(_scrape_movie_page_async(movie_url))
+        movie_html = fetch_page_html(movie_url)
         metadata = _extract_movie_metadata_from_html(movie_html)
         if metadata:
             logger.info(
@@ -421,12 +375,12 @@ def _get_or_create_movie_colombia(
 
     # Step 1: Check for existing movie by URL first (avoid scraping if we already have it)
     if movie_url:
-        existing_source_url = MovieSourceUrl.objects.filter(
-            scraper_type=MovieSourceUrl.ScraperType.COLOMBIA_COM,
+        existing_movie = MovieSourceUrl.get_movie_for_source_url(
             url=movie_url,
-        ).select_related("movie").first()
-        if existing_source_url:
-            return MovieLookupResult(movie=existing_source_url.movie, is_new=False, tmdb_called=False)
+            scraper_type=MovieSourceUrl.ScraperType.COLOMBIA_COM,
+        )
+        if existing_movie:
+            return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=False)
 
         # Step 1b: Check if this URL is already known to be unfindable
         unfindable = UnfindableMovieUrl.objects.filter(url=movie_url).first()
@@ -466,6 +420,9 @@ def _get_or_create_movie_colombia(
 
 # TODO: When we have more than one worker, this transaction will cause problems.
 # If another worker adds a movie while this adds the same movie, the transaction will fail.
+# We should probably first add movies in a non-transactional way, then add showtimes in a transaction.
+# This also avoids an API call inside a transaction, which is not ideal.
+# Also, the transaction should be for a single date, not the whole theater.
 @transaction.atomic
 def save_showtimes_for_theater(theater: Theater) -> TaskReport:
     """
@@ -491,8 +448,7 @@ def save_showtimes_for_theater(theater: Theater) -> TaskReport:
     logger.info(f"Found {len(date_options)} dates for {theater.name}: {date_options}\n\n")
 
     tmdb_service = TMDBService()
-    lookup_service = MovieLookupService(tmdb_service, None, SOURCE_NAME)
-    storage_service = lookup_service.create_storage_service()
+    storage_service = SupabaseStorageService.create_from_settings()
     total_showtimes = 0
     total_tmdb_calls = 0
     all_new_movies: list[str] = []

@@ -37,6 +37,7 @@ pytest
 * Write comments only for non-obvious behavior or important constraints
 * Do not describe what the code does; describe why if unclear
 * Exceptions: Management command files should have verbose docs with examples at the top
+* Logger statements ending in "\n\n" are fine to keep log separation clear
 
 
 ## Command Line Conventions
@@ -52,6 +53,11 @@ source .venv/bin/activate && pytest movies_app/tests/test_models.py
 source .venv/bin/activate
 pytest movies_app/tests/test_models.py
 ```
+
+## Documentation
+
+Do not add large amounts of code to documention files when you can point to a file to emulate.
+
 
 ## Testing
 
@@ -77,6 +83,7 @@ pytest
 * Only check for None values if it is expected that they may be None. It's better to crash on unexpected None.
 * Always log when catching exceptions
 * Let exceptions propagate for proper failure tracking
+* Log operational issues to `OperationalIssue` model for most issues. We want to know what is going wrong so we can fix it.
 
 ## Architecture
 
