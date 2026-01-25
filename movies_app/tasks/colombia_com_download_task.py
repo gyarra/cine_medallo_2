@@ -29,6 +29,7 @@ from movies_app.tasks.download_utilities import (
     MovieMetadata,
     TaskReport,
     fetch_page_html,
+    normalize_translation_type,
     parse_time_string,
 )
 
@@ -44,6 +45,8 @@ SOURCE_NAME = "colombia.com"
 @dataclass
 class ShowtimeDescription:
     description: str
+    format: str
+    translation_type: str
     start_times: list[datetime.time]
 
 
@@ -52,6 +55,26 @@ class MovieShowtimes:
     movie_name: str
     movie_url: str | None
     descriptions: list[ShowtimeDescription]
+
+
+def _parse_format_description(description: str) -> tuple[str, str]:
+    """
+    Parse a format description like '2D DOBLADA' into format and translation_type.
+
+    Returns:
+        Tuple of (format, translation_type_raw) e.g. ('2D', 'DOBLADA')
+    """
+    parts = description.upper().split()
+    format_str = ""
+    translation_type_raw = ""
+
+    for part in parts:
+        if part in ("2D", "3D", "IMAX", "XD", "4DX"):
+            format_str = part
+        elif part in ("DOBLADA", "DOBLADO", "SUBTITULADA", "SUBTITULADO", "ORIGINAL"):
+            translation_type_raw = part
+
+    return format_str, translation_type_raw
 
 
 def _extract_showtimes_from_html(html_content: str) -> list[MovieShowtimes]:
@@ -96,6 +119,8 @@ def _extract_showtimes_from_html(html_content: str) -> list[MovieShowtimes]:
             if format_div:
                 description = format_div.get_text(strip=True)
 
+            format_str, translation_type_raw = _parse_format_description(description)
+
             times_div = info_div.find("div", class_="horarios-funcion")
             start_times: list[datetime.time] = []
             if times_div:
@@ -108,7 +133,12 @@ def _extract_showtimes_from_html(html_content: str) -> list[MovieShowtimes]:
 
             if start_times:
                 descriptions.append(
-                    ShowtimeDescription(description=description, start_times=start_times)
+                    ShowtimeDescription(
+                        description=description,
+                        format=format_str,
+                        translation_type=translation_type_raw,
+                        start_times=start_times,
+                    )
                 )
 
         if descriptions:
@@ -537,13 +567,19 @@ def _save_showtimes_for_theater_for_date(
             continue
 
         for description in movie_showtime.descriptions:
+            translation_type = normalize_translation_type(
+                description.translation_type,
+                task="colombia_com_download_task",
+                context={"theater": theater.name, "movie": movie_showtime.movie_name},
+            )
             for start_time in description.start_times:
                 Showtime.objects.create(
                     theater=theater,
                     movie=lookup_result.movie,
                     start_date=effective_date,
                     start_time=start_time,
-                    format=description.description,
+                    format=description.format,
+                    translation_type=translation_type,
                     source_url=source_url,
                 )
                 showtimes_saved += 1

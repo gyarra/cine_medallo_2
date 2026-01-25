@@ -145,7 +145,7 @@ class TestParseShowtimesFromDetailHtml:
         assert len(showtimes) > 0
         first_showtime = showtimes[0]
         assert first_showtime.format == "2D"
-        assert first_showtime.language == "Doblado"
+        assert first_showtime.translation_type == "Doblado"
 
     def test_extracts_room_type(self):
         html_content = load_html_snapshot("cineprox_one_movie_for_one_theater.html")

@@ -406,7 +406,7 @@ class MAMMShowtimeSaver:
                 start_date=showtime.date,
                 start_time=showtime.time,
                 format=showtime.special_label,
-                language="",
+                translation_type="",
                 screen="",
                 source_url=showtime.movie_url or MAMM_CINE_URL,
             )

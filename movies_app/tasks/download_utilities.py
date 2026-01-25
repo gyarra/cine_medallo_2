@@ -9,6 +9,8 @@ from dataclasses import dataclass
 
 from camoufox.async_api import AsyncCamoufox
 
+from movies_app.models import OperationalIssue, Showtime
+
 """
 Common utilities for movie download tasks.
 
@@ -30,6 +32,54 @@ SPANISH_MONTHS_ABBREVIATIONS = {
 
 # Browser configuration
 BROWSER_TIMEOUT_SECONDS = 120
+
+# Translation type mapping from scraper values to database values
+TRANSLATION_TYPE_MAP = {
+    # Cineprox values
+    "Doblado": Showtime.TranslationType.DOBLADO,
+    "Subtitulado": Showtime.TranslationType.SUBTITULADO,
+    "doblado": Showtime.TranslationType.DOBLADO,
+    "subtitulado": Showtime.TranslationType.SUBTITULADO,
+    # Colombia.com values
+    "DOBLADA": Showtime.TranslationType.DOBLADO,
+    "SUBTITULADA": Showtime.TranslationType.SUBTITULADO,
+    "DOBLADO": Showtime.TranslationType.DOBLADO,
+    "SUBTITULADO": Showtime.TranslationType.SUBTITULADO,
+    # Original language
+    "ORIGINAL": Showtime.TranslationType.ORIGINAL,
+    "Original": Showtime.TranslationType.ORIGINAL,
+    "original": Showtime.TranslationType.ORIGINAL,
+    # Empty values
+    "": "",
+}
+
+
+def normalize_translation_type(value: str, task: str, context: dict[str, str]) -> str:
+    """
+    Normalize a translation type value to one of the valid Showtime.TranslationType values.
+
+    Args:
+        value: The raw translation type value from the scraper
+        task: The task name for OperationalIssue logging
+        context: Additional context dict for OperationalIssue (movie, theater, etc.)
+
+    Returns:
+        The normalized value (DOBLADO, SUBTITULADO, ORIGINAL, or empty string)
+        Returns empty string and logs OperationalIssue for unknown values
+    """
+    normalized = TRANSLATION_TYPE_MAP.get(value)
+    if normalized is not None:
+        return normalized
+
+    logger.warning(f"Unknown translation type: '{value}'")
+    OperationalIssue.objects.create(
+        name="Unknown Translation Type",
+        task=task,
+        error_message=f"Unknown translation type: '{value}'",
+        context=context,
+        severity=OperationalIssue.Severity.WARNING,
+    )
+    return ""
 
 
 def parse_time_string(time_str: str) -> datetime.time | None:
