@@ -356,9 +356,14 @@ class CineproxScraperAndHTMLParser:
     @staticmethod
     def _parse_format_and_language(format_text: str) -> tuple[str, str]:
         """Parse format text like '2D - DOB' into format and language."""
+        language_map = {
+            "DOB": "Doblado",
+            "SUB": "Subtitulado",
+        }
         parts = format_text.split("-")
         format_str = parts[0].strip() if parts else ""
-        language = parts[1].strip() if len(parts) > 1 else ""
+        language_code = parts[1].strip() if len(parts) > 1 else ""
+        language = language_map.get(language_code, language_code)
         return format_str, language
 
     @staticmethod
@@ -703,7 +708,6 @@ class CineproxShowtimeSaver:
         """Delete all existing showtimes for theater and save new ones atomically."""
         deleted_count, _ = Showtime.objects.filter(
             theater=theater,
-            source_url__startswith="https://www.cineprox.com/",
         ).delete()
         if deleted_count:
             logger.info(f"Deleted {deleted_count} existing Cineprox showtimes for {theater.name}")
@@ -712,16 +716,12 @@ class CineproxShowtimeSaver:
 
         for movie, source_url, showtimes in movie_showtimes:
             for showtime in showtimes:
-                format_str = showtime.format
-                if showtime.language:
-                    format_str = f"{showtime.format} {showtime.language}"
-
                 Showtime.objects.create(
                     theater=theater,
                     movie=movie,
                     start_date=showtime.date,
                     start_time=showtime.time,
-                    format=format_str,
+                    format=showtime.format,
                     language=showtime.language,
                     screen=showtime.room_type,
                     source_url=source_url,
