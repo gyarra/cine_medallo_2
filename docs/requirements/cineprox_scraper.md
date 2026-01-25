@@ -305,7 +305,28 @@ Create `OperationalIssue` records for all unexpected conditions:
 
 1. `movies_app/tasks/cineprox_download_task.py` - Main scraper implementation
 2. `movies_app/tasks/tests/test_cineprox_download_task.py` - Unit tests
-3. `movies_app/management/commands/cineprox_download_showtimes.py` - Management command
+3. `movies_app/management/commands/cineprox_download.py` - Management command (runs task for all theaters)
+4. `movies_app/management/commands/cineprox_download_for_one_theater.py` - Management command (runs for single theater)
+
+### Management Command: cineprox_download.py
+
+Simple wrapper that runs the Celery task for all Cineprox theaters:
+
+```bash
+python manage.py cineprox_download
+```
+
+### Management Command: cineprox_download_for_one_theater.py
+
+Runs the scraper for a single theater. Useful for testing and debugging.
+
+```bash
+# List available Cineprox theaters
+python manage.py cineprox_download_for_one_theater --list
+
+# Scrape showtimes for one theater
+python manage.py cineprox_download_for_one_theater procinal-parque-fabricato-bello
+```
 
 ## Testing Requirements
 
