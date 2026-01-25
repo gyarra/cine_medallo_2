@@ -11,7 +11,6 @@ import datetime
 import logging
 import re
 import traceback
-import zoneinfo
 from dataclasses import dataclass
 
 from bs4 import BeautifulSoup
@@ -25,6 +24,7 @@ from movies_app.services.movie_lookup_service import MovieLookupService
 from movies_app.services.supabase_storage_service import SupabaseStorageService
 from movies_app.services.tmdb_service import TMDBService
 from movies_app.tasks.download_utilities import (
+    BOGOTA_TZ,
     BROWSER_TIMEOUT_SECONDS,
     MovieMetadata,
     TaskReport,
@@ -33,9 +33,6 @@ from movies_app.tasks.download_utilities import (
 )
 
 logger = logging.getLogger(__name__)
-
-# Colombia timezone
-BOGOTA_TZ = zoneinfo.ZoneInfo("America/Bogota")
 
 # Base URL for colombia.com
 COLOMBIA_COM_BASE_URL = "https://www.colombia.com"

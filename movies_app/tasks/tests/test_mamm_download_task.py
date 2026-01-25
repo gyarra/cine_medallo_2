@@ -12,9 +12,8 @@ from movies_app.services.tmdb_service import (
     TMDBProductionCompany,
     TMDBSearchResponse,
 )
-from movies_app.tasks.download_utilities import parse_time_string
+from movies_app.tasks.download_utilities import BOGOTA_TZ, parse_time_string
 from movies_app.tasks.mamm_download_task import (
-    BOGOTA_TZ,
     MAMMScraperAndHTMLParser,
     MAMMShowtimeSaver,
 )
