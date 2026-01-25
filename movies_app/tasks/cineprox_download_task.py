@@ -84,11 +84,11 @@ class CineproxScraperAndHTMLParser:
 
     @staticmethod
     def download_cartelera_html(url: str) -> str:
-        return fetch_page_html(url, wait_selector="div#grid")
+        return fetch_page_html(url, wait_selector="div#grid", sleep_seconds_after_wait=1)
 
     @staticmethod
     def download_movie_detail_html(url: str) -> str:
-        return fetch_page_html(url, wait_selector="section.pelicula")
+        return fetch_page_html(url, wait_selector="section.pelicula", sleep_seconds_after_wait=1)
 
     @staticmethod
     def parse_movies_from_cartelera_html(html_content: str) -> list[CineproxMovieCard]:

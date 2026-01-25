@@ -111,7 +111,11 @@ def parse_time_string(time_str: str) -> datetime.time | None:
     return datetime.time(hour, minute)
 
 
-async def fetch_page_html_async(url: str, wait_selector: str | None = None) -> str:
+async def fetch_page_html_async(
+    url: str,
+    wait_selector: str | None = None,
+    sleep_seconds_after_wait: float = 0,
+) -> str:
     """
     Fetch HTML content from a URL using Camoufox headless browser.
 
@@ -123,6 +127,7 @@ async def fetch_page_html_async(url: str, wait_selector: str | None = None) -> s
         url: The URL to fetch.
         wait_selector: Optional CSS selector to wait for before returning HTML.
             Useful for React/SPA pages that render content after JavaScript executes.
+        sleep_seconds_after_wait: Optional delay after page load before capturing HTML.
     """
     logger.info(f"Scraping page: {url}")
 
@@ -143,6 +148,9 @@ async def fetch_page_html_async(url: str, wait_selector: str | None = None) -> s
                     timeout=BROWSER_TIMEOUT_SECONDS * 1000,
                 )
 
+            if sleep_seconds_after_wait > 0:
+                await asyncio.sleep(sleep_seconds_after_wait)
+
             html_content = await page.content()
         finally:
             await context.close()
@@ -150,9 +158,13 @@ async def fetch_page_html_async(url: str, wait_selector: str | None = None) -> s
     return html_content
 
 
-def fetch_page_html(url: str, wait_selector: str | None = None) -> str:
+def fetch_page_html(
+    url: str,
+    wait_selector: str | None = None,
+    sleep_seconds_after_wait: float = 0,
+) -> str:
     """Synchronous wrapper to fetch HTML using async Camoufox."""
-    return asyncio.run(fetch_page_html_async(url, wait_selector))
+    return asyncio.run(fetch_page_html_async(url, wait_selector, sleep_seconds_after_wait))
 
 
 @dataclass
