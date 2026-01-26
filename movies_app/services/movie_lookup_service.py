@@ -252,6 +252,53 @@ class MovieLookupService:
 
         return best_match
 
+    def _check_year_mismatch(
+        self,
+        metadata,
+        best_match: TMDBMovieResult,
+        movie_name: str,
+        source_url: str | None,
+    ) -> None:
+        if not metadata or not metadata.release_year:
+            return
+
+        source_year = metadata.release_year
+        tmdb_year: int | None = None
+
+        if best_match.release_date:
+            try:
+                tmdb_year = datetime.datetime.strptime(best_match.release_date, "%Y-%m-%d").date().year
+            except ValueError:
+                return
+
+        if tmdb_year is None:
+            return
+
+        year_diff = abs(source_year - tmdb_year)
+        if year_diff > 1:
+            logger.warning(
+                f"Year mismatch for '{movie_name}': metadata says {source_year}, "
+                f"TMDB match '{best_match.title}' is from {tmdb_year}"
+            )
+            OperationalIssue.objects.create(
+                name="TMDB Year Mismatch",
+                task=f"get_or_create_movie ({self.source_name})",
+                error_message=(
+                    f"Selected TMDB movie year ({tmdb_year}) differs from "
+                    f"{self.source_name} metadata year ({source_year}) for '{movie_name}'"
+                ),
+                context={
+                    "movie_name": movie_name,
+                    "source_url": source_url,
+                    "source_year": source_year,
+                    "tmdb_id": best_match.id,
+                    "tmdb_title": best_match.title,
+                    "tmdb_year": tmdb_year,
+                    "year_difference": year_diff,
+                },
+                severity=OperationalIssue.Severity.WARNING,
+            )
+
     def get_or_create_movie(
         self,
         movie_name: str,
@@ -302,6 +349,8 @@ class MovieLookupService:
                         reason=UnfindableMovieUrl.Reason.NO_MATCH,
                     )
                 return MovieLookupResult(movie=None, is_new=False, tmdb_called=True)
+
+            self._check_year_mismatch(metadata, best_match, movie_name, source_url)
 
             existing_movie = Movie.objects.filter(tmdb_id=best_match.id).first()
             if existing_movie:
