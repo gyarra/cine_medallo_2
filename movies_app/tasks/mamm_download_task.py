@@ -293,6 +293,7 @@ class MAMMShowtimeSaver:
 
     def _process_movies(self, showtimes: list[MAMMShowtime]) -> None:
         unique_movies: dict[str, tuple[str, str | None]] = {}
+
         for showtime in showtimes:
             cache_key = showtime.movie_url or showtime.movie_title
             if cache_key not in unique_movies:
@@ -312,17 +313,25 @@ class MAMMShowtimeSaver:
         movie_title: str,
         movie_url: str | None,
     ) -> MovieLookupResult:
-        if movie_url:
-            existing_movie = MovieSourceUrl.get_movie_for_source_url(
-                url=movie_url,
-                scraper_type=MovieSourceUrl.ScraperType.MAMM,
+        if not movie_url:
+            logger.warning(f"No movie URL for '{movie_title}', cannot look up movie")
+            OperationalIssue.objects.create(
+                name="MAMM Missing Movie URL",
+                task="mamm_download_task",
+                error_message=f"No movie URL extracted for '{movie_title}'",
+                context={"movie_title": movie_title},
+                severity=OperationalIssue.Severity.WARNING,
             )
-            if existing_movie:
-                return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=False)
+            return MovieLookupResult(movie=None, is_new=False, tmdb_called=False)
 
-        metadata: MovieMetadata | None = None
-        if movie_url:
-            metadata = self._fetch_movie_metadata(movie_url, movie_title)
+        existing_movie = MovieSourceUrl.get_movie_for_source_url(
+            url=movie_url,
+            scraper_type=MovieSourceUrl.ScraperType.MAMM,
+        )
+        if existing_movie:
+            return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=False)
+
+        metadata = self._fetch_movie_metadata(movie_url, movie_title)
 
         return self.lookup_service.get_or_create_movie(
             movie_name=movie_title,

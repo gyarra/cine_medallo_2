@@ -224,11 +224,247 @@ class TestParseMovieMetaFromMovieHtml:
         metadata = MAMMScraperAndHTMLParser.parse_movie_meta_from_movie_html(html_content)
 
         assert metadata is not None
-        assert metadata.title != ""
+        assert metadata.title == "Un poeta"
+        assert metadata.year == 2025
+        assert metadata.country == "Colombia"
+        assert metadata.duration_minutes == 120
+        assert metadata.director == "Simón Mesa Soto"
 
     def test_returns_none_for_empty_html(self):
         metadata = MAMMScraperAndHTMLParser.parse_movie_meta_from_movie_html("<html></html>")
         assert metadata is None
+
+
+@pytest.mark.django_db
+class TestFetchMovieMetadata:
+    def test_extracts_all_metadata_fields(self, mamm_theater):
+        html_snapshot_path = os.path.join(
+            os.path.dirname(__file__),
+            "html_snapshot",
+            "mamm_one_movie.html",
+        )
+
+        with open(html_snapshot_path, encoding="utf-8") as f:
+            html_content = f.read()
+
+        scraper = MagicMock()
+        scraper.download_individual_movie_html.return_value = html_content
+        scraper.parse_movie_meta_from_movie_html = MAMMScraperAndHTMLParser.parse_movie_meta_from_movie_html
+
+        tmdb_service = MagicMock()
+        storage_service = MagicMock()
+
+        saver = MAMMShowtimeSaver(scraper, tmdb_service, storage_service)
+        metadata = saver._fetch_movie_metadata(
+            movie_url="https://www.elmamm.org/producto/resurreccion/",
+            movie_title="Resurrección",
+        )
+
+        assert metadata is not None
+        assert metadata.release_year == 2025
+        assert metadata.duration_minutes == 160
+        assert metadata.director == "Bi Gan"
+        assert metadata.classification == "Mayores de 12 años"
+
+
+@pytest.mark.django_db
+class TestGetOrCreateMovie:
+    def test_creates_operational_issue_when_year_mismatch(self, mamm_theater):
+        """
+        Test that an OperationalIssue is created when metadata year differs from TMDB match.
+
+        Uses mamm_one_movie.html which contains metadata for:
+        - Title: Resurrección
+        - Year: 2025
+        - Director: Bi Gan
+
+        TMDB search results (captured Jan 2025) don't contain the 2025 Bi Gan film,
+        so the 1931 film is selected, triggering a year mismatch warning.
+        """
+        html_snapshot_path = os.path.join(
+            os.path.dirname(__file__),
+            "html_snapshot",
+            "mamm_one_movie.html",
+        )
+
+        with open(html_snapshot_path, encoding="utf-8") as f:
+            html_content = f.read()
+
+        scraper = MagicMock()
+        scraper.download_individual_movie_html.return_value = html_content
+        scraper.parse_movie_meta_from_movie_html = MAMMScraperAndHTMLParser.parse_movie_meta_from_movie_html
+
+        # Real TMDB search results for "Resurrección" (captured Jan 2025)
+        tmdb_service = MagicMock()
+        tmdb_service.search_movie.return_value = TMDBSearchResponse(
+            page=1,
+            total_pages=3,
+            total_results=55,
+            results=[
+                TMDBMovieResult(
+                    id=670051,
+                    title="Resurrección",
+                    original_title="Resurrección",
+                    overview="",
+                    release_date="1931-03-06",
+                    popularity=2.6438,
+                    vote_average=6.0,
+                    vote_count=2,
+                    poster_path="/eeTSwriBB2DR0gATZ3IUA2dSlN3.jpg",
+                    backdrop_path=None,
+                    genre_ids=[18],
+                    original_language="es",
+                    adult=False,
+                    video=False,
+                ),
+                # Second result: 2016 horror film
+                TMDBMovieResult(
+                    id=377452,
+                    title="Resurrección",
+                    original_title="Resurrección",
+                    overview="Un joven sacerdote impulsado por una visión mística...",
+                    release_date="2016-01-07",
+                    popularity=1.8881,
+                    vote_average=6.136,
+                    vote_count=33,
+                    poster_path="/dnegRFomtjicgJPVMP289h3D5uB.jpg",
+                    backdrop_path="/lJFcw3mxwINKL7LF2DMOofXjYN7.jpg",
+                    genre_ids=[27],
+                    original_language="es",
+                    adult=False,
+                    video=False,
+                ),
+                # Third result: 2016 documentary
+                TMDBMovieResult(
+                    id=388078,
+                    title="Resurrección",
+                    original_title="Resurrección",
+                    overview="",
+                    release_date="2016-07-01",
+                    popularity=0.0841,
+                    vote_average=7.0,
+                    vote_count=3,
+                    poster_path="/y3IAnOTTipedcooEPLlZbGKaGOa.jpg",
+                    backdrop_path=None,
+                    genre_ids=[99],
+                    original_language="es",
+                    adult=False,
+                    video=False,
+                ),
+                # Fourth result: 1943 film
+                TMDBMovieResult(
+                    id=670571,
+                    title="Resurrección",
+                    original_title="Resurrección",
+                    overview="",
+                    release_date="1943-01-01",
+                    popularity=0.1848,
+                    vote_average=5.0,
+                    vote_count=2,
+                    poster_path=None,
+                    backdrop_path=None,
+                    genre_ids=[],
+                    original_language="es",
+                    adult=False,
+                    video=False,
+                ),
+                # Fifth result: 1975 film
+                TMDBMovieResult(
+                    id=1190153,
+                    title="RESURRECCIÓN",
+                    original_title="RESURRECCIÓN",
+                    overview="Mezcla de película filosófico-religiosa...",
+                    release_date="1975-10-12",
+                    popularity=0.0739,
+                    vote_average=0.0,
+                    vote_count=0,
+                    poster_path=None,
+                    backdrop_path=None,
+                    genre_ids=[99],
+                    original_language="es",
+                    adult=False,
+                    video=False,
+                ),
+            ],
+        )
+        # Mock get_movie_details to return details for whichever movie is selected
+        tmdb_service.get_movie_details.return_value = TMDBMovieDetails(
+            id=670051,  # 1931 film - this is what gets selected
+            title="Resurrección",
+            original_title="Resurrección",
+            overview="",
+            release_date="1931-03-06",
+            popularity=2.6438,
+            vote_average=6.0,
+            vote_count=2,
+            poster_path="/eeTSwriBB2DR0gATZ3IUA2dSlN3.jpg",
+            backdrop_path=None,
+            genres=[TMDBGenre(id=18, name="Drama")],
+            original_language="es",
+            adult=False,
+            video=False,
+            runtime=90,
+            budget=0,
+            revenue=0,
+            status="Released",
+            tagline="",
+            homepage="",
+            imdb_id=None,
+            production_companies=[],
+            cast=[],
+            crew=[],
+            videos=[],
+            certification=None,
+        )
+
+        storage_service = MagicMock()
+        storage_service.get_existing_url.return_value = None
+        storage_service.upload_from_url.return_value = "https://storage.example.com/poster.jpg"
+        storage_service.download_and_upload_from_url.return_value = "https://storage.example.com/poster.jpg"
+
+        saver = MAMMShowtimeSaver(scraper, tmdb_service, storage_service)
+        result = saver._get_or_create_movie(
+            movie_title="Resurrección",
+            movie_url="https://www.elmamm.org/producto/resurreccion/",
+        )
+
+        assert result.movie is not None
+        assert result.movie.tmdb_id == 670051
+
+        year_mismatch_issue = OperationalIssue.objects.filter(name="TMDB Year Mismatch").first()
+        assert year_mismatch_issue is not None
+        assert year_mismatch_issue.severity == OperationalIssue.Severity.WARNING
+        assert "2025" in year_mismatch_issue.error_message
+        assert "1931" in year_mismatch_issue.error_message
+        assert year_mismatch_issue.context["movie_name"] == "Resurrección"
+        assert year_mismatch_issue.context["source_url"] == "https://www.elmamm.org/producto/resurreccion/"
+        assert year_mismatch_issue.context["source_year"] == 2025
+        assert year_mismatch_issue.context["tmdb_id"] == 670051
+        assert year_mismatch_issue.context["tmdb_title"] == "Resurrección"
+        assert year_mismatch_issue.context["tmdb_year"] == 1931
+        assert year_mismatch_issue.context["year_difference"] == 94
+
+    def test_creates_operational_issue_when_movie_url_is_none(self, mamm_theater):
+        scraper = MagicMock()
+        tmdb_service = MagicMock()
+        storage_service = MagicMock()
+
+        initial_count = OperationalIssue.objects.count()
+
+        saver = MAMMShowtimeSaver(scraper, tmdb_service, storage_service)
+        result = saver._get_or_create_movie(
+            movie_title="Test Movie",
+            movie_url=None,
+        )
+
+        assert result.movie is None
+        assert result.is_new is False
+        assert result.tmdb_called is False
+        assert OperationalIssue.objects.count() == initial_count + 1
+
+        issue = OperationalIssue.objects.latest("created_at")
+        assert issue.name == "MAMM Missing Movie URL"
+        assert "Test Movie" in issue.error_message
 
 
 @pytest.fixture
