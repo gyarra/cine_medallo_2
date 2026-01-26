@@ -14,35 +14,33 @@ import logging
 import re
 import traceback
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 
 from bs4 import BeautifulSoup
-from django.db import transaction
 from django.utils.text import slugify
 
 from config.celery_app import app
-from movies_app.models import Movie, MovieSourceUrl, OperationalIssue, Showtime, Theater
-from movies_app.services.movie_lookup_result import MovieLookupResult
-from movies_app.services.movie_lookup_service import MovieLookupService
+from movies_app.models import Movie, MovieSourceUrl, OperationalIssue, Theater
 from movies_app.services.supabase_storage_service import SupabaseStorageService
 from movies_app.services.tmdb_service import TMDBService
 from movies_app.tasks.download_utilities import (
     BOGOTA_TZ,
     SPANISH_MONTHS_ABBREVIATIONS,
     MovieMetadata,
-    TaskReport,
     fetch_page_html,
     normalize_translation_type,
     parse_time_string,
 )
-
-if TYPE_CHECKING:
-    pass
+from movies_app.tasks.movie_and_showtime_saver_template import (
+    MovieAndShowtimeSaverTemplate,
+    MovieInfo,
+    ShowtimeData,
+)
 
 logger = logging.getLogger(__name__)
 
 SOURCE_NAME = "cineprox"
+TASK_NAME = "cineprox_download_task"
 
 
 @dataclass
@@ -465,8 +463,17 @@ class CineproxScraperAndHTMLParser:
         return f"https://www.cineprox.com/detalle-pelicula/{movie_id}-{slug}"
 
 
-class CineproxShowtimeSaver:
-    """Coordinates scraping and saves movies/showtimes to the database."""
+@dataclass
+class CineproxMovieInfo:
+    """Extended movie info with Cineprox-specific data needed for processing."""
+
+    movie_info: MovieInfo
+    movie_id: str
+    slug: str
+
+
+class CineproxShowtimeSaver(MovieAndShowtimeSaverTemplate):
+    """Cineprox scraper that extends the template pattern."""
 
     def __init__(
         self,
@@ -474,55 +481,122 @@ class CineproxShowtimeSaver:
         tmdb_service: TMDBService,
         storage_service: SupabaseStorageService | None,
     ):
-        self.scraper = scraper
-        self.lookup_service = MovieLookupService(tmdb_service, storage_service, SOURCE_NAME)
-        self.processed_movies: dict[str, Movie | None] = {}
-        self.tmdb_calls = 0
-        self.new_movies: list[str] = []
-
-    def execute(self) -> TaskReport:
-        theaters = Theater.objects.filter(scraper_type="cineprox")
-        total_showtimes = 0
-
-        for theater in theaters:
-            try:
-                showtimes_for_theater = self._process_theater(theater)
-                total_showtimes += showtimes_for_theater
-            except Exception as e:
-                logger.error(f"Failed to process theater {theater.name}: {e}")
-                OperationalIssue.objects.create(
-                    name="Cineprox Theater Processing Failed",
-                    task="cineprox_download_task",
-                    error_message=str(e),
-                    traceback=traceback.format_exc(),
-                    context={"theater_name": theater.name, "theater_slug": theater.slug},
-                    severity=OperationalIssue.Severity.ERROR,
-                )
-
-        return TaskReport(
-            total_showtimes=total_showtimes,
-            tmdb_calls=self.tmdb_calls,
-            new_movies=self.new_movies,
+        super().__init__(
+            tmdb_service=tmdb_service,
+            storage_service=storage_service,
+            source_name=SOURCE_NAME,
+            scraper_type="cineprox",
+            scraper_type_enum=MovieSourceUrl.ScraperType.CINEPROX,
+            task_name=TASK_NAME,
         )
+        self.scraper = scraper
+        self._movie_cards_cache: dict[str, CineproxMovieCard] = {}
+        self._detail_html_cache: dict[str, str] = {}
 
-    def execute_for_theater(self, theater: Theater) -> int:
-        """Process a single theater and return the number of showtimes saved."""
-        return self._process_theater(theater)
+    def _find_movies(self, theater: Theater) -> list[MovieInfo]:
+        """Download cartelera and return list of movies."""
+        if not self._validate_theater_config(theater):
+            return []
 
-    def _process_theater(self, theater: Theater) -> int:
+        cartelera_url = theater.download_source_url
+        html_content = self.scraper.download_cartelera_html(cartelera_url)
+        movie_cards = self.scraper.parse_movies_from_cartelera_html(html_content)
+
+        if not movie_cards:
+            logger.warning(f"No movies found in cartelera for {theater.name}")
+            OperationalIssue.objects.create(
+                name="Cineprox No Movies Found",
+                task=TASK_NAME,
+                error_message=f"No movies found in cartelera for {theater.name}",
+                context={"cartelera_url": cartelera_url},
+                severity=OperationalIssue.Severity.WARNING,
+            )
+            return []
+
+        active_movies = [m for m in movie_cards if m.category != "pronto"]
+        logger.info(f"Found {len(movie_cards)} movies, {len(active_movies)} active (excluding 'pronto')")
+
+        movies: list[MovieInfo] = []
+        for card in active_movies:
+            source_url = self.scraper.generate_movie_source_url(card.movie_id, card.slug)
+            self._movie_cards_cache[source_url] = card
+            movies.append(MovieInfo(name=card.title, source_url=source_url))
+
+        return movies
+
+    def _get_movie_metadata(self, movie_info: MovieInfo) -> MovieMetadata | None:
+        """Download movie detail page and extract metadata."""
+        card = self._movie_cards_cache.get(movie_info.source_url)
+        if not card:
+            logger.error(f"No movie card cached for {movie_info.source_url}")
+            return None
+
+        detail_url = self.scraper.generate_movie_detail_url(card.movie_id, card.slug, None, None)
+        html_content = self.scraper.download_movie_detail_html(detail_url)
+        self._detail_html_cache[movie_info.source_url] = html_content
+
+        return self._extract_metadata(movie_info.name, html_content)
+
+    def _process_theater(self, theater: Theater, movies_cache: dict[str, Movie | None]) -> int:
+        """Scrape showtimes and save them for a theater."""
+        if not self._validate_theater_config(theater):
+            return 0
+
         logger.info(f"Processing Cineprox theater: {theater.name}\n\n")
 
+        scraper_config = theater.scraper_config
+        city_id = scraper_config.get("city_id") if scraper_config else None
+        theater_id = scraper_config.get("theater_id") if scraper_config else None
+
+        cartelera_url = theater.download_source_url
+        if not cartelera_url:
+            return 0
+
+        html_content = self.scraper.download_cartelera_html(cartelera_url)
+        movie_cards = self.scraper.parse_movies_from_cartelera_html(html_content)
+        active_movies = [m for m in movie_cards if m.category != "pronto"]
+
+        all_showtimes: list[ShowtimeData] = []
+
+        for card in active_movies:
+            source_url = self.scraper.generate_movie_source_url(card.movie_id, card.slug)
+            movie = movies_cache.get(source_url)
+
+            if not movie:
+                logger.debug(f"Skipping showtimes for unfindable movie: {card.title}")
+                continue
+
+            try:
+                showtimes = self._collect_showtimes_for_movie(
+                    card, movie, theater, city_id, theater_id
+                )
+                all_showtimes.extend(showtimes)
+            except Exception as e:
+                logger.error(f"Failed to process movie {card.title}: {e}")
+                OperationalIssue.objects.create(
+                    name="Cineprox Movie Processing Failed",
+                    task=TASK_NAME,
+                    error_message=str(e),
+                    traceback=traceback.format_exc(),
+                    context={"movie_title": card.title, "movie_id": card.movie_id},
+                    severity=OperationalIssue.Severity.WARNING,
+                )
+
+        return self._save_showtimes_for_theater(theater, all_showtimes)
+
+    def _validate_theater_config(self, theater: Theater) -> bool:
+        """Validate theater has required configuration."""
         scraper_config = theater.scraper_config
         if not scraper_config:
             logger.error(f"No scraper_config for theater {theater.name}")
             OperationalIssue.objects.create(
                 name="Cineprox Missing Scraper Config",
-                task="cineprox_download_task",
+                task=TASK_NAME,
                 error_message=f"Theater {theater.name} has no scraper_config",
                 context={"theater_slug": theater.slug},
                 severity=OperationalIssue.Severity.ERROR,
             )
-            return 0
+            return False
 
         city_id = scraper_config.get("city_id")
         theater_id = scraper_config.get("theater_id")
@@ -531,72 +605,29 @@ class CineproxShowtimeSaver:
             logger.error(f"Incomplete scraper_config for theater {theater.name}")
             OperationalIssue.objects.create(
                 name="Cineprox Incomplete Scraper Config",
-                task="cineprox_download_task",
+                task=TASK_NAME,
                 error_message=f"Theater {theater.name} missing city_id or theater_id",
                 context={"theater_slug": theater.slug, "scraper_config": scraper_config},
                 severity=OperationalIssue.Severity.ERROR,
             )
-            return 0
+            return False
 
-        cartelera_url = theater.download_source_url
-        if not cartelera_url:
-            logger.error(f"No download_source_url for theater {theater.name}")
-            return 0
-
-        html_content = self.scraper.download_cartelera_html(cartelera_url)
-        movie_cards = self.scraper.parse_movies_from_cartelera_html(html_content)
-
-        if not movie_cards:
-            logger.warning(f"No movies found in cartelera for {theater.name}")
-            OperationalIssue.objects.create(
-                name="Cineprox No Movies Found",
-                task="cineprox_download_task",
-                error_message=f"No movies found in cartelera for {theater.name}",
-                context={"cartelera_url": cartelera_url},
-                severity=OperationalIssue.Severity.WARNING,
-            )
-            return 0
-
-        active_movies = [m for m in movie_cards if m.category != "pronto"]
-        logger.info(f"Found {len(movie_cards)} movies, {len(active_movies)} active (excluding 'pronto')")
-
-        all_showtimes: list[tuple[Movie, str, list[CineproxShowtime]]] = []
-
-        for movie_card in active_movies:
-            try:
-                movie_showtimes = self._collect_showtimes_for_movie(
-                    movie_card, theater, city_id, theater_id
-                )
-                if movie_showtimes:
-                    all_showtimes.append(movie_showtimes)
-            except Exception as e:
-                logger.error(f"Failed to process movie {movie_card.title}: {e}")
-                OperationalIssue.objects.create(
-                    name="Cineprox Movie Processing Failed",
-                    task="cineprox_download_task",
-                    error_message=str(e),
-                    traceback=traceback.format_exc(),
-                    context={"movie_title": movie_card.title, "movie_id": movie_card.movie_id},
-                    severity=OperationalIssue.Severity.WARNING,
-                )
-
-        total_showtimes = self._save_all_showtimes_for_theater(theater, all_showtimes)
-        return total_showtimes
+        return True
 
     def _collect_showtimes_for_movie(
         self,
-        movie_card: CineproxMovieCard,
+        card: CineproxMovieCard,
+        movie: Movie,
         theater: Theater,
-        city_id: str,
-        theater_id: str,
-    ) -> tuple[Movie, str, list[CineproxShowtime]] | None:
-        """Collect showtimes for a movie without saving to database."""
+        city_id: str | None,
+        theater_id: str | None,
+    ) -> list[ShowtimeData]:
+        """Download movie detail page and collect showtimes."""
         detail_url = self.scraper.generate_movie_detail_url(
-            movie_card.movie_id, movie_card.slug, city_id, theater_id
+            card.movie_id, card.slug, city_id, theater_id
         )
-        source_url = self.scraper.generate_movie_source_url(movie_card.movie_id, movie_card.slug)
 
-        logger.info(f"Processing movie: {movie_card.title}")
+        logger.info(f"Processing movie: {card.title}")
 
         html_content = self.scraper.download_movie_detail_html(detail_url)
 
@@ -604,7 +635,7 @@ class CineproxShowtimeSaver:
             logger.warning(f"Theater accordion not expanded for {theater.name}")
             OperationalIssue.objects.create(
                 name="Cineprox Theater Accordion Not Expanded",
-                task="cineprox_download_task",
+                task=TASK_NAME,
                 error_message=f"Theater accordion not expanded for {theater.name}. Check if theater_id is correct.",
                 context={
                     "theater_name": theater.name,
@@ -613,18 +644,6 @@ class CineproxShowtimeSaver:
                 },
                 severity=OperationalIssue.Severity.WARNING,
             )
-
-        result = self._get_or_create_movie(movie_card, source_url, html_content)
-        movie = result.movie
-
-        if result.tmdb_called:
-            self.tmdb_calls += 1
-        if result.is_new and movie:
-            self.new_movies.append(movie.title_es)
-
-        if not movie:
-            logger.debug(f"Skipping showtimes for unfindable movie: {movie_card.title}")
-            return None
 
         today = datetime.datetime.now(BOGOTA_TZ).date()
         reference_year = today.year
@@ -635,51 +654,32 @@ class CineproxShowtimeSaver:
         if not available_dates:
             available_dates = [today]
 
-        all_showtimes: list[CineproxShowtime] = []
+        showtimes: list[ShowtimeData] = []
 
         for date in available_dates:
-            showtimes = self.scraper.parse_showtimes_from_detail_html(
+            cineprox_showtimes = self.scraper.parse_showtimes_from_detail_html(
                 html_content, date, theater.name
             )
-            all_showtimes.extend(showtimes)
+            for st in cineprox_showtimes:
+                translation_type = normalize_translation_type(
+                    st.translation_type,
+                    task=TASK_NAME,
+                    context={"theater": theater.name, "movie": movie.title_es},
+                )
+                showtimes.append(ShowtimeData(
+                    movie=movie,
+                    date=st.date,
+                    time=st.time,
+                    format=st.format,
+                    translation_type=translation_type,
+                    screen=st.room_type,
+                    source_url=detail_url,
+                ))
 
-        if not all_showtimes:
-            return None
-
-        return (movie, detail_url, all_showtimes)
-
-    def _get_or_create_movie(
-        self,
-        movie_card: CineproxMovieCard,
-        source_url: str,
-        html_content: str,
-    ) -> MovieLookupResult:
-        cache_key = source_url
-        if cache_key in self.processed_movies:
-            movie = self.processed_movies[cache_key]
-            return MovieLookupResult(movie=movie, is_new=False, tmdb_called=False)
-
-        existing_movie = MovieSourceUrl.get_movie_for_source_url(
-            url=source_url,
-            scraper_type=MovieSourceUrl.ScraperType.CINEPROX,
-        )
-        if existing_movie:
-            self.processed_movies[cache_key] = existing_movie
-            return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=False)
-
-        metadata = self._extract_metadata(movie_card.title, html_content)
-
-        result = self.lookup_service.get_or_create_movie(
-            movie_name=movie_card.title,
-            source_url=source_url,
-            scraper_type=MovieSourceUrl.ScraperType.CINEPROX,
-            metadata=metadata,
-        )
-
-        self.processed_movies[cache_key] = result.movie
-        return result
+        return showtimes
 
     def _extract_metadata(self, movie_title: str, html_content: str) -> MovieMetadata | None:
+        """Extract MovieMetadata from Cineprox detail page HTML."""
         cineprox_meta = self.scraper.parse_movie_metadata_from_detail_html(html_content)
         if not cineprox_meta:
             logger.warning(f"Could not extract metadata for '{movie_title}'")
@@ -700,43 +700,6 @@ class CineproxShowtimeSaver:
             release_year=release_year,
             trailer_url=None,
         )
-
-    @transaction.atomic
-    def _save_all_showtimes_for_theater(
-        self,
-        theater: Theater,
-        movie_showtimes: list[tuple[Movie, str, list[CineproxShowtime]]],
-    ) -> int:
-        """Delete all existing showtimes for theater and save new ones atomically."""
-        deleted_count, _ = Showtime.objects.filter(
-            theater=theater,
-        ).delete()
-        if deleted_count:
-            logger.info(f"Deleted {deleted_count} existing Cineprox showtimes for {theater.name}")
-
-        showtimes_saved = 0
-
-        for movie, source_url, showtimes in movie_showtimes:
-            for showtime in showtimes:
-                translation_type = normalize_translation_type(
-                    showtime.translation_type,
-                    task="cineprox_download_task",
-                    context={"theater": theater.name, "movie": movie.title_es},
-                )
-                Showtime.objects.create(
-                    theater=theater,
-                    movie=movie,
-                    start_date=showtime.date,
-                    start_time=showtime.time,
-                    format=showtime.format,
-                    translation_type=translation_type,
-                    screen=showtime.room_type,
-                    source_url=source_url,
-                )
-                showtimes_saved += 1
-
-        logger.info(f"Saved {showtimes_saved} showtimes for {theater.name}")
-        return showtimes_saved
 
 
 @app.task
@@ -759,7 +722,7 @@ def cineprox_download_task():
         logger.error(f"Failed Cineprox download task: {e}")
         OperationalIssue.objects.create(
             name="Cineprox Download Task Failed",
-            task="cineprox_download_task",
+            task=TASK_NAME,
             error_message=str(e),
             traceback=traceback.format_exc(),
             context={},

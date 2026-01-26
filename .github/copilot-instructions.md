@@ -79,7 +79,7 @@ pytest
 ## Error Handling
 
 * Fail fast and loudly rather than silently handle problems that should be fixed
-* Only catch exceptions if recovery is possible
+* Only catch exceptions if recovery is possible. If there's an exception that should never happen, let it raise and break the app.
 * Only check for None values if it is expected that they may be None. It's better to crash on unexpected None.
 * Always log when catching exceptions
 * Let exceptions propagate for proper failure tracking
