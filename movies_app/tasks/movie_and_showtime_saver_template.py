@@ -104,7 +104,9 @@ class MovieAndShowtimeSaverTemplate(ABC):
 
                 self._get_or_create_movies(movies_for_theater, movies_cache)
 
-                showtimes_count = self._process_theater(theater, movies_cache)
+                showtimes_count = self._process_showtimes_for_theater(
+                    theater, movies_for_theater, movies_cache
+                )
                 total_showtimes += showtimes_count
 
             except Exception as e:
@@ -121,7 +123,7 @@ class MovieAndShowtimeSaverTemplate(ABC):
         movies_cache: dict[str, Movie | None] = {}
         movies_for_theater = self._find_movies(theater)
         self._get_or_create_movies(movies_for_theater, movies_cache)
-        return self._process_theater(theater, movies_cache)
+        return self._process_showtimes_for_theater(theater, movies_for_theater, movies_cache)
 
     @abstractmethod
     def _find_movies(self, theater: Theater) -> list[MovieInfo]:
@@ -141,11 +143,16 @@ class MovieAndShowtimeSaverTemplate(ABC):
         """
 
     @abstractmethod
-    def _process_theater(self, theater: Theater, movies_cache: dict[str, Movie | None]) -> int:
+    def _process_showtimes_for_theater(
+        self,
+        theater: Theater,
+        movies_for_theater: list[MovieInfo],
+        movies_cache: dict[str, Movie | None],
+    ) -> int:
         """
         Scrape and save showtimes for a theater.
 
-        Use movies_cache to look up Movie objects by source_url.
+        Use movies_for_theater to iterate over movies and movies_cache to look up Movie objects.
         Call _save_showtimes_for_theater to persist showtimes.
 
         Returns: Number of showtimes saved.

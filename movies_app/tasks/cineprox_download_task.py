@@ -463,15 +463,6 @@ class CineproxScraperAndHTMLParser:
         return f"https://www.cineprox.com/detalle-pelicula/{movie_id}-{slug}"
 
 
-@dataclass
-class CineproxMovieInfo:
-    """Extended movie info with Cineprox-specific data needed for processing."""
-
-    movie_info: MovieInfo
-    movie_id: str
-    slug: str
-
-
 class CineproxShowtimeSaver(MovieAndShowtimeSaverTemplate):
     """Cineprox scraper that extends the template pattern."""
 
@@ -491,7 +482,6 @@ class CineproxShowtimeSaver(MovieAndShowtimeSaverTemplate):
         )
         self.scraper = scraper
         self._movie_cards_cache: dict[str, CineproxMovieCard] = {}
-        self._detail_html_cache: dict[str, str] = {}
 
     def _find_movies(self, theater: Theater) -> list[MovieInfo]:
         """Download cartelera and return list of movies."""
@@ -533,11 +523,15 @@ class CineproxShowtimeSaver(MovieAndShowtimeSaverTemplate):
 
         detail_url = self.scraper.generate_movie_detail_url(card.movie_id, card.slug, None, None)
         html_content = self.scraper.download_movie_detail_html(detail_url)
-        self._detail_html_cache[movie_info.source_url] = html_content
 
         return self._extract_metadata(movie_info.name, html_content)
 
-    def _process_theater(self, theater: Theater, movies_cache: dict[str, Movie | None]) -> int:
+    def _process_showtimes_for_theater(
+        self,
+        theater: Theater,
+        movies_for_theater: list[MovieInfo],
+        movies_cache: dict[str, Movie | None],
+    ) -> int:
         """Scrape showtimes and save them for a theater."""
         if not self._validate_theater_config(theater):
             return 0
@@ -548,19 +542,14 @@ class CineproxShowtimeSaver(MovieAndShowtimeSaverTemplate):
         city_id = scraper_config.get("city_id") if scraper_config else None
         theater_id = scraper_config.get("theater_id") if scraper_config else None
 
-        cartelera_url = theater.download_source_url
-        if not cartelera_url:
-            return 0
-
-        html_content = self.scraper.download_cartelera_html(cartelera_url)
-        movie_cards = self.scraper.parse_movies_from_cartelera_html(html_content)
-        active_movies = [m for m in movie_cards if m.category != "pronto"]
-
         all_showtimes: list[ShowtimeData] = []
 
-        for card in active_movies:
-            source_url = self.scraper.generate_movie_source_url(card.movie_id, card.slug)
-            movie = movies_cache.get(source_url)
+        for movie_info in movies_for_theater:
+            card = self._movie_cards_cache.get(movie_info.source_url)
+            if not card:
+                continue
+
+            movie = movies_cache.get(movie_info.source_url)
 
             if not movie:
                 logger.debug(f"Skipping showtimes for unfindable movie: {card.title}")
