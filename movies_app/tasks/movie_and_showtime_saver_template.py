@@ -167,6 +167,7 @@ class MovieAndShowtimeSaverTemplate(ABC):
         Look up or create movies not already in cache.
 
         Updates movies_cache in place. Tracks TMDB calls and new movies.
+        Each movie is processed independently so one failure doesn't skip others.
         """
         for movie_info in movies_for_theater:
             if movie_info.source_url in movies_cache:
@@ -180,19 +181,34 @@ class MovieAndShowtimeSaverTemplate(ABC):
                 movies_cache[movie_info.source_url] = existing_movie
                 continue
 
-            metadata = self._get_movie_metadata(movie_info)
-            result = self.lookup_service.get_or_create_movie(
-                movie_name=movie_info.name,
-                source_url=movie_info.source_url,
-                scraper_type=self.scraper_type_enum,
-                metadata=metadata,
-            )
+            try:
+                metadata = self._get_movie_metadata(movie_info)
+                result = self.lookup_service.get_or_create_movie(
+                    movie_name=movie_info.name,
+                    source_url=movie_info.source_url,
+                    scraper_type=self.scraper_type_enum,
+                    metadata=metadata,
+                )
 
-            movies_cache[movie_info.source_url] = result.movie
-            if result.tmdb_called:
-                self.tmdb_calls += 1
-            if result.is_new and result.movie:
-                self.new_movies.append(result.movie.title_es)
+                movies_cache[movie_info.source_url] = result.movie
+                if result.tmdb_called:
+                    self.tmdb_calls += 1
+                if result.is_new and result.movie:
+                    self.new_movies.append(result.movie.title_es)
+            except Exception as e:
+                logger.error(f"Failed to get/create movie '{movie_info.name}': {e}")
+                OperationalIssue.objects.create(
+                    name="Movie Metadata Fetch Failed",
+                    task=self.task_name,
+                    error_message=str(e),
+                    traceback=traceback.format_exc(),
+                    context={
+                        "movie_name": movie_info.name,
+                        "source_url": movie_info.source_url,
+                    },
+                    severity=OperationalIssue.Severity.WARNING,
+                )
+                movies_cache[movie_info.source_url] = None
 
     @transaction.atomic
     def _save_showtimes_for_theater(
