@@ -2,15 +2,21 @@
 MovieLookupService: Service for movie lookup, TMDB matching, and deduplication.
 """
 
+from __future__ import annotations
+
 import datetime
 import logging
 import traceback
 import unicodedata
+from typing import TYPE_CHECKING
 
 from movies_app.models import APICallCounter, Movie, MovieSourceUrl, OperationalIssue, UnfindableMovieUrl
+from movies_app.services.movie_lookup_result import MovieLookupResult
 from movies_app.services.supabase_storage_service import SupabaseStorageService
 from movies_app.services.tmdb_service import TMDBMovieResult, TMDBService, TMDBServiceError
-from movies_app.services.movie_lookup_result import MovieLookupResult
+
+if TYPE_CHECKING:
+    from movies_app.tasks.download_utilities import MovieMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +63,7 @@ class MovieLookupService:
         self,
         results: list[TMDBMovieResult],
         movie_name: str,
-        metadata,
+        metadata: MovieMetadata | None,
     ) -> TMDBMovieResult | None:
         logger.debug(f"=== find_best_tmdb_match START for '{movie_name}' ===")
         logger.debug(f"  TMDB results count: {len(results)}")
@@ -254,7 +260,7 @@ class MovieLookupService:
 
     def _check_year_mismatch(
         self,
-        metadata,
+        metadata: MovieMetadata | None,
         best_match: TMDBMovieResult,
         movie_name: str,
         source_url: str | None,
@@ -304,7 +310,7 @@ class MovieLookupService:
         movie_name: str,
         source_url: str | None,
         scraper_type: MovieSourceUrl.ScraperType,
-        metadata,
+        metadata: MovieMetadata | None,
     ):
         if source_url:
             existing_movie = MovieSourceUrl.get_movie_for_source_url(
@@ -321,7 +327,7 @@ class MovieLookupService:
                 logger.debug(f"Skipping TMDB lookup for known unfindable URL: {source_url}")
                 return MovieLookupResult(movie=None, is_new=False, tmdb_called=False)
 
-        search_name = metadata.original_title if metadata and getattr(metadata, "original_title", None) else movie_name
+        search_name = metadata.original_title if metadata and metadata.original_title else movie_name
 
         try:
             logger.info(f"Searching TMDB for: '{search_name}' (listing name: '{movie_name}')")
