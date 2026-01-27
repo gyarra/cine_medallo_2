@@ -165,6 +165,48 @@ class TestMovieLookupService:
         assert result.tmdb_called is False
 
     @pytest.mark.django_db
+    def test_falls_back_to_tmdb_when_multiple_titles_no_year_in_metadata(
+        self, tmdb_service, storage_service, monkeypatch
+    ):
+        """When multiple movies match title but no year in metadata, fall back to TMDB.
+
+        This tests the intended behavior: when we can't disambiguate between multiple
+        candidates (no year metadata), we defer to TMDB's more sophisticated matching.
+        """
+        Movie.objects.create(
+            title_es="The Batman",
+            slug="the-batman-1989",
+            year=1989,
+            tmdb_id=111111,
+        )
+        Movie.objects.create(
+            title_es="The Batman",
+            slug="the-batman-2022",
+            year=2022,
+            tmdb_id=222222,
+        )
+        service = MovieLookupService(tmdb_service, storage_service, "test_source")
+
+        from movies_app.services.tmdb_service import TMDBSearchResponse
+
+        mock_response = TMDBSearchResponse(
+            page=1,
+            total_pages=0,
+            total_results=0,
+            results=[],
+        )
+        monkeypatch.setattr(tmdb_service, "search_movie", lambda q: mock_response)
+
+        result = service.get_or_create_movie(
+            movie_name="The Batman",
+            source_url="https://example.com/the-batman-unknown-year",
+            scraper_type=MovieSourceUrl.ScraperType.CINEPROX,
+            metadata=None,
+        )
+
+        assert result.tmdb_called is True
+
+    @pytest.mark.django_db
     def test_falls_back_to_tmdb_when_multiple_titles_no_year_match(
         self, tmdb_service, storage_service, monkeypatch
     ):
