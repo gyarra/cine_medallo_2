@@ -612,7 +612,7 @@ class CineColombiaShowtimeSaver(MovieAndShowtimeSaverTemplate):
                         format=st.format,
                         translation_type=translation_type,
                         screen=st.screen,
-                        source_url=movie_info.source_url,
+                        source_url=theater.download_source_url or "",
                     ))
 
         return self._save_showtimes_for_theater(theater, showtimes)
