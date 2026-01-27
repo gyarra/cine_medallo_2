@@ -9,24 +9,57 @@ The key responsibilities of a scraper are:
 
 ## Reference Implementation
 
-**Copy [mamm_download_task.py](../movies_app/tasks/mamm_download_task.py)** as your starting point. It demonstrates the cleanest architecture with two classes:
+**Copy [cineprox_download_task.py](../movies_app/tasks/cineprox_download_task.py)** as your starting point. It demonstrates the recommended Template Method pattern with:
 
-- `MAMMScraperAndHTMLParser` — Stateless class with static methods for I/O and HTML parsing
-- `MAMMShowtimeSaver` — Coordinates scraping and persists movies/showtimes to the database
+- `CineproxScraperAndHTMLParser` — Stateless class with static methods for I/O and HTML parsing
+- `CineproxShowtimeSaver` — Extends `MovieAndShowtimeSaverTemplate` with scraper-specific logic
+
+The template base class handles all the boilerplate:
+- Theater iteration with error handling
+- Movie deduplication across theaters
+- TMDB lookup and movie creation
+- Atomic showtime saving
+- Task report generation
 
 Also see:
-- **[colombia_com_download_task.py](../movies_app/tasks/colombia_com_download_task.py)** — Multi-theater scraper with date selection (older structure, more complex)
+- **[movie_and_showtime_saver_template.py](../movies_app/tasks/movie_and_showtime_saver_template.py)** — The abstract base class defining the template
 - **[download_utilities.py](../movies_app/tasks/download_utilities.py)** — Shared utilities (`parse_time_string`, `fetch_page_html`, `MovieMetadata`, `TaskReport`, `BOGOTA_TZ`, `SPANISH_MONTHS_ABBREVIATIONS`)
+- **[mamm_download_task.py](../movies_app/tasks/mamm_download_task.py)** — Simpler scraper (single theater, doesn't use template yet)
+- **[colombia_com_download_task.py](../movies_app/tasks/colombia_com_download_task.py)** — Older multi-theater scraper (more complex, doesn't use template)
 
 ## Architecture Overview
 
-Each scraper follows this flow:
+### Template Method Pattern
 
-1. **Celery Task** — Entry point that iterates over theaters
-2. **HTML Fetching** — Uses Camoufox headless browser for JavaScript-rendered content
-3. **HTML Parsing** — Extracts movie names, URLs, and showtimes using BeautifulSoup
-4. **Movie Lookup** — Matches scraped movies to TMDB via `MovieLookupService`
-5. **Showtime Creation** — Saves showtimes with per-date atomic transactions
+New scrapers should extend `MovieAndShowtimeSaverTemplate` which provides:
+
+```
+execute()                           # Main entry point (template method)
+├── For each theater:
+│   ├── _find_movies()              # Abstract: scraper implements
+│   ├── _get_or_create_movies()     # Template: handles TMDB lookup, caching
+│   └── _process_showtimes_for_theater()  # Abstract: scraper implements
+└── Return TaskReport
+```
+
+Your scraper only needs to implement three abstract methods:
+1. `_find_movies(theater)` — Return list of `MovieInfo` from cartelera page
+2. `_get_movie_metadata(movie_info)` — Fetch metadata from movie detail page
+3. `_process_showtimes_for_theater(theater, movies_for_theater, movies_cache)` — Scrape and save showtimes
+
+### Two-Class Architecture
+
+Each scraper has two classes:
+
+1. **ScraperAndHTMLParser** — Stateless with static methods:
+   - `download_*()` — Fetch HTML using `fetch_page_html()`
+   - `parse_*()` — Extract data from HTML using BeautifulSoup
+   - Date/URL generation helpers
+
+2. **ShowtimeSaver** (extends `MovieAndShowtimeSaverTemplate`):
+   - Implements the three abstract methods
+   - Uses the scraper class for all I/O and parsing
+   - Calls `_save_showtimes_for_theater()` from template to persist data
 
 ## Implementation Steps
 
@@ -40,50 +73,85 @@ If theaters need a source-specific URL field, add it to the `Theater` model. Oth
 
 ### 3. Create the Task File
 
-Create `movies_app/tasks/{source}_download_task.py` with these components:
+Create `movies_app/tasks/{source}_download_task.py` following the Cineprox pattern:
 
 **Constants:**
-- `SOURCE_NAME` — For logging and error tracking
-- Import `BOGOTA_TZ` and `SPANISH_MONTHS_ABBREVIATIONS` from download_utilities
+```python
+SOURCE_NAME = "your_source"
+TASK_NAME = "your_source_download_task"
+```
 
-**Dataclasses** for intermediate data:
-- A showtime container (movie name, URL, date, time, format/label)
-- See `MAMMShowtime` in mamm_download_task.py
+**Dataclasses** for intermediate data (movie cards, showtimes, metadata).
 
-**Two-Class Architecture** (follow mamm_download_task.py pattern):
+**ScraperAndHTMLParser class** — All static methods:
+```python
+class YourSourceScraperAndHTMLParser:
+    @staticmethod
+    def download_cartelera_html(url: str) -> str:
+        return fetch_page_html(url, wait_selector="...", sleep_seconds_after_wait=1)
 
-1. **ScraperAndHTMLParser class** — Stateless with static methods:
-   - `download_*()` — Fetch HTML using `fetch_page_html()`
-   - `parse_*()` — Extract data from HTML using BeautifulSoup
-   - Date parsing helpers
+    @staticmethod
+    def parse_movies_from_cartelera_html(html_content: str) -> list[YourMovieCard]:
+        # BeautifulSoup parsing
+        ...
 
-2. **ShowtimeSaver class** — Coordinates and persists:
-   - Constructor takes scraper, TMDBService, and SupabaseStorageService
-   - `execute()` — Main entry point returning `TaskReport`
-   - `_process_movies()` — Lookup/create movies via `MovieLookupService`
-   - `_save_showtimes()` — Per-date atomic transactions
+    @staticmethod
+    def parse_showtimes_from_detail_html(html_content: str, ...) -> list[YourShowtime]:
+        ...
+```
 
-**Movie Lookup:**
-- Use `MovieSourceUrl.get_movie_for_source_url()` to check for existing movies
-- Use `MovieLookupService` for TMDB matching
+**ShowtimeSaver class** — Extends template:
+```python
+class YourSourceShowtimeSaver(MovieAndShowtimeSaverTemplate):
+    def __init__(self, scraper, tmdb_service, storage_service):
+        super().__init__(
+            tmdb_service=tmdb_service,
+            storage_service=storage_service,
+            source_name=SOURCE_NAME,
+            scraper_type="your_source",
+            scraper_type_enum=MovieSourceUrl.ScraperType.YOUR_SOURCE,
+            task_name=TASK_NAME,
+        )
+        self.scraper = scraper
 
-**Showtime Saving:**
-- Use `@transaction.atomic` on the per-date save method
-- Delete existing showtimes for the date before inserting new ones
+    def _find_movies(self, theater: Theater) -> list[MovieInfo]:
+        # Download cartelera, parse movies, return MovieInfo list
+        ...
+
+    def _get_movie_metadata(self, movie_info: MovieInfo) -> MovieMetadata | None:
+        # Download detail page, extract metadata
+        ...
+
+    def _process_showtimes_for_theater(
+        self,
+        theater: Theater,
+        movies_for_theater: list[MovieInfo],
+        movies_cache: dict[str, Movie | None],
+    ) -> int:
+        # Scrape showtimes, build ShowtimeData list
+        # Call self._save_showtimes_for_theater(theater, showtimes)
+        ...
+```
 
 **Celery Task:**
-- Instantiate scraper, TMDBService, and SupabaseStorageService
-- Create ShowtimeSaver with dependencies
-- Call `saver.execute()` and print report
-- Log failures to `OperationalIssue`
+```python
+@app.task
+def your_source_download_task():
+    scraper = YourSourceScraperAndHTMLParser()
+    tmdb_service = TMDBService()
+    storage_service = SupabaseStorageService.create_from_settings()
+    
+    saver = YourSourceShowtimeSaver(scraper, tmdb_service, storage_service)
+    report = saver.execute()
+    report.print_report()
+    return report
+```
 
 ### 4. Create Management Command
 
 Create `movies_app/management/commands/{source}_download.py` for manual testing.
 
-Support `--theater <slug>` argument for single-theater testing.
-
-See [colombia_com_run_download_task.py](../movies_app/management/commands/colombia_com_run_download_task.py) for reference.
+See [cineprox_download.py](../movies_app/management/commands/cineprox_download.py) for reference.
 
 ### 5. Add Tests
 
@@ -92,12 +160,13 @@ Create `movies_app/tasks/tests/test_{source}_download_task.py`.
 **Key testing requirements:**
 
 - Save HTML snapshots in `html_snapshot/` directory for deterministic tests
-- Mock `_fetch_html` or `fetch_page_html` to prevent real HTTP requests
+- Mock `fetch_page_html` to return snapshot HTML
 - Mock `TMDBService` and `SupabaseStorageService` to prevent API calls
-- Test year boundary logic if parsing dates without years (Dec→Jan transitions)
+- Test year boundary logic if parsing dates without years
 - Test the delete+insert behavior to verify old showtimes are replaced
+- Test error handling (missing movies, malformed HTML)
 
-See [test_mamm_download_task.py](../movies_app/tasks/tests/test_mamm_download_task.py) for examples.
+See [test_cineprox_download_task.py](../movies_app/tasks/tests/test_cineprox_download_task.py) for comprehensive examples.
 
 Add auto-mock fixtures to [conftest.py](../movies_app/tasks/tests/conftest.py) for your scraper.
 
