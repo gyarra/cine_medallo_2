@@ -4,8 +4,8 @@
       "name": "Procinal - Parque Fabricato",
       "slug": "procinal-parque-fabricato-bello",
       "chain": "Procinal",
-      "address": "Cra. 50 #38a-185, Rincon Santos, Bello, Antioquia",
-      "neighborhood": "Fabricato",
+      "address": "Parque Fabricato",
+      "neighborhood": "Rincón Santos",
       "phone": "(604) 444 2244",
       "website": "https://www.cineprox.com/cartelera/bello/parque-fabricato",
       "colombia_dot_com_url": "",
@@ -17,9 +17,9 @@
       "name": "Procinal - Puerta del Norte",
       "slug": "procinal-puerta-del-norte-bello",
       "chain": "Procinal",
-      "address": "Autopista Norte #34-67, C.C. Puerta del Norte",
-      "neighborhood": "Puerta del Norte",
-      "phone": "(4) 444 2244",
+      "address": "C.C. Puerta del Norte",
+      "neighborhood": "",
+      "phone": "(604) 444 2244",
       "website": "https://www.cineprox.com/cartelera/bello/puerta-del-norte",
       "colombia_dot_com_url": "",
       "scraper_type": "cineprox",
@@ -61,16 +61,20 @@
       "colombia_dot_com_url": "https://www.colombia.com/cine/royal-films-arrayanes-plaza-itagui-s294"
     }
   ],
+
   "La Ceja": [
     {
       "name": "Procinal - La Ceja",
       "slug": "procinal-la-ceja",
       "chain": "Procinal",
-      "address": "C.C. Viva La Ceja",
-      "neighborhood": "Viva La Ceja",
-      "phone": "(4) 444 2244",
-      "website": "https://procinal.com",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-viva-la-ceja-la-ceja-s271"
+      "address": "",
+      "neighborhood": "CC Viva",
+      "phone": "(604) 444 2244",
+      "website": "https://www.cineprox.com/cartelera/la-ceja/viva-la-ceja",
+      "colombia_dot_com_url": "",
+      "scraper_type": "cineprox",
+      "download_source_url": "https://www.cineprox.com/cartelera/la-ceja/viva-la-ceja",
+      "scraper_config": {"city_id": "74", "theater_id": "321"}
     }
   ],
   "Medellín": [
@@ -161,61 +165,76 @@
       "name": "Procinal - Aventura",
       "slug": "procinal-aventura-medellin",
       "chain": "Procinal",
-      "address": "Carrera 52A # 65-86",
-      "neighborhood": "Aventura",
-      "phone": "(4) 444 2244",
+      "address": "C.C. Aventura",
+      "neighborhood": "",
+      "phone": "(604) 444 2244",
       "screen_count": 4,
-      "website": "https://procinal.com",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-aventura-medellin-s269"
+      "website": "https://www.cineprox.com/cartelera/medellin/aventura",
+      "colombia_dot_com_url": "",
+      "scraper_type": "cineprox",
+      "download_source_url": "https://www.cineprox.com/cartelera/medellin/aventura",
+      "scraper_config": {"city_id": "12", "theater_id": "319"}
     },
     {
       "name": "Procinal - Florida",
       "slug": "procinal-florida-medellin",
       "chain": "Procinal",
-      "address": "Cl. 71 #65-150",
+      "address": "Florida Parque Comercial",
       "neighborhood": "Florida",
-      "phone": "(4) 444 2244",
-      "website": "https://procinal.com",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-florida-medellin-s200"
+      "phone": "(604) 444 2244",
+      "website": "https://www.cineprox.com/cartelera/medellin/florida",
+      "colombia_dot_com_url": "",
+      "scraper_type": "cineprox",
+      "download_source_url": "https://www.cineprox.com/cartelera/medellin/florida",
+      "scraper_config": {"city_id": "12", "theater_id": "313"}
     },
     {
       "name": "Procinal - La Central",
       "slug": "procinal-la-central-medellin",
       "chain": "Procinal",
-      "address": "C.C. La Central, sector Buenos Aires (Calle 49 entre Cras 25 y 19)",
+      "address": "C.C. La Central",
       "neighborhood": "Buenos Aires",
-      "phone": "(4) 444 2244",
-      "website": "https://procinal.com",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-la-central-medellin-s290"
+      "phone": "(604) 444 2244",
+      "website": "https://www.cineprox.com/cartelera/medellin/la-central",
+      "colombia_dot_com_url": "",
+      "scraper_type": "cineprox",
+      "download_source_url": "https://www.cineprox.com/cartelera/medellin/la-central",
+      "scraper_config": {"city_id": "12", "theater_id": "325"}
     },
     {
       "name": "Procinal - Las Américas",
       "slug": "procinal-las-americas-medellin",
       "chain": "Procinal",
-      "address": "Dg. 75B No. 2A-120",
+      "address": "Rotonda Comercial Las Américas",
       "neighborhood": "Las Américas",
-      "phone": "(4) 444 2244",
-      "website": "https://procinal.com",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-las-americas-medellin-s111"
+      "phone": "(604) 444 2244",
+      "website": "https://www.cineprox.com/cartelera/medellin/las-americas",
+      "colombia_dot_com_url": "",
+      "scraper_type": "cineprox",
+      "download_source_url": "https://www.cineprox.com/cartelera/medellin/las-americas",
+      "scraper_config": {"city_id": "12", "theater_id": "306"}
     },
     {
       "name": "Procinal - Monterrey",
       "slug": "procinal-monterrey-medellin",
       "chain": "Procinal",
-      "address": "Cra 48 #10-45, C.C. Monterrey",
+      "address": "C.C. Monterrey",
       "neighborhood": "El Poblado",
-      "phone": "(4) 444 2244",
-      "website": "https://procinal.com",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-monterrey-medellin-s110"
+      "phone": "(604) 444 2244",
+      "website": "https://www.cineprox.com/cartelera/medellin/monterrey",
+      "colombia_dot_com_url": "",
+      "scraper_type": "cineprox",
+      "download_source_url": "https://www.cineprox.com/cartelera/medellin/monterrey",
+      "scraper_config": {"city_id": "12", "theater_id": "305"}
     },
     {
       "name": "Procinal - Terminal del Sur",
       "slug": "procinal-terminal-del-sur-medellin",
       "chain": "Procinal",
-      "address": "Terminal del Sur, Cra 65 No. 8B-091",
-      "neighborhood": "Terminal Sur",
-      "phone": "(4) 444 2244",
-      "website": "https://procinal.com",
+      "address": "C.C. Terminal del Sur",
+      "neighborhood": "",
+      "phone": "(604) 444 2244",
+      "website": "https://procinal.com.co/ciudad/medellin/teatros/terminal",
       "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-terminal-del-sur-medellin-s142"
     },
     {
@@ -255,11 +274,14 @@
       "name": "Procinal - San Nicolás",
       "slug": "procinal-san-nicolas-rionegro",
       "chain": "Procinal",
-      "address": "Calle 43 #54-13, C.C. San Nicolás",
-      "neighborhood": "San Nicolás",
-      "phone": "(4) 444 2244",
-      "website": "https://procinal.com",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-san-nicolas-rionegro-s149"
+      "address": "C.C. San Nicolás",
+      "neighborhood": "",
+      "phone": "(604) 444 2244",
+      "website": "https://www.cineprox.com/cartelera/rionegro/san-nicolas",
+      "colombia_dot_com_url": "",
+      "scraper_type": "cineprox",
+      "download_source_url": "https://www.cineprox.com/cartelera/rionegro/san-nicolas",
+      "scraper_config": {"city_id": "96", "theater_id": "310"}
     }
   ],
   "Sabaneta": [
@@ -267,21 +289,27 @@
       "name": "Procinal - Aves María",
       "slug": "procinal-aves-maria-sabaneta",
       "chain": "Procinal",
-      "address": "Cra. 44 #74A Sur-2 a 74A Sur-80, C.C. Aves María",
-      "neighborhood": "Aves María",
-      "phone": "(4) 444 2244",
-      "website": "https://procinal.com",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-aves-maria-sabaneta-s139"
+      "address": "C.C. Aves María",
+      "neighborhood": "",
+      "phone": "(604) 444 2244",
+      "website": "https://www.cineprox.com/cartelera/sabaneta/aves-maria",
+      "colombia_dot_com_url": "",
+      "scraper_type": "cineprox",
+      "download_source_url": "https://www.cineprox.com/cartelera/sabaneta/aves-maria",
+      "scraper_config": {"city_id": "98", "theater_id": "301"}
     },
     {
       "name": "Procinal - Mayorca",
       "slug": "procinal-mayorca-sabaneta",
       "chain": "Procinal",
-      "address": "Cra 48 #50 Sur-128, C.C. Mayorca Mega Plaza",
-      "neighborhood": "Mayorca",
-      "phone": "(4) 444 2244",
-      "website": "https://procinal.com",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/procinal-mayorca-sabaneta-s59"
+      "address": "C.C. Mayorca Mega Plaza",
+      "neighborhood": "",
+      "phone": "(604) 444 2244",
+      "website": "https://www.cineprox.com/cartelera/sabaneta/mayorca",
+      "colombia_dot_com_url": "",
+      "scraper_type": "cineprox",
+      "download_source_url": "https://www.cineprox.com/cartelera/sabaneta/mayorca",
+      "scraper_config": {"city_id": "98", "theater_id": "303"}
     }
   ]
 }
