@@ -284,10 +284,11 @@ class TMDBService:
             params["year"] = str(year)
 
         logger.info("Searching TMDB for movie: '%s' (language=%s)", query, language)
+        logger.info(f"TMDB search params: query='{query}', language='{language}', page={page}, include_adult={include_adult}, year={year}")
 
         data = self._make_request("/search/movie", params)
 
-        logger.debug(f"Full results from TMDB: {data}")
+        logger.info(f"TMDB search response: {data}")
 
         results = [
             TMDBMovieResult(

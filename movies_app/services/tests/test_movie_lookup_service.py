@@ -8,6 +8,7 @@ These tests use the real TMDB API to fetch data, then mock TMDBService for deter
 import pytest
 from unittest.mock import MagicMock
 import json
+from movies_app.models import Movie, MovieSourceUrl
 from movies_app.services.movie_lookup_service import MovieLookupService
 from movies_app.services.tmdb_service import TMDBService, TMDBMovieResult
 from movies_app.services.supabase_storage_service import SupabaseStorageService
@@ -71,3 +72,49 @@ class TestMovieLookupService:
         assert MovieLookupService.normalize_name("José") == "jose"
         assert MovieLookupService.normalize_name("Café!") == "cafe!"
         assert MovieLookupService.normalize_name("  Movie Title  ") == "movie title"
+
+    @pytest.mark.django_db
+    def test_find_existing_movie_by_title_matches_title_es(self, tmdb_service, storage_service):
+        """When a movie exists in DB with matching title_es, return it without calling TMDB."""
+        Movie.objects.create(
+            title_es="No Me Sigas",
+            slug="no-me-sigas",
+            original_title="Don't Follow Me",
+            tmdb_id=999999,
+        )
+        service = MovieLookupService(tmdb_service, storage_service, "test_source")
+
+        result = service.get_or_create_movie(
+            movie_name="NO ME SIGAS",
+            source_url="https://example.com/no-me-sigas",
+            scraper_type=MovieSourceUrl.ScraperType.CINEPROX,
+            metadata=None,
+        )
+
+        assert result.movie is not None
+        assert result.movie.title_es == "No Me Sigas"
+        assert result.is_new is False
+        assert result.tmdb_called is False
+
+    @pytest.mark.django_db
+    def test_find_existing_movie_by_original_title(self, tmdb_service, storage_service):
+        """When a movie exists with matching original_title, return it without calling TMDB."""
+        Movie.objects.create(
+            title_es="No Me Sigas",
+            slug="no-me-sigas",
+            original_title="Don't Follow Me",
+            tmdb_id=999998,
+        )
+        service = MovieLookupService(tmdb_service, storage_service, "test_source")
+
+        result = service.get_or_create_movie(
+            movie_name="DON'T FOLLOW ME",
+            source_url="https://example.com/dont-follow-me",
+            scraper_type=MovieSourceUrl.ScraperType.CINEPROX,
+            metadata=None,
+        )
+
+        assert result.movie is not None
+        assert result.movie.title_es == "No Me Sigas"
+        assert result.is_new is False
+        assert result.tmdb_called is False
