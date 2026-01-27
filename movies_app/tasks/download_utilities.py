@@ -89,26 +89,38 @@ def normalize_translation_type(value: str, task: str, context: dict[str, str]) -
 
 def parse_time_string(time_str: str) -> datetime.time | None:
     """
-    Parse time string like '12:50 pm', '4:30 pm', or '2:00 p.m.' to datetime.time.
+    Parse time string to datetime.time.
 
-    Handles both 'am/pm' and 'a.m./p.m.' formats.
+    Handles multiple formats:
+    - 12-hour with AM/PM: '12:50 pm', '4:30 pm', '2:00 p.m.'
+    - 24-hour: '19:00', '14:30', '09:15'
     """
     time_str = time_str.strip().lower()
+
+    # Try 12-hour format with AM/PM
     match = re.match(r"(\d{1,2}):(\d{2})\s*(a\.?m\.?|p\.?m\.?)", time_str)
-    if not match:
-        logger.warning(f"Failed to parse time string: '{time_str}'")
-        return None
+    if match:
+        hour = int(match.group(1))
+        minute = int(match.group(2))
+        period = match.group(3).replace(".", "")
 
-    hour = int(match.group(1))
-    minute = int(match.group(2))
-    period = match.group(3).replace(".", "")
+        if period == "pm" and hour != 12:
+            hour += 12
+        elif period == "am" and hour == 12:
+            hour = 0
 
-    if period == "pm" and hour != 12:
-        hour += 12
-    elif period == "am" and hour == 12:
-        hour = 0
+        return datetime.time(hour, minute)
 
-    return datetime.time(hour, minute)
+    # Try 24-hour format (HH:MM)
+    match_24h = re.match(r"(\d{1,2}):(\d{2})$", time_str)
+    if match_24h:
+        hour = int(match_24h.group(1))
+        minute = int(match_24h.group(2))
+        if 0 <= hour <= 23 and 0 <= minute <= 59:
+            return datetime.time(hour, minute)
+
+    logger.warning(f"Failed to parse time string: '{time_str}'")
+    return None
 
 
 async def fetch_page_html_async(
