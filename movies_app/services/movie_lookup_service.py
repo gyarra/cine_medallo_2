@@ -7,7 +7,6 @@ from __future__ import annotations
 import datetime
 import logging
 import traceback
-import unicodedata
 from typing import TYPE_CHECKING
 
 from movies_app.models import APICallCounter, Movie, MovieSourceUrl, OperationalIssue, UnfindableMovieUrl
@@ -25,11 +24,6 @@ class MovieLookupService:
         self.tmdb_service = tmdb_service
         self.storage_service = storage_service
         self.source_name = source_name
-
-    @staticmethod
-    def normalize_name(name: str) -> str:
-        normalized = unicodedata.normalize("NFD", name.lower())
-        return "".join(c for c in normalized if unicodedata.category(c) != "Mn").strip()
 
     def record_unfindable_url(
         self,
@@ -97,14 +91,14 @@ class MovieLookupService:
         matches exactly. If no year is available or no exact match is found,
         returns None to fall back to TMDB disambiguation.
         """
-        normalized_name = self.normalize_name(movie_name)
+        normalized_name = Movie.normalize_title(movie_name)
         release_year = metadata.release_year if metadata else None
 
         candidates = list(Movie.objects.filter(normalized_title=normalized_name))
         candidates.extend(Movie.objects.filter(normalized_original_title=normalized_name))
 
         if metadata and metadata.original_title:
-            normalized_original = self.normalize_name(metadata.original_title)
+            normalized_original = Movie.normalize_title(metadata.original_title)
             candidates.extend(Movie.objects.filter(normalized_title=normalized_original))
             candidates.extend(Movie.objects.filter(normalized_original_title=normalized_original))
 
@@ -255,19 +249,19 @@ class MovieLookupService:
                     logger.debug(f"      Got details: {len(details.directors)} directors, {len(details.cast) if details.cast else 0} cast")
 
                     if metadata.director and details.directors:
-                        source_director = self.normalize_name(metadata.director)
+                        source_director = Movie.normalize_title(metadata.director)
                         tmdb_director_names = [d.name for d in details.directors]
                         logger.debug(f"      Director comparison: source='{source_director}', tmdb={tmdb_director_names}")
                         for tmdb_director in details.directors:
-                            if self.normalize_name(tmdb_director.name) == source_director:
+                            if Movie.normalize_title(tmdb_director.name) == source_director:
                                 score += 150
                                 director_matched = True
                                 logger.debug(f"      +150 (director match: {tmdb_director.name})")
                                 break
 
                     if metadata.actors and details.cast:
-                        source_actors = {self.normalize_name(a) for a in metadata.actors}
-                        tmdb_actors = {self.normalize_name(c.name) for c in details.cast[:15]}
+                        source_actors = {Movie.normalize_title(a) for a in metadata.actors}
+                        tmdb_actors = {Movie.normalize_title(c.name) for c in details.cast[:15]}
                         matching_actors = source_actors & tmdb_actors
                         logger.debug(f"      Actor comparison: source={source_actors}")
                         logger.debug(f"      Actor comparison: tmdb={tmdb_actors}")

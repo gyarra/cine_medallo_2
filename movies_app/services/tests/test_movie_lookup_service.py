@@ -71,10 +71,10 @@ def test_find_best_tmdb_match_real_data(tmdb_service, storage_service, monkeypat
 
 class TestMovieLookupService:
     @pytest.mark.django_db
-    def test_normalize_name(self):
-        assert MovieLookupService.normalize_name("José") == "jose"
-        assert MovieLookupService.normalize_name("Café!") == "cafe!"
-        assert MovieLookupService.normalize_name("  Movie Title  ") == "movie title"
+    def test_normalize_title(self):
+        assert Movie.normalize_title("José") == "jose"
+        assert Movie.normalize_title("Café!") == "cafe!"
+        assert Movie.normalize_title("  Movie Title  ") == "movie title"
 
     @pytest.mark.django_db
     def test_find_existing_movie_by_title_matches_title_es(self, tmdb_service, storage_service):
