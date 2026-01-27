@@ -5,6 +5,8 @@ These tests use the real TMDB API to fetch data, then mock TMDBService for deter
 """
 
 
+import datetime
+
 import pytest
 from unittest.mock import MagicMock
 import json
@@ -12,6 +14,7 @@ from movies_app.models import Movie, MovieSourceUrl
 from movies_app.services.movie_lookup_service import MovieLookupService
 from movies_app.services.tmdb_service import TMDBService, TMDBMovieResult
 from movies_app.services.supabase_storage_service import SupabaseStorageService
+from movies_app.tasks.download_utilities import MovieMetadata
 
 
 @pytest.fixture
@@ -118,3 +121,95 @@ class TestMovieLookupService:
         assert result.movie.title_es == "No Me Sigas"
         assert result.is_new is False
         assert result.tmdb_called is False
+
+    @pytest.mark.django_db
+    def test_find_existing_movie_uses_year_to_disambiguate(self, tmdb_service, storage_service):
+        """When multiple movies have the same title, use year to pick the correct one."""
+        Movie.objects.create(
+            title_es="The Batman",
+            slug="the-batman-1989",
+            year=1989,
+            tmdb_id=111111,
+        )
+        movie_2022 = Movie.objects.create(
+            title_es="The Batman",
+            slug="the-batman-2022",
+            year=2022,
+            tmdb_id=222222,
+        )
+        service = MovieLookupService(tmdb_service, storage_service, "test_source")
+
+        metadata = MovieMetadata(
+            genre="Action",
+            duration_minutes=176,
+            classification="PG-13",
+            director="Matt Reeves",
+            actors=["Robert Pattinson"],
+            release_date=datetime.date(2022, 3, 4),
+            release_year=2022,
+            original_title=None,
+            trailer_url=None,
+        )
+
+        result = service.get_or_create_movie(
+            movie_name="The Batman",
+            source_url="https://example.com/the-batman",
+            scraper_type=MovieSourceUrl.ScraperType.CINEPROX,
+            metadata=metadata,
+        )
+
+        assert result.movie is not None
+        assert result.movie == movie_2022
+        assert result.movie.year == 2022
+        assert result.is_new is False
+        assert result.tmdb_called is False
+
+    @pytest.mark.django_db
+    def test_falls_back_to_tmdb_when_multiple_titles_no_year_match(
+        self, tmdb_service, storage_service, monkeypatch
+    ):
+        """When multiple movies match title but year doesn't match, fall back to TMDB."""
+        Movie.objects.create(
+            title_es="The Batman",
+            slug="the-batman-1989",
+            year=1989,
+            tmdb_id=111111,
+        )
+        Movie.objects.create(
+            title_es="The Batman",
+            slug="the-batman-2022",
+            year=2022,
+            tmdb_id=222222,
+        )
+        service = MovieLookupService(tmdb_service, storage_service, "test_source")
+
+        metadata = MovieMetadata(
+            genre="Action",
+            duration_minutes=180,
+            classification="PG-13",
+            director="Someone New",
+            actors=["New Actor"],
+            release_date=datetime.date(2030, 1, 1),
+            release_year=2030,
+            original_title=None,
+            trailer_url=None,
+        )
+
+        from movies_app.services.tmdb_service import TMDBSearchResponse
+
+        mock_response = TMDBSearchResponse(
+            page=1,
+            total_pages=0,
+            total_results=0,
+            results=[],
+        )
+        monkeypatch.setattr(tmdb_service, "search_movie", lambda q: mock_response)
+
+        result = service.get_or_create_movie(
+            movie_name="The Batman",
+            source_url="https://example.com/the-batman-2030",
+            scraper_type=MovieSourceUrl.ScraperType.CINEPROX,
+            metadata=metadata,
+        )
+
+        assert result.tmdb_called is True

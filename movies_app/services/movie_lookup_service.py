@@ -92,27 +92,39 @@ class MovieLookupService:
 
         Uses indexed normalized_title and normalized_original_title fields
         for efficient database lookups.
+
+        If metadata includes a release_year, only returns a match if the year
+        matches exactly. If no year is available or no exact match is found,
+        returns None to fall back to TMDB disambiguation.
         """
         normalized_name = self.normalize_name(movie_name)
+        release_year = metadata.release_year if metadata else None
 
-        movie = Movie.objects.filter(normalized_title=normalized_name).first()
-        if movie:
-            return movie
-
-        movie = Movie.objects.filter(normalized_original_title=normalized_name).first()
-        if movie:
-            return movie
+        candidates = list(Movie.objects.filter(normalized_title=normalized_name))
+        candidates.extend(Movie.objects.filter(normalized_original_title=normalized_name))
 
         if metadata and metadata.original_title:
             normalized_original = self.normalize_name(metadata.original_title)
+            candidates.extend(Movie.objects.filter(normalized_title=normalized_original))
+            candidates.extend(Movie.objects.filter(normalized_original_title=normalized_original))
 
-            movie = Movie.objects.filter(normalized_title=normalized_original).first()
-            if movie:
-                return movie
+        seen_ids: set[int] = set()
+        unique_candidates: list[Movie] = []
+        for movie in candidates:
+            if movie.pk not in seen_ids:
+                seen_ids.add(movie.pk)  # type: ignore[arg-type]
+                unique_candidates.append(movie)
 
-            movie = Movie.objects.filter(normalized_original_title=normalized_original).first()
-            if movie:
-                return movie
+        if not unique_candidates:
+            return None
+
+        if len(unique_candidates) == 1 and not release_year:
+            return unique_candidates[0]
+
+        if release_year:
+            for movie in unique_candidates:
+                if movie.year == release_year:
+                    return movie
 
         return None
 
