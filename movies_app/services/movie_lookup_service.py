@@ -7,7 +7,6 @@ from __future__ import annotations
 import datetime
 import logging
 import traceback
-import unicodedata
 from typing import TYPE_CHECKING
 
 from movies_app.models import APICallCounter, Movie, MovieSourceUrl, OperationalIssue, UnfindableMovieUrl
@@ -25,11 +24,6 @@ class MovieLookupService:
         self.tmdb_service = tmdb_service
         self.storage_service = storage_service
         self.source_name = source_name
-
-    @staticmethod
-    def normalize_name(name: str) -> str:
-        normalized = unicodedata.normalize("NFD", name.lower())
-        return "".join(c for c in normalized if unicodedata.category(c) != "Mn").strip()
 
     def record_unfindable_url(
         self,
@@ -57,6 +51,76 @@ class MovieLookupService:
             context={"movie_url": url, "reason": reason, "original_title": original_title},
             severity=OperationalIssue.Severity.WARNING,
         )
+
+    def _log_movie_not_found(
+        self,
+        movie_name: str,
+        search_name: str,
+        metadata: MovieMetadata | None,
+        source_url: str | None,
+    ) -> None:
+        """Log detailed info when a movie is not found to help debug matching issues."""
+        logger.warning(f"Movie not found: '{movie_name}'")
+        logger.warning(f"  Search name used: '{search_name}'")
+        logger.warning(f"  Source URL: {source_url}")
+        if metadata:
+            logger.warning("  Extracted metadata:")
+            logger.warning(f"    original_title: {metadata.original_title}")
+            logger.warning(f"    director: {metadata.director}")
+            logger.warning(f"    actors: {metadata.actors}")
+            logger.warning(f"    release_date: {metadata.release_date}")
+            logger.warning(f"    release_year: {metadata.release_year}")
+            logger.warning(f"    genre: {metadata.genre}")
+            logger.warning(f"    duration_minutes: {metadata.duration_minutes}")
+            logger.warning(f"    classification: {metadata.classification}")
+        else:
+            logger.warning("  No metadata extracted")
+
+    def _find_existing_movie_by_title(
+        self,
+        movie_name: str,
+        metadata: MovieMetadata | None,
+    ) -> Movie | None:
+        """
+        Search for an existing movie in the database by normalized title.
+
+        Uses indexed normalized_title and normalized_original_title fields
+        for efficient database lookups.
+
+        If metadata includes a release_year, only returns a match if the year
+        matches exactly. If no year is available or no exact match is found,
+        returns None to fall back to TMDB disambiguation.
+        """
+        normalized_name = Movie.normalize_title(movie_name)
+        release_year = metadata.release_year if metadata else None
+
+        candidates = list(Movie.objects.filter(normalized_title=normalized_name))
+        candidates.extend(Movie.objects.filter(normalized_original_title=normalized_name))
+
+        if metadata and metadata.original_title:
+            normalized_original = Movie.normalize_title(metadata.original_title)
+            candidates.extend(Movie.objects.filter(normalized_title=normalized_original))
+            candidates.extend(Movie.objects.filter(normalized_original_title=normalized_original))
+
+        seen_ids: set[int] = set()
+        unique_candidates: list[Movie] = []
+        for movie in candidates:
+            if movie.pk not in seen_ids:
+                seen_ids.add(movie.pk)  # type: ignore[arg-type]
+                unique_candidates.append(movie)
+
+        if not unique_candidates:
+            return None
+
+        if len(unique_candidates) == 1 and not release_year:
+            return unique_candidates[0]
+
+        if release_year:
+            for movie in unique_candidates:
+                if movie.year == release_year:
+                    return movie
+
+        return None
 
 
     def find_best_tmdb_match(
@@ -185,19 +249,19 @@ class MovieLookupService:
                     logger.debug(f"      Got details: {len(details.directors)} directors, {len(details.cast) if details.cast else 0} cast")
 
                     if metadata.director and details.directors:
-                        source_director = self.normalize_name(metadata.director)
+                        source_director = Movie.normalize_title(metadata.director)
                         tmdb_director_names = [d.name for d in details.directors]
                         logger.debug(f"      Director comparison: source='{source_director}', tmdb={tmdb_director_names}")
                         for tmdb_director in details.directors:
-                            if self.normalize_name(tmdb_director.name) == source_director:
+                            if Movie.normalize_title(tmdb_director.name) == source_director:
                                 score += 150
                                 director_matched = True
                                 logger.debug(f"      +150 (director match: {tmdb_director.name})")
                                 break
 
                     if metadata.actors and details.cast:
-                        source_actors = {self.normalize_name(a) for a in metadata.actors}
-                        tmdb_actors = {self.normalize_name(c.name) for c in details.cast[:15]}
+                        source_actors = {Movie.normalize_title(a) for a in metadata.actors}
+                        tmdb_actors = {Movie.normalize_title(c.name) for c in details.cast[:15]}
                         matching_actors = source_actors & tmdb_actors
                         logger.debug(f"      Actor comparison: source={source_actors}")
                         logger.debug(f"      Actor comparison: tmdb={tmdb_actors}")
@@ -329,6 +393,17 @@ class MovieLookupService:
 
         search_name = metadata.original_title if metadata and metadata.original_title else movie_name
 
+        existing_movie = self._find_existing_movie_by_title(movie_name, metadata)
+        if existing_movie:
+            logger.info(f"Found existing movie in database: '{existing_movie.title_es}' (pk={existing_movie.pk})")
+            if source_url:
+                MovieSourceUrl.objects.update_or_create(
+                    movie=existing_movie,
+                    scraper_type=scraper_type,
+                    defaults={"url": source_url},
+                )
+            return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=False)
+
         try:
             logger.info(f"Searching TMDB for: '{search_name}' (listing name: '{movie_name}')")
             APICallCounter.increment("tmdb")
@@ -347,6 +422,7 @@ class MovieLookupService:
 
             best_match = self.find_best_tmdb_match(response.results, movie_name, metadata)
             if not best_match:
+                self._log_movie_not_found(movie_name, search_name, metadata, source_url)
                 if source_url:
                     self.record_unfindable_url(
                         url=source_url,

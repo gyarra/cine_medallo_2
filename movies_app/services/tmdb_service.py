@@ -287,8 +287,6 @@ class TMDBService:
 
         data = self._make_request("/search/movie", params)
 
-        logger.debug(f"Full results from TMDB: {data}")
-
         results = [
             TMDBMovieResult(
                 id=movie["id"],

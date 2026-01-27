@@ -266,10 +266,10 @@ class TestGetOrCreateMovie:
         assert result.tmdb_called is False
         mock_tmdb_service.search_movie.assert_not_called()
 
-    def test_finds_existing_movie_by_tmdb_id_when_no_url(
+    def test_finds_existing_movie_by_title_in_database(
         self, mock_tmdb_service, sample_tmdb_results
     ):
-        """Movie exists in DB but doesn't have a URL - finds it via TMDB search."""
+        """Movie exists in DB - finds it by title without calling TMDB."""
         movie = Movie.objects.create(
             tmdb_id=12345,
             title_es="Avatar: Fuego Y Cenizas",
@@ -277,8 +277,6 @@ class TestGetOrCreateMovie:
             slug="avatar-fuego-y-cenizas",
             year=2025,
         )
-
-        mock_tmdb_service.search_movie.return_value = sample_tmdb_results
 
         with patch(
             "movies_app.tasks.colombia_com_download_task._scrape_and_create_metadata"
@@ -302,8 +300,8 @@ class TestGetOrCreateMovie:
 
         assert result.movie == movie
         assert result.is_new is False
-        assert result.tmdb_called is True
-        mock_tmdb_service.search_movie.assert_called_once()
+        assert result.tmdb_called is False
+        mock_tmdb_service.search_movie.assert_not_called()
 
         source_url = MovieSourceUrl.objects.get(
             movie=movie, scraper_type=MovieSourceUrl.ScraperType.COLOMBIA_COM

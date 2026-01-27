@@ -22,6 +22,6 @@ class Command(BaseCommand):
     help = "Download movie showtimes from Cineprox theaters"
 
     def handle(self, *args, **options):  # type: ignore[no-untyped-def]
-        self.stdout.write("Executing cineprox_download_task...")
+        self.stdout.write("Executing cineprox_download_task...\n\n")
         cineprox_download_task()
         self.stdout.write(self.style.SUCCESS("Task completed."))

@@ -135,8 +135,10 @@
       "address": "Carrera 70 # 1-19, C.C. Arkadia",
       "neighborhood": "Belén",
       "screen_count": 9,
-      "website": "https://www.cinemark.com.co",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/cinemark-arkadia-medellin-s304"
+      "website": "https://www.cinemark.com.co/ciudad/medellin/arkadia",
+      "colombia_dot_com_url": "",
+      "scraper_type": "cinemark",
+      "download_source_url": "https://www.cinemark.com.co/ciudad/medellin/arkadia",
     },
     {
       "name": "Cinemark El Tesoro",

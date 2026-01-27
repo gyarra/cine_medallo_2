@@ -693,7 +693,7 @@ class CineproxShowtimeSaver(MovieAndShowtimeSaverTemplate):
 
 @app.task
 def cineprox_download_task():
-    logger.info("Starting cineprox_download_task")
+    logger.info("Starting cineprox_download_task\n")
 
     try:
         scraper = CineproxScraperAndHTMLParser()
