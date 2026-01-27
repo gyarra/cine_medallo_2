@@ -213,3 +213,47 @@ class TestMovieLookupService:
         )
 
         assert result.tmdb_called is True
+
+    @pytest.mark.django_db
+    def test_falls_back_to_tmdb_when_single_title_year_mismatch(
+        self, tmdb_service, storage_service, monkeypatch
+    ):
+        """When single movie matches title but year doesn't match, fall back to TMDB."""
+        Movie.objects.create(
+            title_es="Inception",
+            slug="inception",
+            year=2010,
+            tmdb_id=333333,
+        )
+        service = MovieLookupService(tmdb_service, storage_service, "test_source")
+
+        metadata = MovieMetadata(
+            genre="Sci-Fi",
+            duration_minutes=148,
+            classification="PG-13",
+            director="Christopher Nolan",
+            actors=["Leonardo DiCaprio"],
+            release_date=datetime.date(2025, 6, 15),
+            release_year=2025,
+            original_title=None,
+            trailer_url=None,
+        )
+
+        from movies_app.services.tmdb_service import TMDBSearchResponse
+
+        mock_response = TMDBSearchResponse(
+            page=1,
+            total_pages=0,
+            total_results=0,
+            results=[],
+        )
+        monkeypatch.setattr(tmdb_service, "search_movie", lambda q: mock_response)
+
+        result = service.get_or_create_movie(
+            movie_name="Inception",
+            source_url="https://example.com/inception-2025",
+            scraper_type=MovieSourceUrl.ScraperType.CINEPROX,
+            metadata=metadata,
+        )
+
+        assert result.tmdb_called is True
