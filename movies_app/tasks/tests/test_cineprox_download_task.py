@@ -174,7 +174,7 @@ def mock_storage_service_for_cineprox():
 
 class TestParseMoviesFromCarteleraHtml:
     def test_extracts_movies_from_cartelera_html(self):
-        html_content = load_html_snapshot("cineprox_cartelera_for_one_theater.html")
+        html_content = load_html_snapshot("cineprox___movies_for_one_theater.html")
 
         movies = CineproxScraperAndHTMLParser.parse_movies_from_cartelera_html(html_content)
 
@@ -187,7 +187,7 @@ class TestParseMoviesFromCarteleraHtml:
         assert "1892" in movie_ids
 
     def test_extracts_correct_movie_data(self):
-        html_content = load_html_snapshot("cineprox_cartelera_for_one_theater.html")
+        html_content = load_html_snapshot("cineprox___movies_for_one_theater.html")
 
         movies = CineproxScraperAndHTMLParser.parse_movies_from_cartelera_html(html_content)
 
@@ -201,7 +201,7 @@ class TestParseMoviesFromCarteleraHtml:
         assert "pantallascineprox.com/img/peliculas/2005.jpg" in sin_piedad.poster_url
 
     def test_extracts_movie_categories(self):
-        html_content = load_html_snapshot("cineprox_cartelera_for_one_theater.html")
+        html_content = load_html_snapshot("cineprox___movies_for_one_theater.html")
 
         movies = CineproxScraperAndHTMLParser.parse_movies_from_cartelera_html(html_content)
 
@@ -212,7 +212,7 @@ class TestParseMoviesFromCarteleraHtml:
         assert "pronto" in categories
 
     def test_filters_pronto_movies_correctly(self):
-        html_content = load_html_snapshot("cineprox_cartelera_for_one_theater.html")
+        html_content = load_html_snapshot("cineprox___movies_for_one_theater.html")
 
         movies = CineproxScraperAndHTMLParser.parse_movies_from_cartelera_html(html_content)
 
@@ -222,10 +222,39 @@ class TestParseMoviesFromCarteleraHtml:
         assert len(pronto_movies) > 0
         assert len(active_movies) > 0
 
+    def test_extracts_featured_movies_from_destacadas_section(self):
+        html_content = load_html_snapshot("cineprox___movies_for_one_theater___with_destacadadas.html")
 
-class TestParseMovieMetadataFromDetailHtml:
+        movies = CineproxScraperAndHTMLParser.parse_movies_from_cartelera_html(html_content)
+
+        assert len(movies) > 0
+
+        featured_ids = {"2003", "2018", "1972", "1940"}
+        movie_ids = {m.movie_id for m in movies}
+        for featured_id in featured_ids:
+            assert featured_id in movie_ids, f"Featured movie {featured_id} should be included"
+
+    def test_extracts_featured_movie_data_correctly(self):
+        html_content = load_html_snapshot("cineprox___movies_for_one_theater___with_destacadadas.html")
+
+        movies = CineproxScraperAndHTMLParser.parse_movies_from_cartelera_html(html_content)
+
+        goat_movies = [m for m in movies if m.movie_id == "2003"]
+        assert len(goat_movies) == 1
+        goat = goat_movies[0]
+        assert goat.title == "GOAT: LA CABRA QUE CAMBIO EL JUEGO"
+        assert goat.category == "preventa"
+        assert "pantallascineprox.com/img/peliculas/2003.jpg" in goat.poster_url
+
+    def test_featured_movies_are_not_duplicated_in_grid(self):
+        html_content = load_html_snapshot("cineprox___movies_for_one_theater___with_destacadadas.html")
+
+        movies = CineproxScraperAndHTMLParser.parse_movies_from_cartelera_html(html_content)
+
+        movie_ids = [m.movie_id for m in movies]
+        assert len(movie_ids) == len(set(movie_ids)), "No duplicate movie IDs should exist"
     def test_extracts_metadata_from_detail_page(self):
-        html_content = load_html_snapshot("cineprox_one_movie_for_one_theater.html")
+        html_content = load_html_snapshot("cineprox___one_movie_for_one_theater.html")
 
         metadata = CineproxScraperAndHTMLParser.parse_movie_metadata_from_detail_html(html_content)
 
@@ -242,7 +271,7 @@ class TestParseMovieMetadataFromDetailHtml:
         assert "Rebecca Ferguson" in metadata.actors
 
     def test_extracts_release_date(self):
-        html_content = load_html_snapshot("cineprox_one_movie_for_one_theater.html")
+        html_content = load_html_snapshot("cineprox___one_movie_for_one_theater.html")
 
         metadata = CineproxScraperAndHTMLParser.parse_movie_metadata_from_detail_html(html_content)
 
@@ -253,7 +282,7 @@ class TestParseMovieMetadataFromDetailHtml:
         assert metadata.release_date.day == 22
 
     def test_extracts_poster_url(self):
-        html_content = load_html_snapshot("cineprox_one_movie_for_one_theater.html")
+        html_content = load_html_snapshot("cineprox___one_movie_for_one_theater.html")
 
         metadata = CineproxScraperAndHTMLParser.parse_movie_metadata_from_detail_html(html_content)
 
@@ -263,7 +292,7 @@ class TestParseMovieMetadataFromDetailHtml:
 
 class TestParseShowtimesFromDetailHtml:
     def test_extracts_showtimes_for_theater(self):
-        html_content = load_html_snapshot("cineprox_one_movie_for_one_theater.html")
+        html_content = load_html_snapshot("cineprox___one_movie_for_one_theater.html")
 
         showtimes = CineproxScraperAndHTMLParser.parse_showtimes_from_detail_html(
             html_content,
@@ -274,7 +303,7 @@ class TestParseShowtimesFromDetailHtml:
         assert len(showtimes) > 0
 
     def test_extracts_correct_showtime_data(self):
-        html_content = load_html_snapshot("cineprox_one_movie_for_one_theater.html")
+        html_content = load_html_snapshot("cineprox___one_movie_for_one_theater.html")
 
         showtimes = CineproxScraperAndHTMLParser.parse_showtimes_from_detail_html(
             html_content,
@@ -290,7 +319,7 @@ class TestParseShowtimesFromDetailHtml:
         assert datetime.time(21, 25) in times
 
     def test_extracts_format_and_language(self):
-        html_content = load_html_snapshot("cineprox_one_movie_for_one_theater.html")
+        html_content = load_html_snapshot("cineprox___one_movie_for_one_theater.html")
 
         showtimes = CineproxScraperAndHTMLParser.parse_showtimes_from_detail_html(
             html_content,
@@ -304,7 +333,7 @@ class TestParseShowtimesFromDetailHtml:
         assert first_showtime.translation_type == "Doblada"
 
     def test_extracts_room_type(self):
-        html_content = load_html_snapshot("cineprox_one_movie_for_one_theater.html")
+        html_content = load_html_snapshot("cineprox___one_movie_for_one_theater.html")
 
         showtimes = CineproxScraperAndHTMLParser.parse_showtimes_from_detail_html(
             html_content,
@@ -317,7 +346,7 @@ class TestParseShowtimesFromDetailHtml:
         assert first_showtime.room_type == "General"
 
     def test_extracts_price(self):
-        html_content = load_html_snapshot("cineprox_one_movie_for_one_theater.html")
+        html_content = load_html_snapshot("cineprox___one_movie_for_one_theater.html")
 
         showtimes = CineproxScraperAndHTMLParser.parse_showtimes_from_detail_html(
             html_content,
@@ -333,7 +362,7 @@ class TestParseShowtimesFromDetailHtml:
 
 class TestParseAvailableDatesFromDetailHtml:
     def test_extracts_available_dates(self):
-        html_content = load_html_snapshot("cineprox_one_movie_for_one_theater.html")
+        html_content = load_html_snapshot("cineprox___one_movie_for_one_theater.html")
 
         dates = CineproxScraperAndHTMLParser.parse_available_dates_from_detail_html(
             html_content,
@@ -352,7 +381,7 @@ class TestParseAvailableDatesFromDetailHtml:
 
 class TestIsTheaterAccordionExpanded:
     def test_detects_expanded_accordion(self):
-        html_content = load_html_snapshot("cineprox_one_movie_for_one_theater.html")
+        html_content = load_html_snapshot("cineprox___one_movie_for_one_theater.html")
 
         is_expanded = CineproxScraperAndHTMLParser.is_theater_accordion_expanded(
             html_content,
@@ -362,7 +391,7 @@ class TestIsTheaterAccordionExpanded:
         assert is_expanded is True
 
     def test_detects_collapsed_accordion(self):
-        html_content = load_html_snapshot("cineprox_one_movie_for_one_theater.html")
+        html_content = load_html_snapshot("cineprox___one_movie_for_one_theater.html")
 
         is_expanded = CineproxScraperAndHTMLParser.is_theater_accordion_expanded(
             html_content,
@@ -802,7 +831,7 @@ class TestCineproxShowtimeSaverExtractMetadata:
         scraper = CineproxScraperAndHTMLParser()
         saver = CineproxShowtimeSaver(scraper, mock_tmdb_service_for_cineprox, mock_storage_service_for_cineprox)
 
-        html_content = load_html_snapshot("cineprox_one_movie_for_one_theater.html")
+        html_content = load_html_snapshot("cineprox___one_movie_for_one_theater.html")
         metadata = saver._extract_metadata("SIN PIEDAD", html_content)
 
         assert metadata is not None
@@ -899,7 +928,7 @@ class TestCineproxShowtimeSaverIntegration:
         self, cineprox_theater, mock_storage_service_for_cineprox
     ):
         """Integration test: Full execute() flow with a single movie."""
-        detail_html = load_html_snapshot("cineprox_one_movie_for_one_theater.html")
+        detail_html = load_html_snapshot("cineprox___one_movie_for_one_theater.html")
 
         scraper = MagicMock(spec=CineproxScraperAndHTMLParser)
         scraper.download_cartelera_html.return_value = "<html></html>"
@@ -933,7 +962,7 @@ class TestCineproxShowtimeSaverIntegration:
         self, cineprox_theater, mock_storage_service_for_cineprox
     ):
         """Test execute_for_theater() processes a single theater with a single movie."""
-        detail_html = load_html_snapshot("cineprox_one_movie_for_one_theater.html")
+        detail_html = load_html_snapshot("cineprox___one_movie_for_one_theater.html")
 
         scraper = MagicMock(spec=CineproxScraperAndHTMLParser)
         scraper.download_cartelera_html.return_value = "<html></html>"
@@ -981,7 +1010,7 @@ class TestCineproxShowtimeSaverIntegration:
         self, cineprox_theater, mock_storage_service_for_cineprox
     ):
         """Test that MovieSourceUrl is created linking movie to scraper URL."""
-        detail_html = load_html_snapshot("cineprox_one_movie_for_one_theater.html")
+        detail_html = load_html_snapshot("cineprox___one_movie_for_one_theater.html")
 
         scraper = MagicMock(spec=CineproxScraperAndHTMLParser)
         scraper.download_cartelera_html.return_value = "<html></html>"
@@ -1012,7 +1041,7 @@ class TestCineproxShowtimeSaverIntegration:
         self, cineprox_theater, mock_storage_service_for_cineprox
     ):
         """Test that existing showtimes are deleted before saving new ones."""
-        detail_html = load_html_snapshot("cineprox_one_movie_for_one_theater.html")
+        detail_html = load_html_snapshot("cineprox___one_movie_for_one_theater.html")
 
         scraper = MagicMock(spec=CineproxScraperAndHTMLParser)
         scraper.download_cartelera_html.return_value = "<html></html>"
@@ -1083,7 +1112,7 @@ class TestCineproxShowtimeSaverMovieDeduplication:
         ]
         scraper.generate_movie_source_url.return_value = "https://cineprox.com/123-same-movie"
         scraper.generate_movie_detail_url.return_value = "https://cineprox.com/123-same-movie?params"
-        scraper.download_movie_detail_html.return_value = load_html_snapshot("cineprox_one_movie_for_one_theater.html")
+        scraper.download_movie_detail_html.return_value = load_html_snapshot("cineprox___one_movie_for_one_theater.html")
         scraper.parse_movie_metadata_from_detail_html = CineproxScraperAndHTMLParser.parse_movie_metadata_from_detail_html
         scraper.parse_showtimes_from_detail_html.return_value = []
         scraper.parse_available_dates_from_detail_html.return_value = []
