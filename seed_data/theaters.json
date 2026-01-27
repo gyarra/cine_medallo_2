@@ -263,32 +263,38 @@
       "name": "Royal Films - Multicine Bosque Plaza",
       "slug": "royal-films-multicine-bosque-plaza-medellin",
       "chain": "Royal Films",
-      "address": "Cra. 52 No. 71-52, C.C. Bosque Plaza piso 3",
-      "neighborhood": "Bosque Plaza",
-      "phone": "(604) 605 1587",
+      "address": "C.C. Bosque Plaza piso 3",
+      "neighborhood": "",
+      "phone": "",
       "website": "https://cinemasroyalfilms.com/cartelera/medell%C3%ADn/multicine-bosque-plaza",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/royal-films-bosque-plaza-medellin-s246"
+      "colombia_dot_com_url": "",
+      "scraper_type": "royal",
+      "download_source_url": "https://cinemasroyalfilms.com/cartelera/medell%C3%ADn/multicine-bosque-plaza"
     },
     {
       "name": "Royal Films - Multicine La 65",
       "slug": "royal-films-multicine-la-65-medellin",
       "chain": "Royal Films",
-      "address": "Calle 47D No. 65-115",
-      "neighborhood": "Naranjal",
-      "phone": "(604) 605 158",
+      "address": "Jumbo La 65",
+      "neighborhood": "Naranjal, Estadio",
+      "phone": "",
       "screen_count": 6,
       "website": "https://cinemasroyalfilms.com/cartelera/medell%C3%ADn/multicine-jumbo-la-65",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/royal-films-multicine-la-65-medellin-s124"
+      "colombia_dot_com_url": "",
+      "scraper_type": "royal",
+      "download_source_url": "https://cinemasroyalfilms.com/cartelera/medell%C3%ADn/multicine-jumbo-la-65"
     },
     {
       "name": "Royal Films - Multicine Premium Plaza",
       "slug": "royal-films-multicine-premium-plaza-medellin",
       "chain": "Royal Films",
-      "address": "Av. El Poblado # 43A, C.C. Premium Plaza",
+      "address": "C.C. Premium Plaza",
       "neighborhood": "El Poblado",
-      "phone": "(604) 605 1587",
+      "phone": "",
       "website": "https://cinemasroyalfilms.com/cartelera/medell%C3%ADn/multicine-premium-plaza",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/royal-films-premium-plaza-medellin-s125"
+      "colombia_dot_com_url": "",
+      "scraper_type": "royal",
+      "download_source_url": "https://cinemasroyalfilms.com/cartelera/medell%C3%ADn/multicine-premium-plaza"
     }
   ],
   "Rionegro": [
