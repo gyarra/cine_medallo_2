@@ -1,5 +1,4 @@
 import datetime
-import os
 from unittest.mock import MagicMock
 
 import pytest
@@ -16,16 +15,7 @@ from movies_app.services.tmdb_service import (
 from movies_app.tasks.cine_colombia_download_task import (
     CineColombiaScraperAndHTMLParser,
 )
-
-
-def load_html_snapshot(filename: str) -> str:
-    html_snapshot_path = os.path.join(
-        os.path.dirname(__file__),
-        "html_snapshot",
-        filename,
-    )
-    with open(html_snapshot_path, encoding="utf-8") as f:
-        return f.read()
+from movies_app.tasks.tests.conftest import load_html_snapshot
 
 
 # =============================================================================

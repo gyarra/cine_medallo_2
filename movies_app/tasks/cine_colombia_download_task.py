@@ -528,6 +528,11 @@ class CineColombiaShowtimeSaver(MovieAndShowtimeSaverTemplate):
         self.scraper = scraper
         self._movie_showtimes_cache: dict[str, list[CineColombiaMovieWithShowtimes]] = {}
 
+    @staticmethod
+    def _extract_film_id(source_url: str) -> str:
+        """Extract film_id from source URL."""
+        return source_url.split("/")[-1]
+
     def _find_movies(self, theater: Theater) -> list[MovieInfo]:
         """Download theater page and return list of movies."""
         self._movie_showtimes_cache.clear()
@@ -565,7 +570,7 @@ class CineColombiaShowtimeSaver(MovieAndShowtimeSaverTemplate):
 
     def _get_movie_metadata(self, movie_info: MovieInfo) -> MovieMetadata | None:
         """Fetch metadata from movie detail page."""
-        film_id = movie_info.source_url.split("/")[-1]
+        film_id = self._extract_film_id(movie_info.source_url)
 
         for movie_data_list in self._movie_showtimes_cache.values():
             for movie_data in movie_data_list:
@@ -595,7 +600,7 @@ class CineColombiaShowtimeSaver(MovieAndShowtimeSaverTemplate):
             if not movie:
                 continue
 
-            film_id = movie_info.source_url.split("/")[-1]
+            film_id = self._extract_film_id(movie_info.source_url)
             movie_data_list = self._movie_showtimes_cache.get(film_id, [])
 
             for movie_data in movie_data_list:

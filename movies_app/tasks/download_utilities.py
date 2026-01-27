@@ -53,6 +53,8 @@ TRANSLATION_TYPE_MAP = {
     # Abbreviated forms (Cine Colombia)
     "SUB": Showtime.TranslationType.SUBTITULADA,
     "DOB": Showtime.TranslationType.DOBLADA,
+    "sub": Showtime.TranslationType.SUBTITULADA,
+    "dob": Showtime.TranslationType.DOBLADA,
     # Original language
     "ORIGINAL": Showtime.TranslationType.ORIGINAL,
     "Original": Showtime.TranslationType.ORIGINAL,

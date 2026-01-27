@@ -2,11 +2,23 @@
 Pytest fixtures for task tests.
 """
 
+import os
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from movies_app.models import Theater
+
+
+def load_html_snapshot(filename: str) -> str:
+    """Load HTML snapshot file from the html_snapshot directory."""
+    html_snapshot_path = os.path.join(
+        os.path.dirname(__file__),
+        "html_snapshot",
+        filename,
+    )
+    with open(html_snapshot_path, encoding="utf-8") as f:
+        return f.read()
 from movies_app.services.tmdb_service import (
     TMDBGenre,
     TMDBMovieDetails,
