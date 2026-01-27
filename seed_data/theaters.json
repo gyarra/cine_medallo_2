@@ -45,11 +45,13 @@
       "name": "Cinépolis City Plaza",
       "slug": "cinepolis-city-plaza-envigado",
       "chain": "Cinépolis",
-      "address": "Calle 36D sur #27A-105, C.C. City Plaza",
-      "neighborhood": "City Plaza",
+      "address": "C.C. City Plaza",
+      "neighborhood": "",
       "screen_count": 18,
       "website": "https://cinepolis.com.co",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/cinepolis-city-plaza-envigado-s174"
+      "colombia_dot_com_url": "",
+      "scraper_type": "cinepolis",
+      "download_source_url": "https://cinepolis.com.co/cartelera/medellin-envigado-colombia/cinepolis-city-plaza"
     }
   ],
 
