@@ -428,6 +428,9 @@ class CinemarkShowtimeSaver(MovieAndShowtimeSaverTemplate):
         This scrapes the entire theater page once, collecting movies for all days.
         The showtimes are cached for use in _process_showtimes_for_theater.
         """
+        # Clear cache for this theater (cache is per-theater, not shared)
+        self._movie_showtimes_cache.clear()
+
         cartelera_url = theater.download_source_url
         if not cartelera_url:
             logger.error(f"No download_source_url for theater {theater.name}")
@@ -485,7 +488,7 @@ class CinemarkShowtimeSaver(MovieAndShowtimeSaverTemplate):
                 movies.append(MovieInfo(name=movie_data.title, source_url=source_url))
 
         logger.info(f"Found {len(movies)} unique movies for {theater.name}")
-        logger.info(f"Total movie/day combinations: {len(movies_with_showtimes)}")
+        logger.info(f"Total movie/day combinations: {len(movies_with_showtimes)}\n\n")
         return movies
 
     def _get_movie_metadata(self, movie_info: MovieInfo) -> MovieMetadata | None:

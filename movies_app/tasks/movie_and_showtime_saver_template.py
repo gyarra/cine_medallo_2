@@ -239,7 +239,7 @@ class MovieAndShowtimeSaverTemplate(ABC):
                 source_url=showtime.source_url,
             )
 
-        logger.info(f"Saved {len(showtimes)} showtimes for {theater.name}")
+        logger.info(f"Saved {len(showtimes)} showtimes for {theater.name}\n\n")
         return len(showtimes)
 
     def _handle_theater_error(self, theater: Theater, error: Exception) -> None:

@@ -207,7 +207,6 @@ class TaskReport:
     new_movies: list[str]
 
     def print_report(self) -> None:
-        logger.info("\n\n")
         logger.info("=" * 50)
         logger.info("TASK REPORT")
         logger.info("=" * 50)
