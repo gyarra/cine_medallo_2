@@ -2,11 +2,23 @@
 Pytest fixtures for task tests.
 """
 
+import os
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from movies_app.models import Theater
+
+
+def load_html_snapshot(filename: str) -> str:
+    """Load HTML snapshot file from the html_snapshot directory."""
+    html_snapshot_path = os.path.join(
+        os.path.dirname(__file__),
+        "html_snapshot",
+        filename,
+    )
+    with open(html_snapshot_path, encoding="utf-8") as f:
+        return f.read()
 from movies_app.services.tmdb_service import (
     TMDBGenre,
     TMDBMovieDetails,
@@ -142,10 +154,12 @@ def mock_tmdb_for_tasks():
     # Patch TMDBService where it's imported/used in task modules
     with patch("movies_app.tasks.mamm_download_task.TMDBService") as mamm_mock, \
          patch("movies_app.tasks.colombia_com_download_task.TMDBService") as colombia_mock, \
-         patch("movies_app.tasks.cinemark_download_task.TMDBService") as cinemark_mock:
+         patch("movies_app.tasks.cinemark_download_task.TMDBService") as cinemark_mock, \
+         patch("movies_app.tasks.cine_colombia_download_task.TMDBService") as cine_colombia_mock:
         mamm_mock.return_value = mock_instance
         colombia_mock.return_value = mock_instance
         cinemark_mock.return_value = mock_instance
+        cine_colombia_mock.return_value = mock_instance
         yield mock_instance
 
 
