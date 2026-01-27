@@ -31,7 +31,7 @@ SPANISH_MONTHS_ABBREVIATIONS = {
 }
 
 # Browser configuration
-BROWSER_TIMEOUT_SECONDS = 120
+BROWSER_TIMEOUT_SECONDS = 30
 
 # Translation type mapping from scraper values to database values
 TRANSLATION_TYPE_MAP = {
@@ -207,7 +207,6 @@ class TaskReport:
     new_movies: list[str]
 
     def print_report(self) -> None:
-        logger.info("\n\n")
         logger.info("=" * 50)
         logger.info("TASK REPORT")
         logger.info("=" * 50)

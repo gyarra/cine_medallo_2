@@ -11,7 +11,7 @@ Django 6.0 · Celery 5.4 · PostgreSQL · Redis · Python 3.13 · Django REST Fr
 
 ## Essential Commands
 ```bash
-uv sync --extra dev
+./scripts/setup.sh   # First-time setup (installs uv, deps, Camoufox)
 source .venv/bin/activate
 ruff check .
 pyright

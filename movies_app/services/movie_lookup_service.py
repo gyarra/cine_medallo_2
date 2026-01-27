@@ -32,6 +32,7 @@ class MovieLookupService:
         original_title: str | None,
         reason: UnfindableMovieUrl.Reason,
     ) -> None:
+        logger.info(f"Recording unfindable movie URL: {url} (reason: {reason})")
         obj, created = UnfindableMovieUrl.objects.update_or_create(
             url=url,
             defaults={
@@ -404,6 +405,7 @@ class MovieLookupService:
                 )
             return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=False)
 
+        logger.info("No existing movie in database")
         try:
             logger.info(f"Searching TMDB for: '{search_name}' (listing name: '{movie_name}')")
             APICallCounter.increment("tmdb")

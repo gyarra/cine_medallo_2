@@ -13,8 +13,8 @@ Django service that tracks movie theaters, movies, and showtimes in Medellín, C
 ## Setup
 
 ```bash
-# Install dependencies
-uv sync --extra dev
+# Run the setup script (installs uv, dependencies, and Camoufox browser)
+./scripts/setup.sh
 
 # Activate virtual environment
 source .venv/bin/activate

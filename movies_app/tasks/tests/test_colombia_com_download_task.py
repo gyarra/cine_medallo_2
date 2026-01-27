@@ -313,7 +313,7 @@ class TestGetOrCreateMovie:
         mock_tmdb_service.search_movie.return_value = sample_tmdb_results
 
         with patch(
-            "movies_app.tasks.download_utilities.fetch_page_html"
+            "movies_app.tasks.colombia_com_download_task.fetch_page_html"
         ) as mock_scrape:
             mock_scrape.return_value = "<html></html>"
 
@@ -358,7 +358,7 @@ class TestGetOrCreateMovie:
         mock_tmdb_service.search_movie.return_value = sample_tmdb_results
 
         with patch(
-            "movies_app.tasks.download_utilities.fetch_page_html"
+            "movies_app.tasks.colombia_com_download_task.fetch_page_html"
         ) as mock_scrape:
             mock_scrape.return_value = "<html></html>"
 

@@ -3,8 +3,9 @@
 This guide explains how to add a scraper for a new movie theater website.
 
 The key responsibilities of a scraper are:
-- Save all showtimes for the group of theaters on the website being scraped
 - Save any new movies encountered
+- Save all showtimes for the group of theaters on the website being scraped
+
 
 
 ## Reference Implementation
@@ -69,7 +70,7 @@ Add an entry to `MovieSourceUrl.ScraperType` in [movie_source_url.py](../movies_
 
 ### 2. Add Theater URL Field (if needed)
 
-If theaters need a source-specific URL field, add it to the `Theater` model. Otherwise, use the existing `download_source_url` field.
+In `theaters.json`, update the `download_source_url` and `scraper_type` for each theater that will use the new scraper.
 
 ### 3. Create the Task File
 
@@ -140,7 +141,7 @@ def your_source_download_task():
     scraper = YourSourceScraperAndHTMLParser()
     tmdb_service = TMDBService()
     storage_service = SupabaseStorageService.create_from_settings()
-    
+
     saver = YourSourceShowtimeSaver(scraper, tmdb_service, storage_service)
     report = saver.execute()
     report.print_report()
@@ -150,6 +151,7 @@ def your_source_download_task():
 ### 4. Create Management Command
 
 Create `movies_app/management/commands/{source}_download.py` for manual testing.
+Create `movies_app/management/commands/{source}_download_for_one_theater.py` for manual testing.
 
 See [cineprox_download.py](../movies_app/management/commands/cineprox_download.py) for reference.
 
@@ -170,9 +172,96 @@ See [test_cineprox_download_task.py](../movies_app/tasks/tests/test_cineprox_dow
 
 Add auto-mock fixtures to [conftest.py](../movies_app/tasks/tests/conftest.py) for your scraper.
 
-### 6. Add Theater Data
+### 6. Implement the Code
 
-Add theaters to `seed_data/theaters.json` with the source URL field populated.
+1. **Study the website structure** using browser dev tools or `fetch_webpage`
+2. **Identify CSS selectors** for movie listings, showtimes, and metadata
+3. **Handle JavaScript-rendered content** — If content loads dynamically, use `fetch_page_html()` with Camoufox/Playwright
+4. **Implement parsing methods** — Test against HTML snapshots first
+5. **Run the tests** to verify parsing logic works
+
+Note: Passing tests with HTML snapshots is necessary but not sufficient. The actual website may have variations not captured in snapshots.
+
+
+### 7. Verify Live Functionality
+
+Run the management command and verify against the actual website:
+
+```bash
+python manage.py {source}_download
+```
+
+**Verification checklist:**
+- [ ] All theaters are processed without errors
+- [ ] Movies are found (check "Found X unique movies" log)
+- [ ] Showtimes are saved (check "Saved X showtimes" log)
+- [ ] No timeout errors or modal blocking issues
+- [ ] TMDB matches are correct (spot-check a few movies)
+
+**If issues occur:**
+- Check for modal popups blocking interactions
+- Verify CSS selectors match current site structure
+- Add logging to debug parsing issues
+- Update HTML snapshots if site structure changed
+
+
+### 8. Document Manual Testing Results
+
+After running the scraper, create a testing report file and verify results against the actual website.
+
+**Create the report file:** `docs/requirements/{source}_scraper_testing.md`
+
+**Required verification steps:**
+
+1. **Open the theater's website** in a browser
+2. **Compare movie counts** — Does the scraper find all movies shown on the website?
+3. **Verify showtime accuracy** — For 2-3 movies, check that scraped showtimes match the website
+4. **Check all theaters** — Run for each theater and verify movies are found
+
+**Report template:**
+
+```markdown
+# {Source} Scraper - Manual Testing Report
+
+**Date:** YYYY-MM-DD
+**Tester:** [Name or AI Agent]
+**Theaters tested:** List all theaters
+
+## Test Results
+
+| Theater | Movies Found | Showtimes Saved | Status |
+|---------|--------------|-----------------|--------|
+| Theater 1 | 10 | 52 | ✅ Pass |
+| Theater 2 | 9 | 48 | ✅ Pass |
+
+## Verification Details
+
+### Movie Count Verification
+- Theater 1 website shows X movies, scraper found X movies ✅
+- Theater 2 website shows Y movies, scraper found Y movies ✅
+
+### Showtime Spot Checks
+- Movie "X" at Theater Y: website shows [times], scraper found [times] ✅
+- Movie "Z" at Theater W: website shows [times], scraper found [times] ✅
+
+## Issues Found
+
+### Issue 1: [Title]
+- **Description:** [What went wrong]
+- **Expected:** [What website shows]
+- **Actual:** [What scraper produced]
+- **Status:** Fixed / Known Issue / Won't Fix
+- **Resolution:** [How it was fixed, if applicable]
+
+## Command Output
+
+\`\`\`
+[Paste relevant portions of the command output here]
+\`\`\`
+```
+
+**Any functionality issues MUST be documented** — Do not mark the scraper as complete if there are unresolved discrepancies between the scraper output and the actual website.
+
 
 ## Key Patterns
 
@@ -226,6 +315,80 @@ For best results, extract as much metadata as possible from the HTML page of the
 
 The `MovieLookupService` uses `metadata.original_title` for TMDB searches when available.
 
+
+### Use a Canonical URL for the Scraper
+
+The `MovieSourceUrl` model links movies to their source URLs. Use a **canonical URL format** that:
+- Works across all theaters using this scraper
+- Remains stable (doesn't include session-specific parameters)
+- Uniquely identifies the movie
+
+**Example — Cinemark:**
+```python
+# Raw URL from scraping (includes city):
+# https://www.cinemark.com.co/cartelera/medellin/sin-piedad
+
+# Canonical URL (city-independent):
+# https://www.cinemark.com.co/sin-piedad
+
+@staticmethod
+def generate_movie_source_url(movie_url: str) -> str:
+    slug = extract_slug_from_url(movie_url)
+    return f"https://www.cinemark.com.co/{slug}"
+```
+
+This ensures the same movie at different theaters uses the same `MovieSourceUrl`, enabling proper deduplication.
+
+
+### Close Any Modals
+
+Many websites display modal popups (cookie consent, promotions, login prompts) that block Playwright interactions. The scraper must dismiss these before clicking elements.
+
+**Implementation pattern:**
+
+```python
+@staticmethod
+async def _dismiss_modals(page: Page) -> None:
+    """Dismiss any modal dialogs blocking interactions."""
+    close_selectors = [
+        ".modal-close",
+        "button[aria-label='Close']",
+        ".ant-modal-close",
+        "button:has-text('Aceptar')",
+        "button:has-text('Accept')",
+    ]
+
+    for selector in close_selectors:
+        try:
+            button = await page.query_selector(selector)
+            if button and await button.is_visible():
+                await button.click()
+                await asyncio.sleep(0.5)
+                break
+        except Exception:
+            continue
+
+    # Escape key as fallback
+    try:
+        await page.keyboard.press("Escape")
+        await asyncio.sleep(0.3)
+    except Exception:
+        pass
+```
+
+**Call this after page load, before any interactions:**
+```python
+await page.goto(url, wait_until="domcontentloaded")
+await page.wait_for_selector(".content-selector")
+await self._dismiss_modals(page)  # Dismiss any popups
+await day_button.click()  # Now safe to click
+```
+
+**Symptoms of modal blocking:**
+- Timeout errors with logs showing "element intercepts pointer events"
+- Errors mentioning `ant-modal-wrap` or similar modal classes
+
+
 ## Checklist
 
 - [ ] Added `ScraperType` to enum
@@ -234,8 +397,9 @@ The `MovieLookupService` uses `metadata.original_title` for TMDB searches when a
 - [ ] Added tests with HTML snapshots
 - [ ] Added mock fixtures to conftest.py
 - [ ] Added theaters to seed_data/theaters.json
-- [ ] Tested manually: `python manage.py {source}_download --theater <slug>`
+- [ ] Tested manually: `python manage.py {source}_download`
 - [ ] Ran `ruff check .`, `pyright`, `pytest`
+- [ ] Created testing report: `docs/requirements/{source}_scraper_testing.md`
 
 ## Common Issues
 

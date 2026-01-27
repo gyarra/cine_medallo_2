@@ -14,8 +14,9 @@ from movies_app.services.tmdb_service import (
     TMDBService,
 )
 from movies_app.tasks.cinemark_download_task import (
-    CinemarkMovieCard,
+    CinemarkMovieWithShowtimes,
     CinemarkScraperAndHTMLParser,
+    CinemarkShowtimeBlock,
     CinemarkShowtimeSaver,
 )
 
@@ -154,184 +155,76 @@ def mock_storage_service_for_cinemark():
 class TestParseMoviesFromCarteleraHtml:
     def test_extracts_movies_from_cartelera_html(self):
         html_content = load_html_snapshot("cinemark___movies_for_one_theater.html")
+        test_date = datetime.date(2026, 1, 26)
 
-        movies = CinemarkScraperAndHTMLParser.parse_movies_from_cartelera_html(html_content)
+        movies = CinemarkScraperAndHTMLParser._parse_movies_from_cartelera_html(html_content, test_date)
 
         assert len(movies) > 0
 
-    def test_extracts_correct_movie_slugs(self):
+    def test_extracts_correct_movie_titles(self):
         html_content = load_html_snapshot("cinemark___movies_for_one_theater.html")
+        test_date = datetime.date(2026, 1, 26)
 
-        movies = CinemarkScraperAndHTMLParser.parse_movies_from_cartelera_html(html_content)
+        movies = CinemarkScraperAndHTMLParser._parse_movies_from_cartelera_html(html_content, test_date)
 
-        slugs = {m.slug for m in movies}
+        titles = {m.title for m in movies}
         # These movies appear in the HTML snapshot
-        assert "aurora" in slugs
-        assert "goat" in slugs
+        assert "La Empleada" in titles
+        assert "Avatar Fuego y Cenizas" in titles
 
-    def test_filters_non_movie_urls(self):
+    def test_extracts_movie_urls_with_cartelera_path(self):
         html_content = load_html_snapshot("cinemark___movies_for_one_theater.html")
+        test_date = datetime.date(2026, 1, 26)
 
-        movies = CinemarkScraperAndHTMLParser.parse_movies_from_cartelera_html(html_content)
+        movies = CinemarkScraperAndHTMLParser._parse_movies_from_cartelera_html(html_content, test_date)
 
-        slugs = {m.slug for m in movies}
-        # These should be filtered out
-        assert "cartelera" not in slugs
-        assert "cine-club" not in slugs
-        assert "confiteria" not in slugs
-        assert "promociones" not in slugs
+        # All URLs should contain /cartelera/
+        for movie in movies:
+            assert "/cartelera/" in movie.url
 
+    def test_extracts_showtimes_for_each_movie(self):
+        html_content = load_html_snapshot("cinemark___movies_for_one_theater.html")
+        test_date = datetime.date(2026, 1, 26)
 
-class TestParseMovieMetadataFromDetailHtml:
-    def test_extracts_metadata_from_detail_page(self):
-        html_content = load_html_snapshot("cinemark___one_movie.html")
+        movies = CinemarkScraperAndHTMLParser._parse_movies_from_cartelera_html(html_content, test_date)
 
-        metadata = CinemarkScraperAndHTMLParser.parse_movie_metadata_from_detail_html(html_content)
-
-        assert metadata is not None
-        assert metadata.title == "Sin Piedad"
-
-    def test_extracts_original_title(self):
-        html_content = load_html_snapshot("cinemark___one_movie.html")
-
-        metadata = CinemarkScraperAndHTMLParser.parse_movie_metadata_from_detail_html(html_content)
-
-        assert metadata is not None
-        assert metadata.original_title == "Sin Piedad"
-
-    def test_extracts_cast(self):
-        html_content = load_html_snapshot("cinemark___one_movie.html")
-
-        metadata = CinemarkScraperAndHTMLParser.parse_movie_metadata_from_detail_html(html_content)
-
-        assert metadata is not None
-        assert "Rebecca Ferguson" in metadata.cast
-        assert "Chris Pratt" in metadata.cast
-
-    def test_extracts_synopsis(self):
-        html_content = load_html_snapshot("cinemark___one_movie.html")
-
-        metadata = CinemarkScraperAndHTMLParser.parse_movie_metadata_from_detail_html(html_content)
-
-        assert metadata is not None
-        assert "detective Chris Raven" in metadata.synopsis
-
-    def test_extracts_classification(self):
-        html_content = load_html_snapshot("cinemark___one_movie.html")
-
-        metadata = CinemarkScraperAndHTMLParser.parse_movie_metadata_from_detail_html(html_content)
-
-        assert metadata is not None
-        assert "12" in metadata.classification
-
-    def test_extracts_poster_url(self):
-        html_content = load_html_snapshot("cinemark___one_movie.html")
-
-        metadata = CinemarkScraperAndHTMLParser.parse_movie_metadata_from_detail_html(html_content)
-
-        assert metadata is not None
-        assert "assets.cinemark-core.com" in metadata.poster_url
+        # Each movie should have showtime blocks
+        for movie in movies:
+            assert len(movie.showtime_blocks) > 0
 
 
-class TestParseShowtimesFromDetailHtml:
-    def test_extracts_showtimes_for_theater(self):
-        html_content = load_html_snapshot("cinemark___one_movie.html")
+class TestParseShowtimeBlocks:
+    def test_extracts_showtime_times(self):
+        html_content = load_html_snapshot("cinemark___movies_for_one_theater.html")
+        test_date = datetime.date(2026, 1, 26)
 
-        showtimes = CinemarkScraperAndHTMLParser.parse_showtimes_from_detail_html(
-            html_content,
-            "Arkadia",
-            datetime.date(2026, 1, 27),
-        )
+        movies = CinemarkScraperAndHTMLParser._parse_movies_from_cartelera_html(html_content, test_date)
 
-        assert len(showtimes) > 0
+        # Find a movie with showtimes
+        movie_with_showtimes = next((m for m in movies if m.showtime_blocks), None)
+        assert movie_with_showtimes is not None
 
-    def test_extracts_correct_showtime_data(self):
-        html_content = load_html_snapshot("cinemark___one_movie.html")
-
-        showtimes = CinemarkScraperAndHTMLParser.parse_showtimes_from_detail_html(
-            html_content,
-            "Arkadia",
-            datetime.date(2026, 1, 27),
-        )
-
-        times = {st.time for st in showtimes}
-        assert datetime.time(19, 0) in times
-        assert datetime.time(21, 45) in times
+        # Get all times across all blocks
+        all_times = []
+        for block in movie_with_showtimes.showtime_blocks:
+            all_times.extend(block.times)
+        assert len(all_times) > 0
 
     def test_extracts_format_and_translation_type(self):
-        html_content = load_html_snapshot("cinemark___one_movie.html")
+        html_content = load_html_snapshot("cinemark___movies_for_one_theater.html")
+        test_date = datetime.date(2026, 1, 26)
 
-        showtimes = CinemarkScraperAndHTMLParser.parse_showtimes_from_detail_html(
-            html_content,
-            "Arkadia",
-            datetime.date(2026, 1, 27),
-        )
+        movies = CinemarkScraperAndHTMLParser._parse_movies_from_cartelera_html(html_content, test_date)
 
-        assert len(showtimes) > 0
-        formats = {st.format for st in showtimes}
-        translation_types = {st.translation_type for st in showtimes}
+        # Find a movie with showtimes
+        movie_with_showtimes = next((m for m in movies if m.showtime_blocks), None)
+        assert movie_with_showtimes is not None
+
+        formats = {block.format for block in movie_with_showtimes.showtime_blocks}
+        translation_types = {block.translation_type for block in movie_with_showtimes.showtime_blocks}
 
         assert "2D" in formats or "3D" in formats
-        assert "Doblada" in translation_types or "Subtitulada" in translation_types
-
-    def test_extracts_seat_type(self):
-        html_content = load_html_snapshot("cinemark___one_movie.html")
-
-        showtimes = CinemarkScraperAndHTMLParser.parse_showtimes_from_detail_html(
-            html_content,
-            "Arkadia",
-            datetime.date(2026, 1, 27),
-        )
-
-        assert len(showtimes) > 0
-        seat_types = {st.seat_type for st in showtimes}
-        assert "General" in seat_types
-
-
-class TestParseAvailableDatesFromDetailHtml:
-    def test_extracts_available_dates(self):
-        html_content = load_html_snapshot("cinemark___one_movie.html")
-
-        dates = CinemarkScraperAndHTMLParser.parse_available_dates_from_detail_html(html_content)
-
-        assert len(dates) >= 2
-        days = {d.day for d in dates}
-        assert 27 in days
-        assert 28 in days
-
-    def test_extracts_correct_date_format(self):
-        html_content = load_html_snapshot("cinemark___one_movie.html")
-
-        dates = CinemarkScraperAndHTMLParser.parse_available_dates_from_detail_html(html_content)
-
-        assert len(dates) > 0
-        first_date = dates[0]
-        assert first_date.year == 2026
-        assert first_date.month == 1
-
-
-class TestGetSelectedDateFromDetailHtml:
-    def test_gets_selected_date(self):
-        html_content = load_html_snapshot("cinemark___one_movie.html")
-
-        selected_date = CinemarkScraperAndHTMLParser.get_selected_date_from_detail_html(html_content)
-
-        assert selected_date is not None
-        assert selected_date == datetime.date(2026, 1, 27)
-
-
-class TestTheaterNamesMatch:
-    def test_matches_exact_name(self):
-        assert CinemarkScraperAndHTMLParser._theater_names_match("Arkadia", "Arkadia") is True
-
-    def test_matches_partial_name(self):
-        assert CinemarkScraperAndHTMLParser._theater_names_match("Arkadia", "Cinemark Arkadia") is True
-
-    def test_matches_substring(self):
-        assert CinemarkScraperAndHTMLParser._theater_names_match("El Tesoro", "Cinemark El Tesoro") is True
-
-    def test_no_match_different_theaters(self):
-        assert CinemarkScraperAndHTMLParser._theater_names_match("Arkadia", "El Tesoro") is False
+        assert "Doblada" in translation_types or "Subtitulada" in translation_types or "Subtitulado" in translation_types
 
 
 class TestParseDateString:
@@ -375,27 +268,43 @@ class TestParseDateString:
 
 
 class TestExtractSlugFromUrl:
-    def test_extracts_slug(self):
-        slug = CinemarkScraperAndHTMLParser._extract_slug_from_url(
-            "https://www.cinemark.com.co/sin-piedad"
+    def test_extracts_slug_from_cartelera_url(self):
+        slug = CinemarkScraperAndHTMLParser.extract_slug_from_url(
+            "https://www.cinemark.com.co/cartelera/medellin/sin-piedad"
         )
         assert slug == "sin-piedad"
 
     def test_extracts_slug_with_dashes(self):
-        slug = CinemarkScraperAndHTMLParser._extract_slug_from_url(
-            "https://www.cinemark.com.co/twenty-one-pilots-more"
+        slug = CinemarkScraperAndHTMLParser.extract_slug_from_url(
+            "https://www.cinemark.com.co/cartelera/medellin/twenty-one-pilots-more"
         )
         assert slug == "twenty-one-pilots-more"
 
-    def test_returns_none_for_invalid_url(self):
-        slug = CinemarkScraperAndHTMLParser._extract_slug_from_url("https://other-site.com/movie")
-        assert slug is None
+    def test_extracts_slug_from_simple_url(self):
+        slug = CinemarkScraperAndHTMLParser.extract_slug_from_url(
+            "https://www.cinemark.com.co/sin-piedad"
+        )
+        assert slug == "sin-piedad"
 
 
 class TestGenerateMovieSourceUrl:
-    def test_generates_correct_url(self):
-        url = CinemarkScraperAndHTMLParser.generate_movie_source_url("sin-piedad")
+    def test_converts_cartelera_url_to_canonical_format(self):
+        url = CinemarkScraperAndHTMLParser.generate_movie_source_url(
+            "https://www.cinemark.com.co/cartelera/medellin/sin-piedad"
+        )
         assert url == "https://www.cinemark.com.co/sin-piedad"
+
+    def test_handles_different_cities(self):
+        url = CinemarkScraperAndHTMLParser.generate_movie_source_url(
+            "https://www.cinemark.com.co/cartelera/bogota/la-empleada"
+        )
+        assert url == "https://www.cinemark.com.co/la-empleada"
+
+    def test_returns_original_if_no_slug_extracted(self):
+        url = CinemarkScraperAndHTMLParser.generate_movie_source_url(
+            "https://www.cinemark.com.co/"
+        )
+        assert url == "https://www.cinemark.com.co/"
 
 
 # =============================================================================
@@ -405,56 +314,17 @@ class TestGenerateMovieSourceUrl:
 
 class TestParseMoviesEdgeCases:
     def test_returns_empty_list_for_empty_html(self):
-        movies = CinemarkScraperAndHTMLParser.parse_movies_from_cartelera_html("")
+        movies = CinemarkScraperAndHTMLParser._parse_movies_from_cartelera_html(
+            "", datetime.date(2026, 1, 27)
+        )
         assert movies == []
 
-    def test_returns_empty_list_for_no_movie_links(self):
-        html = "<html><body><a href='https://other-site.com'>Not a movie</a></body></html>"
-        movies = CinemarkScraperAndHTMLParser.parse_movies_from_cartelera_html(html)
+    def test_returns_empty_list_for_no_movie_sections(self):
+        html = "<html><body><div class='list-movies'><div class='d-block'></div></div></body></html>"
+        movies = CinemarkScraperAndHTMLParser._parse_movies_from_cartelera_html(
+            html, datetime.date(2026, 1, 27)
+        )
         assert movies == []
-
-
-class TestParseMetadataEdgeCases:
-    def test_returns_none_for_empty_html(self):
-        metadata = CinemarkScraperAndHTMLParser.parse_movie_metadata_from_detail_html("")
-        assert metadata is None
-
-    def test_returns_none_when_no_movie_poster(self):
-        html = "<html><body><div class='no-poster'>Content</div></body></html>"
-        metadata = CinemarkScraperAndHTMLParser.parse_movie_metadata_from_detail_html(html)
-        assert metadata is None
-
-
-class TestParseShowtimesEdgeCases:
-    def test_returns_empty_for_non_matching_theater(self):
-        html_content = load_html_snapshot("cinemark___one_movie.html")
-
-        showtimes = CinemarkScraperAndHTMLParser.parse_showtimes_from_detail_html(
-            html_content,
-            "Non-Existent Theater",
-            datetime.date(2026, 1, 27),
-        )
-
-        assert showtimes == []
-
-    def test_returns_empty_for_empty_html(self):
-        showtimes = CinemarkScraperAndHTMLParser.parse_showtimes_from_detail_html(
-            "",
-            "Arkadia",
-            datetime.date(2026, 1, 27),
-        )
-        assert showtimes == []
-
-
-class TestParseDatesEdgeCases:
-    def test_returns_empty_for_empty_html(self):
-        dates = CinemarkScraperAndHTMLParser.parse_available_dates_from_detail_html("")
-        assert dates == []
-
-    def test_returns_none_for_no_selected_date(self):
-        html = "<html><body><div class='week__day'>No selected</div></body></html>"
-        date = CinemarkScraperAndHTMLParser.get_selected_date_from_detail_html(html)
-        assert date is None
 
 
 # =============================================================================
@@ -476,12 +346,27 @@ class TestCinemarkShowtimeSaverFindMovies:
         issue = OperationalIssue.objects.filter(name="Cinemark Missing Source URL").latest("created_at")
         assert "Cinemark Without URL" in issue.error_message
 
-    def test_returns_movies_and_creates_issue_when_no_movies_found(
+    def test_creates_issue_when_scrape_fails(
         self, cinemark_theater, mock_tmdb_service_for_cinemark, mock_storage_service_for_cinemark
     ):
         scraper = MagicMock(spec=CinemarkScraperAndHTMLParser)
-        scraper.download_cartelera_html.return_value = "<html></html>"
-        scraper.parse_movies_from_cartelera_html.return_value = []
+        scraper.scrape_theater_movies_and_showtimes.side_effect = Exception("Scrape error")
+
+        saver = CinemarkShowtimeSaver(scraper, mock_tmdb_service_for_cinemark, mock_storage_service_for_cinemark)
+        initial_count = OperationalIssue.objects.count()
+
+        movies = saver._find_movies(cinemark_theater)
+
+        assert movies == []
+        assert OperationalIssue.objects.count() == initial_count + 1
+        issue = OperationalIssue.objects.latest("created_at")
+        assert issue.name == "Cinemark Scrape Failed"
+
+    def test_creates_issue_when_no_movies_found(
+        self, cinemark_theater, mock_tmdb_service_for_cinemark, mock_storage_service_for_cinemark
+    ):
+        scraper = MagicMock(spec=CinemarkScraperAndHTMLParser)
+        scraper.scrape_theater_movies_and_showtimes.return_value = []
 
         saver = CinemarkShowtimeSaver(scraper, mock_tmdb_service_for_cinemark, mock_storage_service_for_cinemark)
         initial_count = OperationalIssue.objects.count()
@@ -571,24 +456,23 @@ class TestCinemarkShowtimeSaverIntegration:
         self, cinemark_theater, mock_storage_service_for_cinemark
     ):
         """Integration test: Full execute() flow with a single movie."""
-        detail_html = load_html_snapshot("cinemark___one_movie.html")
-
         scraper = MagicMock(spec=CinemarkScraperAndHTMLParser)
-        scraper.download_cartelera_html.return_value = "<html></html>"
-        scraper.parse_movies_from_cartelera_html.return_value = [
-            CinemarkMovieCard(
+        scraper.scrape_theater_movies_and_showtimes.return_value = [
+            CinemarkMovieWithShowtimes(
                 title="Sin Piedad",
-                slug="sin-piedad",
-                url="https://www.cinemark.com.co/sin-piedad",
-                poster_url="/poster.jpg",
+                url="https://www.cinemark.com.co/cartelera/medellin/sin-piedad",
+                date=datetime.date(2026, 1, 27),
+                showtime_blocks=[
+                    CinemarkShowtimeBlock(
+                        format="2D",
+                        translation_type="Doblada",
+                        seat_type="General",
+                        times=[datetime.time(19, 0), datetime.time(21, 45)],
+                    ),
+                ],
             ),
         ]
-        scraper.download_movie_detail_html.return_value = detail_html
-        scraper.parse_movie_metadata_from_detail_html = CinemarkScraperAndHTMLParser.parse_movie_metadata_from_detail_html
-        scraper.parse_showtimes_from_detail_html = CinemarkScraperAndHTMLParser.parse_showtimes_from_detail_html
-        scraper.parse_available_dates_from_detail_html = CinemarkScraperAndHTMLParser.parse_available_dates_from_detail_html
-        scraper.get_selected_date_from_detail_html = CinemarkScraperAndHTMLParser.get_selected_date_from_detail_html
-        scraper.generate_movie_source_url.return_value = "https://www.cinemark.com.co/sin-piedad"
+        scraper.generate_movie_source_url.side_effect = lambda url: url
 
         tmdb_service = _create_tmdb_service_with_unique_results()
         saver = CinemarkShowtimeSaver(scraper, tmdb_service, mock_storage_service_for_cinemark)
@@ -603,24 +487,23 @@ class TestCinemarkShowtimeSaverIntegration:
         self, cinemark_theater, mock_storage_service_for_cinemark
     ):
         """Test execute_for_theater() processes a single theater with a single movie."""
-        detail_html = load_html_snapshot("cinemark___one_movie.html")
-
         scraper = MagicMock(spec=CinemarkScraperAndHTMLParser)
-        scraper.download_cartelera_html.return_value = "<html></html>"
-        scraper.parse_movies_from_cartelera_html.return_value = [
-            CinemarkMovieCard(
+        scraper.scrape_theater_movies_and_showtimes.return_value = [
+            CinemarkMovieWithShowtimes(
                 title="Sin Piedad",
-                slug="sin-piedad",
-                url="https://www.cinemark.com.co/sin-piedad",
-                poster_url="/poster.jpg",
+                url="https://www.cinemark.com.co/cartelera/medellin/sin-piedad",
+                date=datetime.date(2026, 1, 27),
+                showtime_blocks=[
+                    CinemarkShowtimeBlock(
+                        format="2D",
+                        translation_type="Doblada",
+                        seat_type="General",
+                        times=[datetime.time(19, 0), datetime.time(21, 45)],
+                    ),
+                ],
             ),
         ]
-        scraper.download_movie_detail_html.return_value = detail_html
-        scraper.parse_movie_metadata_from_detail_html = CinemarkScraperAndHTMLParser.parse_movie_metadata_from_detail_html
-        scraper.parse_showtimes_from_detail_html = CinemarkScraperAndHTMLParser.parse_showtimes_from_detail_html
-        scraper.parse_available_dates_from_detail_html = CinemarkScraperAndHTMLParser.parse_available_dates_from_detail_html
-        scraper.get_selected_date_from_detail_html = CinemarkScraperAndHTMLParser.get_selected_date_from_detail_html
-        scraper.generate_movie_source_url.return_value = "https://www.cinemark.com.co/sin-piedad"
+        scraper.generate_movie_source_url.side_effect = lambda url: url
 
         tmdb_service = _create_tmdb_service_with_unique_results()
         saver = CinemarkShowtimeSaver(scraper, tmdb_service, mock_storage_service_for_cinemark)
@@ -635,7 +518,7 @@ class TestCinemarkShowtimeSaverIntegration:
     ):
         """Test that errors during theater processing are caught and logged."""
         scraper = MagicMock(spec=CinemarkScraperAndHTMLParser)
-        scraper.download_cartelera_html.side_effect = Exception("Network error")
+        scraper.scrape_theater_movies_and_showtimes.side_effect = Exception("Network error")
 
         saver = CinemarkShowtimeSaver(scraper, mock_tmdb_service_for_cinemark, mock_storage_service_for_cinemark)
         initial_count = OperationalIssue.objects.count()
@@ -649,24 +532,23 @@ class TestCinemarkShowtimeSaverIntegration:
         self, cinemark_theater, mock_storage_service_for_cinemark
     ):
         """Test that MovieSourceUrl is created linking movie to scraper URL."""
-        detail_html = load_html_snapshot("cinemark___one_movie.html")
-
         scraper = MagicMock(spec=CinemarkScraperAndHTMLParser)
-        scraper.download_cartelera_html.return_value = "<html></html>"
-        scraper.parse_movies_from_cartelera_html.return_value = [
-            CinemarkMovieCard(
+        scraper.scrape_theater_movies_and_showtimes.return_value = [
+            CinemarkMovieWithShowtimes(
                 title="Sin Piedad",
-                slug="sin-piedad",
-                url="https://www.cinemark.com.co/sin-piedad",
-                poster_url="/poster.jpg",
+                url="https://www.cinemark.com.co/cartelera/medellin/sin-piedad",
+                date=datetime.date(2026, 1, 27),
+                showtime_blocks=[
+                    CinemarkShowtimeBlock(
+                        format="2D",
+                        translation_type="Doblada",
+                        seat_type="General",
+                        times=[datetime.time(19, 0)],
+                    ),
+                ],
             ),
         ]
-        scraper.download_movie_detail_html.return_value = detail_html
-        scraper.parse_movie_metadata_from_detail_html = CinemarkScraperAndHTMLParser.parse_movie_metadata_from_detail_html
-        scraper.parse_showtimes_from_detail_html = CinemarkScraperAndHTMLParser.parse_showtimes_from_detail_html
-        scraper.parse_available_dates_from_detail_html = CinemarkScraperAndHTMLParser.parse_available_dates_from_detail_html
-        scraper.get_selected_date_from_detail_html = CinemarkScraperAndHTMLParser.get_selected_date_from_detail_html
-        scraper.generate_movie_source_url.return_value = "https://www.cinemark.com.co/sin-piedad"
+        scraper.generate_movie_source_url.side_effect = lambda url: url
 
         tmdb_service = _create_tmdb_service_with_unique_results()
         saver = CinemarkShowtimeSaver(scraper, tmdb_service, mock_storage_service_for_cinemark)
@@ -678,24 +560,23 @@ class TestCinemarkShowtimeSaverIntegration:
         self, cinemark_theater, mock_storage_service_for_cinemark
     ):
         """Test that existing showtimes are deleted before saving new ones."""
-        detail_html = load_html_snapshot("cinemark___one_movie.html")
-
         scraper = MagicMock(spec=CinemarkScraperAndHTMLParser)
-        scraper.download_cartelera_html.return_value = "<html></html>"
-        scraper.parse_movies_from_cartelera_html.return_value = [
-            CinemarkMovieCard(
+        scraper.scrape_theater_movies_and_showtimes.return_value = [
+            CinemarkMovieWithShowtimes(
                 title="Sin Piedad",
-                slug="sin-piedad",
-                url="https://www.cinemark.com.co/sin-piedad",
-                poster_url="/poster.jpg",
+                url="https://www.cinemark.com.co/cartelera/medellin/sin-piedad",
+                date=datetime.date(2026, 1, 27),
+                showtime_blocks=[
+                    CinemarkShowtimeBlock(
+                        format="2D",
+                        translation_type="Doblada",
+                        seat_type="General",
+                        times=[datetime.time(19, 0), datetime.time(21, 45)],
+                    ),
+                ],
             ),
         ]
-        scraper.download_movie_detail_html.return_value = detail_html
-        scraper.parse_movie_metadata_from_detail_html = CinemarkScraperAndHTMLParser.parse_movie_metadata_from_detail_html
-        scraper.parse_showtimes_from_detail_html = CinemarkScraperAndHTMLParser.parse_showtimes_from_detail_html
-        scraper.parse_available_dates_from_detail_html = CinemarkScraperAndHTMLParser.parse_available_dates_from_detail_html
-        scraper.get_selected_date_from_detail_html = CinemarkScraperAndHTMLParser.get_selected_date_from_detail_html
-        scraper.generate_movie_source_url.return_value = "https://www.cinemark.com.co/sin-piedad"
+        scraper.generate_movie_source_url.side_effect = lambda url: url
 
         tmdb_service = _create_tmdb_service_with_unique_results()
         saver = CinemarkShowtimeSaver(scraper, tmdb_service, mock_storage_service_for_cinemark)
@@ -739,16 +620,22 @@ class TestCinemarkShowtimeSaverMovieDeduplication:
         )
 
         scraper = MagicMock(spec=CinemarkScraperAndHTMLParser)
-        scraper.download_cartelera_html.return_value = "<html></html>"
-        scraper.parse_movies_from_cartelera_html.return_value = [
-            CinemarkMovieCard(title="Same Movie", slug="same-movie", url="https://www.cinemark.com.co/same-movie", poster_url=""),
+        scraper.scrape_theater_movies_and_showtimes.return_value = [
+            CinemarkMovieWithShowtimes(
+                title="Same Movie",
+                url="https://www.cinemark.com.co/cartelera/city/same-movie",
+                date=datetime.date(2026, 1, 27),
+                showtime_blocks=[
+                    CinemarkShowtimeBlock(
+                        format="2D",
+                        translation_type="Doblada",
+                        seat_type="General",
+                        times=[datetime.time(19, 0)],
+                    ),
+                ],
+            ),
         ]
-        scraper.generate_movie_source_url.return_value = "https://www.cinemark.com.co/same-movie"
-        scraper.download_movie_detail_html.return_value = load_html_snapshot("cinemark___one_movie.html")
-        scraper.parse_movie_metadata_from_detail_html = CinemarkScraperAndHTMLParser.parse_movie_metadata_from_detail_html
-        scraper.parse_showtimes_from_detail_html.return_value = []
-        scraper.parse_available_dates_from_detail_html.return_value = []
-        scraper.get_selected_date_from_detail_html.return_value = None
+        scraper.generate_movie_source_url.side_effect = lambda url: url
 
         mock_tmdb = _create_tmdb_service_with_unique_results()
         saver = CinemarkShowtimeSaver(scraper, mock_tmdb, mock_storage_service_for_cinemark)
