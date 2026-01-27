@@ -27,16 +27,19 @@
       "scraper_config": {"city_id": "30", "theater_id": "304"}
     }
   ],
+
   "Envigado": [
     {
       "name": "Cine Colombia - Multiplex Viva Envigado",
       "slug": "cine-colombia-multiplex-viva-envigado",
       "chain": "Cine Colombia",
-      "address": "Carrera 48 #32B Sur-139, C.C. Viva Envigado",
-      "neighborhood": "Viva Envigado",
-      "phone": "3602463",
+      "address": "C.C. Viva Envigado",
+      "neighborhood": "",
+      "phone": "(604) 360 2463",
       "website": "https://www.cinecolombia.com/cinemas/viva-envigado/",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/cine-colombia-viva-envigado-envigado-s297"
+      "colombia_dot_com_url": "",
+      "scraper_type": "cine_colombia",
+      "download_source_url": "https://www.cinecolombia.com/cinemas/viva-envigado/"
     },
     {
       "name": "Cinépolis City Plaza",
@@ -49,6 +52,7 @@
       "colombia_dot_com_url": "https://www.colombia.com/cine/cinepolis-city-plaza-envigado-s174"
     }
   ],
+
   "Itagüí": [
     {
       "name": "Royal Films - Multicine Arrayanes Plaza",
@@ -77,56 +81,67 @@
       "scraper_config": {"city_id": "74", "theater_id": "321"}
     }
   ],
+
   "Medellín": [
     {
       "name": "Cine Colombia - Multiplex Molinos",
       "slug": "cine-colombia-multiplex-molinos-medellin",
       "chain": "Cine Colombia",
-      "address": "Calle 30A No. 82A-26, C.C. Los Molinos",
+      "address": "C.C. Los Molinos",
       "neighborhood": "Los Molinos",
-      "phone": "3602463",
+      "phone": "",
       "website": "https://www.cinecolombia.com/cinemas/molinos/",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/cine-colombia-molinos-medellin-s97"
+      "colombia_dot_com_url": "",
+      "scraper_type": "cine_colombia",
+      "download_source_url": "https://www.cinecolombia.com/cinemas/molinos/"
     },
     {
       "name": "Cine Colombia - Multiplex Oviedo",
       "slug": "cine-colombia-multiplex-oviedo-medellin",
       "chain": "Cine Colombia",
-      "address": "C.C. Oviedo, Cra. 43A/43C sector 6 Sur",
+      "address": "C.C. Oviedo",
       "neighborhood": "El Poblado",
-      "phone": "43602463",
+      "phone": "",
       "website": "https://www.cinecolombia.com/cinemas/oviedo/",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/cine-colombia-oviedo-medellin-s72"
+      "colombia_dot_com_url": "",
+      "scraper_type": "cine_colombia",
+      "download_source_url": "https://www.cinecolombia.com/cinemas/oviedo/"
     },
     {
       "name": "Cine Colombia - Multiplex Santafé Medellín",
       "slug": "cine-colombia-multiplex-santafe-medellin",
       "chain": "Cine Colombia",
-      "address": "C.C. Santafé, Cl. 7 Sur #42-70",
+      "address": "C.C. Santafé",
       "neighborhood": "El Poblado",
-      "phone": "43602463",
+      "phone": "",
       "website": "https://www.cinecolombia.com/cinemas/santafe-medellin/",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/cine-colombia-santafe-medellin-s153"
+      "colombia_dot_com_url": "",
+      "scraper_type": "cine_colombia",
+      "download_source_url": "https://www.cinecolombia.com/cinemas/santafe-medellin/"
     },
     {
       "name": "Cine Colombia - Multiplex Unicentro",
       "slug": "cine-colombia-multiplex-unicentro-medellin",
       "chain": "Cine Colombia",
-      "address": "Carrera 66B No. 34-1 a 34-155",
-      "neighborhood": "Unicentro",
-      "phone": "43602463",
+      "address": "C.C. Unicentro",
+      "neighborhood": "",
+      "phone": "",
       "website": "https://www.cinecolombia.com/cinemas/unicentro-medellin/",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/cine-colombia-unicentro-medellin-s15"
+      "colombia_dot_com_url": "",
+      "scraper_type": "cine_colombia",
+      "download_source_url": "https://www.cinecolombia.com/cinemas/unicentro-medellin/"
     },
     {
       "name": "Cine Colombia - Multiplex Vizcaya",
       "slug": "cine-colombia-multiplex-vizcaya-medellin",
       "chain": "Cine Colombia",
-      "address": "Calle 10 N° 32-115, C.C. Vizcaya",
+      "address": "C.C. Vizcaya",
       "neighborhood": "El Poblado",
-      "phone": "43602463",
+      "phone": "",
       "website": "https://www.cinecolombia.com/cinemas/vizcaya/",
-      "colombia_dot_com_url": "https://www.colombia.com/cine/cine-colombia-vizcaya-medellin-s16"
+      "colombia_dot_com_url": "",
+      "scraper_type": "cine_colombia",
+      "download_source_url": "https://www.cinecolombia.com/cinemas/vizcaya/"
     },
     {
       "name": "Cinemark Arkadia",
