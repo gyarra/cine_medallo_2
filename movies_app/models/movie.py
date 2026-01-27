@@ -5,6 +5,7 @@ Movie model for storing film information.
 from __future__ import annotations
 
 import logging
+import unicodedata
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
@@ -37,6 +38,20 @@ class Movie(models.Model):
         blank=True,
         default="",
         help_text="Original language title",
+    )
+    normalized_title = models.CharField(
+        max_length=300,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="Normalized title_es for fast lookups (lowercase, no accents)",
+    )
+    normalized_original_title = models.CharField(
+        max_length=300,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="Normalized original_title for fast lookups (lowercase, no accents)",
     )
     year = models.PositiveIntegerField(
         null=True,
@@ -132,6 +147,12 @@ class Movie(models.Model):
             models.Index(fields=["year"]),
         ]
 
+    @staticmethod
+    def normalize_title(title: str) -> str:
+        """Normalize a title for comparison: lowercase and remove accents."""
+        normalized = unicodedata.normalize("NFD", title.lower())
+        return "".join(c for c in normalized if unicodedata.category(c) != "Mn").strip()
+
     def save(self, *args, **kwargs):
         if not self.slug:
             base_slug = slugify(self.title_es)
@@ -141,6 +162,13 @@ class Movie(models.Model):
                 slug = f"{base_slug}-{counter}"
                 counter += 1
             self.slug = slug
+
+        self.normalized_title = self.normalize_title(self.title_es)
+        if self.original_title:
+            self.normalized_original_title = self.normalize_title(self.original_title)
+        else:
+            self.normalized_original_title = ""
+
         super().save(*args, **kwargs)
 
     def __str__(self):

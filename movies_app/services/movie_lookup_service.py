@@ -88,26 +88,31 @@ class MovieLookupService:
         metadata: MovieMetadata | None,
     ) -> Movie | None:
         """
-        Search for an existing movie in the database by title.
+        Search for an existing movie in the database by normalized title.
 
-        Searches by normalized title_es and original_title fields.
-        Returns the first match found.
+        Uses indexed normalized_title and normalized_original_title fields
+        for efficient database lookups.
         """
         normalized_name = self.normalize_name(movie_name)
 
-        for movie in Movie.objects.all():
-            if self.normalize_name(movie.title_es) == normalized_name:
-                return movie
-            if movie.original_title and self.normalize_name(movie.original_title) == normalized_name:
-                return movie
+        movie = Movie.objects.filter(normalized_title=normalized_name).first()
+        if movie:
+            return movie
+
+        movie = Movie.objects.filter(normalized_original_title=normalized_name).first()
+        if movie:
+            return movie
 
         if metadata and metadata.original_title:
             normalized_original = self.normalize_name(metadata.original_title)
-            for movie in Movie.objects.all():
-                if self.normalize_name(movie.title_es) == normalized_original:
-                    return movie
-                if movie.original_title and self.normalize_name(movie.original_title) == normalized_original:
-                    return movie
+
+            movie = Movie.objects.filter(normalized_title=normalized_original).first()
+            if movie:
+                return movie
+
+            movie = Movie.objects.filter(normalized_original_title=normalized_original).first()
+            if movie:
+                return movie
 
         return None
 
