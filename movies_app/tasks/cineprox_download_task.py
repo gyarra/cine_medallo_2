@@ -16,7 +16,7 @@ import traceback
 from dataclasses import dataclass
 from urllib.parse import urlencode
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from django.utils.text import slugify
 
 from config.celery_app import app
@@ -92,46 +92,97 @@ class CineproxScraperAndHTMLParser:
     def parse_movies_from_cartelera_html(html_content: str) -> list[CineproxMovieCard]:
         soup = BeautifulSoup(html_content, "lxml")
 
+        movies: list[CineproxMovieCard] = []
+        seen_movie_ids: set[str] = set()
+
+        featured_section = soup.find("div", class_="featured-section")
+        if featured_section:
+            featured_cards = featured_section.find_all("div", attrs={"data-testid": True})
+            for card in featured_cards:
+                movie = CineproxScraperAndHTMLParser._parse_featured_movie_card(card)
+                if movie and movie.movie_id not in seen_movie_ids:
+                    movies.append(movie)
+                    seen_movie_ids.add(movie.movie_id)
+
         grid_div = soup.find("div", id="grid")
-        if not grid_div:
-            logger.warning("Could not find div#grid in Cineprox cartelera HTML")
+        if not grid_div and not featured_section:
+            logger.warning("Could not find div#grid or .featured-section in Cineprox cartelera HTML")
             return []
 
-        movies: list[CineproxMovieCard] = []
-        movie_cards = grid_div.find_all("div", attrs={"data-testid": True})
-
-        for card in movie_cards:
-            testid = card.get("data-testid", "")
-            if not isinstance(testid, str) or not testid.startswith("movie-card-"):
-                continue
-
-            movie_id = testid.replace("movie-card-", "")
-
-            class_attr = card.get("class")
-            classes = list(class_attr) if class_attr else []
-            category = CineproxScraperAndHTMLParser._extract_category_from_classes(classes)
-
-            title_elem = card.find("p", class_="card-text")
-            if not title_elem:
-                continue
-            title = title_elem.get_text(strip=True)
-
-            img_elem = card.find("img", class_="card-img-top")
-            poster_url = ""
-            if img_elem and img_elem.get("src"):
-                poster_url = str(img_elem["src"])
-
-            slug = slugify(title)
-
-            movies.append(CineproxMovieCard(
-                movie_id=movie_id,
-                title=title,
-                slug=slug,
-                poster_url=poster_url,
-                category=category,
-            ))
+        if grid_div:
+            movie_cards = grid_div.find_all("div", attrs={"data-testid": True})
+            for card in movie_cards:
+                movie = CineproxScraperAndHTMLParser._parse_grid_movie_card(card)
+                if movie and movie.movie_id not in seen_movie_ids:
+                    movies.append(movie)
+                    seen_movie_ids.add(movie.movie_id)
 
         return movies
+
+    @staticmethod
+    def _parse_featured_movie_card(card: Tag) -> CineproxMovieCard | None:
+        """Parse a featured movie card from .featured-section."""
+        testid = card.get("data-testid", "")
+        if not isinstance(testid, str) or not testid.startswith("featured-movie-"):
+            return None
+
+        movie_id = testid.replace("featured-movie-", "")
+
+        header = card.find("div", class_="card-header")
+        category = header.get_text(strip=True).lower() if header else ""
+
+        title_elem = card.find("p", class_="card-text")
+        if not title_elem:
+            return None
+        title = title_elem.get_text(strip=True)
+
+        img_elem = card.find("img")
+        poster_url = ""
+        if img_elem and img_elem.get("src"):
+            poster_url = str(img_elem["src"])
+
+        slug = slugify(title)
+
+        return CineproxMovieCard(
+            movie_id=movie_id,
+            title=title,
+            slug=slug,
+            poster_url=poster_url,
+            category=category,
+        )
+
+    @staticmethod
+    def _parse_grid_movie_card(card: Tag) -> CineproxMovieCard | None:
+        """Parse a regular movie card from #grid."""
+        testid = card.get("data-testid", "")
+        if not isinstance(testid, str) or not testid.startswith("movie-card-"):
+            return None
+
+        movie_id = testid.replace("movie-card-", "")
+
+        class_attr = card.get("class")
+        classes = list(class_attr) if class_attr else []
+        category = CineproxScraperAndHTMLParser._extract_category_from_classes(classes)
+
+        title_elem = card.find("p", class_="card-text")
+        if not title_elem:
+            return None
+        title = title_elem.get_text(strip=True)
+
+        img_elem = card.find("img", class_="card-img-top")
+        poster_url = ""
+        if img_elem and img_elem.get("src"):
+            poster_url = str(img_elem["src"])
+
+        slug = slugify(title)
+
+        return CineproxMovieCard(
+            movie_id=movie_id,
+            title=title,
+            slug=slug,
+            poster_url=poster_url,
+            category=category,
+        )
 
     @staticmethod
     def _extract_category_from_classes(classes: list[str]) -> str:
