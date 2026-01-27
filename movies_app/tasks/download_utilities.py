@@ -31,7 +31,7 @@ SPANISH_MONTHS_ABBREVIATIONS = {
 }
 
 # Browser configuration
-BROWSER_TIMEOUT_SECONDS = 120
+BROWSER_TIMEOUT_SECONDS = 20
 
 # Translation type mapping from scraper values to database values
 TRANSLATION_TYPE_MAP = {
@@ -143,7 +143,7 @@ async def fetch_page_html_async(
     """
     logger.info(f"Scraping page: {url}")
 
-    async with AsyncCamoufox(headless=True) as browser:
+    async with AsyncCamoufox(headless=False) as browser:
         context = await browser.new_context()  # pyright: ignore[reportAttributeAccessIssue]
         page = await context.new_page()
 

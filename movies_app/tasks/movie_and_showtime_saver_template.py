@@ -182,7 +182,9 @@ class MovieAndShowtimeSaverTemplate(ABC):
                 continue
 
             try:
+                logger.info(f"Downloading Meta data for: '{movie_info.name}'")
                 metadata = self._get_movie_metadata(movie_info)
+                logger.info(f"Downloaded Meta data for: '{movie_info.name}'")
                 result = self.lookup_service.get_or_create_movie(
                     movie_name=movie_info.name,
                     source_url=movie_info.source_url,
