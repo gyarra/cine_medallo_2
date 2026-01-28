@@ -155,11 +155,13 @@ def mock_tmdb_for_tasks():
     with patch("movies_app.tasks.mamm_download_task.TMDBService") as mamm_mock, \
          patch("movies_app.tasks.colombia_com_download_task.TMDBService") as colombia_mock, \
          patch("movies_app.tasks.cinemark_download_task.TMDBService") as cinemark_mock, \
-         patch("movies_app.tasks.cine_colombia_download_task.TMDBService") as cine_colombia_mock:
+         patch("movies_app.tasks.cine_colombia_download_task.TMDBService") as cine_colombia_mock, \
+         patch("movies_app.tasks.colombo_americano_download_task.TMDBService") as colombo_mock:
         mamm_mock.return_value = mock_instance
         colombia_mock.return_value = mock_instance
         cinemark_mock.return_value = mock_instance
         cine_colombia_mock.return_value = mock_instance
+        colombo_mock.return_value = mock_instance
         yield mock_instance
 
 

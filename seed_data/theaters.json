@@ -171,6 +171,20 @@
       "scraper_type": "cinemark",
       "download_source_url": "https://www.cinemark.com.co/ciudad/medellin/el-tesoro"
     },
+
+    {
+      "name": "Colombo Americano",
+      "slug": "colombo-americano-medellin",
+      "chain": "Colombo Americano",
+      "address": "Cra. 45 #53 - 24",
+      "neighborhood": "La Candelaria",
+      "phone": "(604) 590 6852 ",
+      "website": "https://www.colombomedellin.edu.co/programacion-por-salas/",
+      "colombia_dot_com_url": "",
+      "scraper_type": "colombo_americano",
+      "download_source_url": "https://www.colombomedellin.edu.co/programacion-por-salas/"
+    },
+
     {
       "name": "Museo de Arte Moderno de Medellín",
       "slug": "museo-de-arte-moderno-de-medellin",
