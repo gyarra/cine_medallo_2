@@ -353,8 +353,6 @@ class TMDBService:
         """
         results = release_dates_data.get("results", [])
 
-        logger.info("Results: %s", results)
-
         for country_data in results:
             if country_data.get("iso_3166_1") != "CO":
                 continue

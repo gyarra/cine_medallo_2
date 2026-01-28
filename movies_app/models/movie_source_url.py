@@ -24,6 +24,7 @@ class MovieSourceUrl(models.Model):
         COLOMBIA_COM = "colombia_com", "colombia.com"
         MAMM = "mamm", "MAMM (elmamm.org)"
         CINE_COLOMBIA = "cine_colombia", "Cine Colombia"
+        COLOMBO_AMERICANO = "colombo_americano", "Colombo Americano"
         PROCINAL = "procinal", "Procinal"
         CINEMARK = "cinemark", "Cinemark"
         ROYAL_FILMS = "royal_films", "Royal Films"
