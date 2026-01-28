@@ -9,6 +9,14 @@ import pytest
 
 from movies_app.models import Theater
 
+from movies_app.services.tmdb_service import (
+    TMDBGenre,
+    TMDBMovieDetails,
+    TMDBMovieResult,
+    TMDBProductionCompany,
+    TMDBSearchResponse,
+)
+
 
 def load_html_snapshot(filename: str) -> str:
     """Load HTML snapshot file from the html_snapshot directory."""
@@ -19,13 +27,6 @@ def load_html_snapshot(filename: str) -> str:
     )
     with open(html_snapshot_path, encoding="utf-8") as f:
         return f.read()
-from movies_app.services.tmdb_service import (
-    TMDBGenre,
-    TMDBMovieDetails,
-    TMDBMovieResult,
-    TMDBProductionCompany,
-    TMDBSearchResponse,
-)
 
 
 @pytest.fixture
