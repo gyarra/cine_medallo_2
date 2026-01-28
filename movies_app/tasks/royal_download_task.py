@@ -14,13 +14,18 @@ from __future__ import annotations
 
 import asyncio
 import datetime
+import json
 import logging
 import re
 import traceback
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 from bs4 import BeautifulSoup
 from camoufox.async_api import AsyncCamoufox
+from django.conf import settings
+from django.db import transaction
 
 from config.celery_app import app
 from movies_app.models import Movie, MovieSourceUrl, OperationalIssue, Showtime, Theater
@@ -46,6 +51,7 @@ logger = logging.getLogger(__name__)
 SOURCE_NAME = "royal"
 TASK_NAME = "royal_download_task"
 ROYAL_BASE_URL = "https://cinemasroyalfilms.com"
+ROYAL_CONTEXT_FILE = Path(settings.BASE_DIR) / ".royal_browser_context.json"
 
 
 @dataclass
@@ -67,6 +73,29 @@ class RoyalShowtime:
 
 class RoyalScraperAndHTMLParser:
     """Stateless class for fetching and parsing Royal Films web pages."""
+
+    _context_initialized: bool = False
+
+    @staticmethod
+    def _load_storage_state() -> dict[str, Any] | None:
+        """Load saved browser storage state (cookies, localStorage) if it exists."""
+        if ROYAL_CONTEXT_FILE.exists():
+            try:
+                with open(ROYAL_CONTEXT_FILE, "r") as f:
+                    return json.load(f)
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning(f"Failed to load browser context: {e}")
+        return None
+
+    @staticmethod
+    def _save_storage_state(storage_state: Any) -> None:
+        """Save browser storage state for future use."""
+        try:
+            with open(ROYAL_CONTEXT_FILE, "w") as f:
+                json.dump(storage_state, f)
+            logger.info("Saved Royal Films browser context for future use")
+        except OSError as e:
+            logger.warning(f"Failed to save browser context: {e}")
 
     @staticmethod
     async def _select_colombia_city_async(page: object) -> None:
@@ -113,41 +142,70 @@ class RoyalScraperAndHTMLParser:
     async def _fetch_royal_page_async(
         url: str,
         wait_selector: str,
+        optional_selector: bool = False,
     ) -> str:
         """
         Fetch a Royal Films page, handling city selection if needed.
 
         Royal Films is an Angular SPA that requires selecting a country/city
-        before showing movie content. This method first navigates to the main
-        page to perform city selection, then navigates to the target URL.
+        before showing movie content. This method uses saved browser context
+        to skip city selection when possible.
+
+        Args:
+            url: The URL to fetch
+            wait_selector: CSS selector to wait for before returning HTML
+            optional_selector: If True, don't fail if selector is not found
         """
         logger.info(f"Scraping Royal Films page: {url}")
 
-        async with AsyncCamoufox(headless=False) as browser:
-            context = await browser.new_context(ignore_https_errors=True)  # pyright: ignore[reportAttributeAccessIssue]
+        # Try to load existing storage state
+        storage_state = RoyalScraperAndHTMLParser._load_storage_state()
+        need_city_selection = storage_state is None
+
+        async with AsyncCamoufox(headless=True) as browser:
+            # Create context with saved state if available
+            if storage_state:
+                context = await browser.new_context(  # pyright: ignore[reportAttributeAccessIssue]
+                    ignore_https_errors=True,
+                    storage_state=storage_state,  # pyright: ignore[reportArgumentType]
+                )
+            else:
+                context = await browser.new_context(ignore_https_errors=True)  # pyright: ignore[reportAttributeAccessIssue]
+
             page = await context.new_page()
 
             try:
-                # First, go to main page to handle city selection
-                await page.goto(
-                    ROYAL_BASE_URL,
-                    wait_until="domcontentloaded",
-                    timeout=BROWSER_TIMEOUT_SECONDS * 1000,
-                )
+                if need_city_selection:
+                    # First, go to main page to handle city selection
+                    await page.goto(
+                        ROYAL_BASE_URL,
+                        wait_until="domcontentloaded",
+                        timeout=BROWSER_TIMEOUT_SECONDS * 1000,
+                    )
 
-                await RoyalScraperAndHTMLParser._select_colombia_city_async(page)
+                    await RoyalScraperAndHTMLParser._select_colombia_city_async(page)
 
-                # Now navigate to the target URL
+                    # Save storage state after city selection
+                    saved_state = await context.storage_state()  # pyright: ignore[reportAttributeAccessIssue]
+                    RoyalScraperAndHTMLParser._save_storage_state(saved_state)
+
+                # Navigate to the target URL
                 await page.goto(
                     url,
                     wait_until="domcontentloaded",
                     timeout=BROWSER_TIMEOUT_SECONDS * 1000,
                 )
 
-                await page.wait_for_selector(
-                    wait_selector,
-                    timeout=BROWSER_TIMEOUT_SECONDS * 1000,
-                )
+                # Wait for selector (with optional fallback)
+                try:
+                    await page.wait_for_selector(
+                        wait_selector,
+                        timeout=BROWSER_TIMEOUT_SECONDS * 1000,
+                    )
+                except Exception:
+                    if not optional_selector:
+                        raise
+                    logger.warning(f"Optional selector '{wait_selector}' not found on {url}")
 
                 await asyncio.sleep(2)
 
@@ -168,10 +226,17 @@ class RoyalScraperAndHTMLParser:
 
     @staticmethod
     def download_movie_page_html(url: str) -> str:
+        """
+        Download movie page HTML.
+
+        Uses optional_selector=True because some movies may not have showtimes
+        in Medellín and won't have the #accordionFunctions element.
+        """
         return asyncio.run(
             RoyalScraperAndHTMLParser._fetch_royal_page_async(
                 url,
                 wait_selector="#accordionFunctions",
+                optional_selector=True,
             )
         )
 
@@ -545,8 +610,6 @@ class RoyalShowtimeSaver(MovieAndShowtimeSaverTemplate):
         dates: set[datetime.date],
     ) -> int:
         """Save showtimes atomically, deleting old ones first."""
-        from django.db import transaction
-
         with transaction.atomic():
             if dates:
                 deleted_count = Showtime.objects.filter(

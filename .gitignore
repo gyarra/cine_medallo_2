@@ -30,6 +30,7 @@ media/
 staticfiles/
 django.*
 .browser_state/
+.royal_browser_context.json
 
 # Django migrations
 **/migrations/*.pyc
