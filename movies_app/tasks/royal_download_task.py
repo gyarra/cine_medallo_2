@@ -123,7 +123,7 @@ class RoyalScraperAndHTMLParser:
         """
         logger.info(f"Scraping Royal Films page: {url}")
 
-        async with AsyncCamoufox(headless=True) as browser:
+        async with AsyncCamoufox(headless=False) as browser:
             context = await browser.new_context(ignore_https_errors=True)  # pyright: ignore[reportAttributeAccessIssue]
             page = await context.new_page()
 
