@@ -98,6 +98,29 @@ class RoyalScraperAndHTMLParser:
             logger.warning(f"Failed to save browser context: {e}")
 
     @staticmethod
+    async def _dismiss_city_modal_if_present(page: object) -> bool:
+        """
+        Check if the city selection modal is visible and dismiss it if possible.
+
+        Returns True if modal was dismissed, False if no modal was present.
+        """
+        try:
+            # Check if the city selection modal is visible
+            modal = await page.query_selector(".modal-dialog")  # pyright: ignore[reportAttributeAccessIssue]
+            if not modal:
+                return False
+
+            # Check if it's visible (not hidden)
+            is_visible = await modal.is_visible()  # pyright: ignore[reportAttributeAccessIssue]
+            if not is_visible:
+                return False
+
+            logger.info("City selection modal detected, selecting Medellín...")
+            return True
+        except Exception:
+            return False
+
+    @staticmethod
     async def _select_colombia_city_async(page: object) -> None:
         """
         Select Colombia as the country on the Royal Films city selection page.
@@ -196,6 +219,15 @@ class RoyalScraperAndHTMLParser:
                     timeout=BROWSER_TIMEOUT_SECONDS * 1000,
                 )
 
+                # Check if city modal appeared (can happen even with saved state)
+                await asyncio.sleep(1)
+                modal_present = await RoyalScraperAndHTMLParser._dismiss_city_modal_if_present(page)
+                if modal_present:
+                    await RoyalScraperAndHTMLParser._select_colombia_city_async(page)
+                    # Update saved state since we had to re-select
+                    saved_state = await context.storage_state()  # pyright: ignore[reportAttributeAccessIssue]
+                    RoyalScraperAndHTMLParser._save_storage_state(saved_state)
+
                 # Wait for selector (with optional fallback)
                 try:
                     await page.wait_for_selector(
@@ -205,7 +237,8 @@ class RoyalScraperAndHTMLParser:
                 except Exception:
                     if not optional_selector:
                         raise
-                    logger.warning(f"Optional selector '{wait_selector}' not found on {url}")
+                    # This typically means movie has no showtimes in Medellín
+                    logger.debug(f"Selector '{wait_selector}' not found on {url} - likely no showtimes")
 
                 await asyncio.sleep(2)
 
@@ -308,6 +341,11 @@ class RoyalScraperAndHTMLParser:
         if match:
             return match.group(1), match.group(2)
         return "", ""
+
+    @staticmethod
+    def has_no_showtimes_message(html_content: str) -> bool:
+        """Check if the page shows 'No se encontró ninguna función' message."""
+        return "No se encontró ninguna función" in html_content
 
     @staticmethod
     def parse_available_dates_from_movie_html(html_content: str) -> list[datetime.date]:
@@ -557,6 +595,10 @@ class RoyalShowtimeSaver(MovieAndShowtimeSaverTemplate):
 
             try:
                 html = self.scraper.download_movie_page_html(movie_info.source_url)
+
+                if self.scraper.has_no_showtimes_message(html):
+                    logger.debug(f"No showtimes available for {movie_info.name} - skipping")
+                    continue
 
                 dates = self.scraper.parse_available_dates_from_movie_html(html)
                 if not dates:

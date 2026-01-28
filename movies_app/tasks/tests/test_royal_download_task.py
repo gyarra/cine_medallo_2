@@ -249,6 +249,18 @@ class TestTheaterNamesMatch:
         assert not RoyalScraperAndHTMLParser._theater_names_match("Multicine Premium Plaza", "Multicine Jumbo La 65")
 
 
+class TestHasNoShowtimesMessage:
+    """Tests for detecting 'no showtimes' message."""
+
+    def test_returns_true_when_message_present(self):
+        html = '<div class="alert">No se encontró ninguna función</div>'
+        assert RoyalScraperAndHTMLParser.has_no_showtimes_message(html) is True
+
+    def test_returns_false_when_message_absent(self):
+        html = '<div id="accordionFunctions"><div class="showtime">4:30 PM</div></div>'
+        assert RoyalScraperAndHTMLParser.has_no_showtimes_message(html) is False
+
+
 class TestExtractMovieIdAndSlug:
     """Tests for extracting movie ID and slug from href."""
 
