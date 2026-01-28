@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from movies_app.models import Movie, Showtime
+from movies_app.models import Movie, Showtime, Theater
 from movies_app.services.tmdb_service import (
     TMDBGenre,
     TMDBMovieDetails,
@@ -109,27 +109,26 @@ class TestParseMovieMetaFromMovieHtml:
         metadata = ColomboAmericanoScraperAndHTMLParser.parse_movie_meta_from_movie_html(html_content)
 
         assert metadata is not None
-        assert "Par Chan-wook" in metadata.director or metadata.director != ""
+        assert metadata.director == "Par Chan-wook"
 
     def test_extracts_duration(self):
         html_content = load_html_snapshot("colombo_americano___one_movie.html")
         metadata = ColomboAmericanoScraperAndHTMLParser.parse_movie_meta_from_movie_html(html_content)
 
         assert metadata is not None
-        assert metadata.duration_minutes == 139 or metadata.duration_minutes is None
+        assert metadata.duration_minutes == 139
 
     def test_extracts_year(self):
         html_content = load_html_snapshot("colombo_americano___one_movie.html")
         metadata = ColomboAmericanoScraperAndHTMLParser.parse_movie_meta_from_movie_html(html_content)
 
         assert metadata is not None
-        assert metadata.year == 2026 or metadata.year is None
+        assert metadata.year == 2026
 
 
 @pytest.fixture
 def colombo_theater(db):
     """Create the Colombo Americano theater for tests."""
-    from movies_app.models import Theater
     theater, _ = Theater.objects.get_or_create(
         slug="colombo-americano-medellin",
         defaults={
