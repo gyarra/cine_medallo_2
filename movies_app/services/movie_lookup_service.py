@@ -32,7 +32,7 @@ class MovieLookupService:
         original_title: str | None,
         reason: UnfindableMovieUrl.Reason,
     ) -> None:
-        logger.info(f"Recording unfindable movie URL: {url} (reason: {reason})")
+        logger.info(f"Recording unfindable movie URL: {url} (reason: {reason})\n\n")
         obj, created = UnfindableMovieUrl.objects.update_or_create(
             url=url,
             defaults={
@@ -314,7 +314,7 @@ class MovieLookupService:
         if best_match:
             logger.info(
                 f"Selected TMDB match for '{movie_name}': '{best_match.title}' "
-                f"(id={best_match.id}, score={best_score}, date_matched={has_date_match})"
+                f"(id={best_match.id}, score={best_score}, date_matched={has_date_match})\n\n"
             )
             logger.debug(f"=== find_best_tmdb_match END: returning '{best_match.title}' ===")
         else:
@@ -405,7 +405,7 @@ class MovieLookupService:
                 )
             return MovieLookupResult(movie=existing_movie, is_new=False, tmdb_called=False)
 
-        logger.info("No existing movie in database")
+        logger.info(f"No existing movie in database for '{movie_name}'")
         try:
             logger.info(f"Searching TMDB for: '{search_name}' (listing name: '{movie_name}')")
             APICallCounter.increment("tmdb")
