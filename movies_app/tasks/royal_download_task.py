@@ -643,15 +643,15 @@ class RoyalShowtimeSaver(MovieAndShowtimeSaverTemplate):
                     severity=OperationalIssue.Severity.ERROR,
                 )
 
-        return self._save_showtimes_for_theater(theater, all_showtimes, dates_to_delete)
+        return self._save_showtimes_with_date_cleanup(theater, all_showtimes, dates_to_delete)
 
-    def _save_showtimes_for_theater(
+    def _save_showtimes_with_date_cleanup(
         self,
         theater: Theater,
         showtimes: list[ShowtimeData],
         dates: set[datetime.date],
     ) -> int:
-        """Save showtimes atomically, deleting old ones first."""
+        """Save showtimes atomically, deleting old ones for specified dates first."""
         with transaction.atomic():
             if dates:
                 deleted_count = Showtime.objects.filter(
