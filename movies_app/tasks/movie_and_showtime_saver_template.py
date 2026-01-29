@@ -98,17 +98,12 @@ class MovieAndShowtimeSaverTemplate(ABC):
         total_showtimes = 0
         movies_cache: dict[str, Movie | None] = {}
 
+        movies_for_chain = self._find_movies_for_chain()
+        self._get_or_create_movies(movies_for_chain, movies_cache)
+
         for theater in theaters:
             try:
-                movies_for_theater = self._find_movies(theater)
-
-                self._get_or_create_movies(movies_for_theater, movies_cache)
-
-                showtimes_count = self._process_showtimes_for_theater(
-                    theater, movies_for_theater, movies_cache
-                )
-                total_showtimes += showtimes_count
-
+                total_showtimes += self._process_theater(theater, movies_cache)
             except Exception as e:
                 self._handle_theater_error(theater, e)
 
@@ -118,12 +113,29 @@ class MovieAndShowtimeSaverTemplate(ABC):
             new_movies=self.new_movies,
         )
 
-    def execute_for_theater(self, theater: Theater) -> int:
-        """Process a single theater. Useful for testing or targeted runs."""
-        movies_cache: dict[str, Movie | None] = {}
+    def _process_theater(
+        self,
+        theater: Theater,
+        movies_cache: dict[str, Movie | None],
+    ) -> int:
+        """Process a single theater: find movies, ensure they exist, then scrape showtimes."""
         movies_for_theater = self._find_movies(theater)
         self._get_or_create_movies(movies_for_theater, movies_cache)
         return self._process_showtimes_for_theater(theater, movies_for_theater, movies_cache)
+
+    def execute_for_theater(self, theater: Theater) -> int:
+        """Process a single theater. Useful for testing or targeted runs."""
+        movies_cache: dict[str, Movie | None] = {}
+        return self._process_theater(theater, movies_cache)
+
+    def _find_movies_for_chain(self) -> list[MovieInfo]:
+        """
+        Find all movies for the entire theater chain.
+
+        Override this to load movies at the chain level for better efficiency.
+        Default implementation returns empty list (per-theater loading is used).
+        """
+        return []
 
     @abstractmethod
     def _find_movies(self, theater: Theater) -> list[MovieInfo]:
