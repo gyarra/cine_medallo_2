@@ -517,6 +517,8 @@ class CineproxScraperAndHTMLParser:
 class CineproxShowtimeSaver(MovieAndShowtimeSaverTemplate):
     """Cineprox scraper that extends the template pattern."""
 
+    HOMEPAGE_URL = "https://www.cineprox.com/"
+
     def __init__(
         self,
         scraper: CineproxScraperAndHTMLParser,
@@ -533,6 +535,48 @@ class CineproxShowtimeSaver(MovieAndShowtimeSaverTemplate):
         )
         self.scraper = scraper
         self._movie_cards_cache: dict[str, CineproxMovieCard] = {}
+
+    def _find_movies_for_chain(self) -> list[MovieInfo]:
+        """Load all movies from the Cineprox homepage at chain level."""
+        logger.info(f"Fetching movies from chain homepage: {self.HOMEPAGE_URL}\n\n")
+
+        try:
+            html_content = self.scraper.download_cartelera_html(self.HOMEPAGE_URL)
+        except Exception as e:
+            logger.error(f"Failed to download Cineprox homepage: {e}")
+            OperationalIssue.objects.create(
+                name="Cineprox Homepage Download Failed",
+                task=TASK_NAME,
+                error_message=str(e),
+                traceback=traceback.format_exc(),
+                context={"homepage_url": self.HOMEPAGE_URL},
+                severity=OperationalIssue.Severity.ERROR,
+            )
+            return []
+
+        movie_cards = self.scraper.parse_movies_from_cartelera_html(html_content)
+
+        if not movie_cards:
+            logger.warning("No movies found on Cineprox homepage")
+            OperationalIssue.objects.create(
+                name="Cineprox No Movies on Homepage",
+                task=TASK_NAME,
+                error_message="No movies found on Cineprox homepage",
+                context={"homepage_url": self.HOMEPAGE_URL},
+                severity=OperationalIssue.Severity.WARNING,
+            )
+            return []
+
+        active_movies = [m for m in movie_cards if m.category != "pronto"]
+        logger.info(f"Found {len(movie_cards)} movies on homepage, {len(active_movies)} active (excluding 'pronto')")
+
+        movies: list[MovieInfo] = []
+        for card in active_movies:
+            source_url = self.scraper.generate_movie_source_url(card.movie_id, card.slug)
+            self._movie_cards_cache[source_url] = card
+            movies.append(MovieInfo(name=card.title, source_url=source_url))
+
+        return movies
 
     def _find_movies(self, theater: Theater) -> list[MovieInfo]:
         """Download cartelera and return list of movies."""
