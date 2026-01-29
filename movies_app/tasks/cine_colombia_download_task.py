@@ -507,9 +507,102 @@ class CineColombiaScraperAndHTMLParser:
         """Generate canonical source URL for a movie."""
         return f"https://www.cinecolombia.com/films/{film_id}"
 
+    @staticmethod
+    def download_films_page_html(url: str) -> str:
+        """Download the films page HTML using Camoufox to handle modals."""
+        return asyncio.run(CineColombiaScraperAndHTMLParser._download_films_page_async(url))
+
+    @staticmethod
+    async def _download_films_page_async(url: str) -> str:
+        """Async implementation to download films page with modal handling."""
+        logger.info(f"Scraping Cine Colombia films page: {url}")
+
+        async with AsyncCamoufox(headless=True) as browser:
+            context = await browser.new_context(  # pyright: ignore[reportAttributeAccessIssue]
+                permissions=[],
+                geolocation=None,
+            )
+            page = await context.new_page()
+
+            try:
+                await page.goto(
+                    url,
+                    wait_until="domcontentloaded",
+                    timeout=BROWSER_TIMEOUT_SECONDS * 1000,
+                )
+
+                # Wait briefly for page to stabilize, then dismiss modals
+                await asyncio.sleep(1)
+                await CineColombiaScraperAndHTMLParser._dismiss_modals(page)
+
+                # Wait for the film list to load
+                await page.wait_for_selector(
+                    ".v-film-list-grid",
+                    timeout=BROWSER_TIMEOUT_SECONDS * 1000,
+                )
+
+                # Additional wait for all content to render
+                await asyncio.sleep(1)
+
+                return await page.content()
+
+            finally:
+                await context.close()
+
+    @staticmethod
+    def parse_movies_from_films_page(html_content: str) -> list[CineColombiaMovie]:
+        """Extract movies from the films page HTML."""
+        soup = BeautifulSoup(html_content, "lxml")
+        movies: list[CineColombiaMovie] = []
+
+        film_list = soup.find("ul", class_="v-film-list-grid")
+        if not film_list:
+            return movies
+
+        film_items = film_list.find_all("li", class_="v-film-list-film")
+
+        for film_item in film_items:
+            link_elem = film_item.find("a", class_="v-film-list-film__link")
+            if not link_elem:
+                continue
+
+            href = link_elem.get("href")
+            if not isinstance(href, str):
+                continue
+
+            # Extract film_id from href like /films/the-housemaid/HO00000338/
+            match = re.search(r"/films/[^/]+/([^/]+)/?", href)
+            if not match:
+                continue
+            film_id = match.group(1)
+
+            title_elem = film_item.find("span", class_="v-film-title__text")
+            if not title_elem:
+                continue
+
+            # Get translated (Spanish) title if available
+            translated_elem = title_elem.find("span", class_="v-film-title__translated-text")
+            if translated_elem:
+                title = translated_elem.get_text(strip=True)
+            else:
+                # Fall back to full text (original title)
+                title = title_elem.get_text(strip=True)
+
+            url = f"https://www.cinecolombia.com{href}" if href.startswith("/") else href
+
+            movies.append(CineColombiaMovie(
+                film_id=film_id,
+                title=title,
+                url=url,
+            ))
+
+        return movies
+
 
 class CineColombiaShowtimeSaver(MovieAndShowtimeSaverTemplate):
     """Cine Colombia scraper that extends the template pattern."""
+
+    FILMS_PAGE_URL = "https://www.cinecolombia.com/films/"
 
     def __init__(
         self,
@@ -527,6 +620,48 @@ class CineColombiaShowtimeSaver(MovieAndShowtimeSaverTemplate):
         )
         self.scraper = scraper
         self._movie_showtimes_cache: dict[str, list[CineColombiaMovieWithShowtimes]] = {}
+        self._films_page_cache: dict[str, CineColombiaMovie] = {}
+
+    def _find_movies_for_chain(self) -> list[MovieInfo]:
+        """Load all movies from the Cine Colombia films page at chain level."""
+        logger.info(f"Fetching movies from chain films page: {self.FILMS_PAGE_URL}\n\n")
+
+        try:
+            html_content = self.scraper.download_films_page_html(self.FILMS_PAGE_URL)
+        except Exception as e:
+            logger.error(f"Failed to download Cine Colombia films page: {e}")
+            OperationalIssue.objects.create(
+                name="Cine Colombia Films Page Download Failed",
+                task=TASK_NAME,
+                error_message=str(e),
+                traceback=traceback.format_exc(),
+                context={"films_page_url": self.FILMS_PAGE_URL},
+                severity=OperationalIssue.Severity.ERROR,
+            )
+            return []
+
+        movies = self.scraper.parse_movies_from_films_page(html_content)
+
+        if not movies:
+            logger.warning("No movies found on Cine Colombia films page")
+            OperationalIssue.objects.create(
+                name="Cine Colombia No Movies on Films Page",
+                task=TASK_NAME,
+                error_message="No movies found on Cine Colombia films page",
+                context={"films_page_url": self.FILMS_PAGE_URL},
+                severity=OperationalIssue.Severity.WARNING,
+            )
+            return []
+
+        logger.info(f"Found {len(movies)} movies on films page")
+
+        movie_infos: list[MovieInfo] = []
+        for movie in movies:
+            source_url = self.scraper.generate_movie_source_url(movie.film_id)
+            self._films_page_cache[movie.film_id] = movie
+            movie_infos.append(MovieInfo(name=movie.title, source_url=source_url))
+
+        return movie_infos
 
     @staticmethod
     def _extract_film_id(source_url: str) -> str:

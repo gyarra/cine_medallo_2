@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from movies_app.models import Theater
+from movies_app.models import OperationalIssue, Theater
 from movies_app.services.tmdb_service import (
     TMDBGenre,
     TMDBMovieDetails,
@@ -13,7 +13,9 @@ from movies_app.services.tmdb_service import (
     TMDBService,
 )
 from movies_app.tasks.cine_colombia_download_task import (
+    CineColombiaMovie,
     CineColombiaScraperAndHTMLParser,
+    CineColombiaShowtimeSaver,
 )
 from movies_app.tasks.tests.conftest import load_html_snapshot
 
@@ -110,6 +112,146 @@ def mock_tmdb_service_for_cine_colombia():
         certification=None,
     )
     return mock_instance
+
+
+@pytest.fixture
+def mock_storage_service_for_cine_colombia():
+    """Mock storage service for Cine Colombia tests."""
+    return MagicMock()
+
+
+# =============================================================================
+# Tests: Films Page HTML Parsing
+# =============================================================================
+
+
+class TestCineColombiaFilmsPageParsing:
+    """Tests for parsing movies from the Cine Colombia films page."""
+
+    def test_parse_movies_from_films_page(self):
+        """Parse movies from the films page HTML."""
+        html_content = load_html_snapshot("cine_colombia___all_movies.html")
+
+        movies = CineColombiaScraperAndHTMLParser.parse_movies_from_films_page(html_content)
+
+        assert len(movies) >= 15
+
+        titles = [m.title for m in movies]
+        assert "La Empleada" in titles
+        assert "Marty Supreme" in titles
+        assert "Zootopia 2" in titles
+        assert "Sin Piedad" in titles
+
+    def test_parse_movies_extracts_film_id(self):
+        """Verify film IDs are correctly extracted from URLs."""
+        html_content = load_html_snapshot("cine_colombia___all_movies.html")
+
+        movies = CineColombiaScraperAndHTMLParser.parse_movies_from_films_page(html_content)
+
+        housemaid = next((m for m in movies if "Empleada" in m.title), None)
+        assert housemaid is not None
+        assert housemaid.film_id == "HO00000338"
+
+    def test_parse_movies_extracts_url(self):
+        """Verify movie URLs are correctly extracted."""
+        html_content = load_html_snapshot("cine_colombia___all_movies.html")
+
+        movies = CineColombiaScraperAndHTMLParser.parse_movies_from_films_page(html_content)
+
+        housemaid = next((m for m in movies if "Empleada" in m.title), None)
+        assert housemaid is not None
+        assert "cinecolombia.com/films/the-housemaid/HO00000338" in housemaid.url
+
+    def test_parse_movies_returns_empty_for_no_film_list(self):
+        """Return empty list when no film list grid found."""
+        html_content = "<html><body></body></html>"
+
+        movies = CineColombiaScraperAndHTMLParser.parse_movies_from_films_page(html_content)
+
+        assert movies == []
+
+
+# =============================================================================
+# Tests: Find Movies for Chain
+# =============================================================================
+
+
+@pytest.mark.django_db
+class TestCineColombiaFindMoviesForChain:
+    """Tests for the _find_movies_for_chain method."""
+
+    def test_returns_movies_from_films_page(
+        self, mock_tmdb_service_for_cine_colombia, mock_storage_service_for_cine_colombia
+    ):
+        """Test _find_movies_for_chain fetches movies from the films page."""
+        scraper = MagicMock(spec=CineColombiaScraperAndHTMLParser)
+        scraper.download_films_page_html.return_value = "<html></html>"
+        scraper.parse_movies_from_films_page.return_value = [
+            CineColombiaMovie(film_id="HO00000338", title="La Empleada", url="https://cinecolombia.com/films/the-housemaid/HO00000338/"),
+            CineColombiaMovie(film_id="HO00000350", title="Avatar", url="https://cinecolombia.com/films/avatar-fire-and-ash/HO00000350/"),
+        ]
+        scraper.generate_movie_source_url.side_effect = lambda fid: f"https://www.cinecolombia.com/films/{fid}"
+
+        saver = CineColombiaShowtimeSaver(scraper, mock_tmdb_service_for_cine_colombia, mock_storage_service_for_cine_colombia)
+
+        movies = saver._find_movies_for_chain()
+
+        assert len(movies) == 2
+        scraper.download_films_page_html.assert_called_once_with("https://www.cinecolombia.com/films/")
+
+    def test_creates_operational_issue_on_network_error(
+        self, mock_tmdb_service_for_cine_colombia, mock_storage_service_for_cine_colombia
+    ):
+        """Test _find_movies_for_chain handles network errors gracefully."""
+        scraper = MagicMock(spec=CineColombiaScraperAndHTMLParser)
+        scraper.download_films_page_html.side_effect = Exception("Network error")
+
+        saver = CineColombiaShowtimeSaver(scraper, mock_tmdb_service_for_cine_colombia, mock_storage_service_for_cine_colombia)
+        initial_count = OperationalIssue.objects.count()
+
+        movies = saver._find_movies_for_chain()
+
+        assert movies == []
+        assert OperationalIssue.objects.count() == initial_count + 1
+        issue = OperationalIssue.objects.latest("created_at")
+        assert issue.name == "Cine Colombia Films Page Download Failed"
+
+    def test_creates_operational_issue_when_no_movies_found(
+        self, mock_tmdb_service_for_cine_colombia, mock_storage_service_for_cine_colombia
+    ):
+        """Test _find_movies_for_chain logs issue when no movies found."""
+        scraper = MagicMock(spec=CineColombiaScraperAndHTMLParser)
+        scraper.download_films_page_html.return_value = "<html></html>"
+        scraper.parse_movies_from_films_page.return_value = []
+
+        saver = CineColombiaShowtimeSaver(scraper, mock_tmdb_service_for_cine_colombia, mock_storage_service_for_cine_colombia)
+        initial_count = OperationalIssue.objects.count()
+
+        movies = saver._find_movies_for_chain()
+
+        assert movies == []
+        assert OperationalIssue.objects.count() == initial_count + 1
+        issue = OperationalIssue.objects.latest("created_at")
+        assert issue.name == "Cine Colombia No Movies on Films Page"
+
+    def test_caches_movies_in_films_page_cache(
+        self, mock_tmdb_service_for_cine_colombia, mock_storage_service_for_cine_colombia
+    ):
+        """Test _find_movies_for_chain populates the films page cache."""
+        scraper = MagicMock(spec=CineColombiaScraperAndHTMLParser)
+        scraper.download_films_page_html.return_value = "<html></html>"
+        scraper.parse_movies_from_films_page.return_value = [
+            CineColombiaMovie(film_id="HO00000338", title="La Empleada", url="https://cinecolombia.com/films/the-housemaid/HO00000338/"),
+        ]
+        scraper.generate_movie_source_url.return_value = "https://www.cinecolombia.com/films/HO00000338"
+
+        saver = CineColombiaShowtimeSaver(scraper, mock_tmdb_service_for_cine_colombia, mock_storage_service_for_cine_colombia)
+
+        saver._find_movies_for_chain()
+
+        assert "HO00000338" in saver._films_page_cache
+        cached_movie = saver._films_page_cache["HO00000338"]
+        assert cached_movie.title == "La Empleada"
 
 
 # =============================================================================
