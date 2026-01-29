@@ -824,6 +824,102 @@ class TestCineproxShowtimeSaverFindMovies:
 
 
 @pytest.mark.django_db
+class TestCineproxShowtimeSaverFindMoviesForChain:
+    def test_returns_movies_from_homepage(
+        self, mock_tmdb_service_for_cineprox, mock_storage_service_for_cineprox
+    ):
+        """Test _find_movies_for_chain fetches movies from the homepage."""
+        scraper = MagicMock(spec=CineproxScraperAndHTMLParser)
+        scraper.download_cartelera_html.return_value = "<html></html>"
+        scraper.parse_movies_from_cartelera_html.return_value = [
+            CineproxMovieCard(movie_id="1", title="Movie 1", slug="movie-1", poster_url="", category="estrenos"),
+            CineproxMovieCard(movie_id="2", title="Movie 2", slug="movie-2", poster_url="", category="cartelera"),
+        ]
+        scraper.generate_movie_source_url.side_effect = lambda mid, slug: f"https://cineprox.com/{mid}-{slug}"
+
+        saver = CineproxShowtimeSaver(scraper, mock_tmdb_service_for_cineprox, mock_storage_service_for_cineprox)
+
+        movies = saver._find_movies_for_chain()
+
+        assert len(movies) == 2
+        scraper.download_cartelera_html.assert_called_once_with("https://www.cineprox.com/")
+
+    def test_filters_pronto_movies(
+        self, mock_tmdb_service_for_cineprox, mock_storage_service_for_cineprox
+    ):
+        """Test _find_movies_for_chain excludes pronto (coming soon) movies."""
+        scraper = MagicMock(spec=CineproxScraperAndHTMLParser)
+        scraper.download_cartelera_html.return_value = "<html></html>"
+        scraper.parse_movies_from_cartelera_html.return_value = [
+            CineproxMovieCard(movie_id="1", title="Active", slug="active", poster_url="", category="estrenos"),
+            CineproxMovieCard(movie_id="2", title="Coming Soon", slug="coming-soon", poster_url="", category="pronto"),
+        ]
+        scraper.generate_movie_source_url.side_effect = lambda mid, slug: f"https://cineprox.com/{mid}-{slug}"
+
+        saver = CineproxShowtimeSaver(scraper, mock_tmdb_service_for_cineprox, mock_storage_service_for_cineprox)
+
+        movies = saver._find_movies_for_chain()
+
+        assert len(movies) == 1
+        assert movies[0].name == "Active"
+
+    def test_creates_operational_issue_on_network_error(
+        self, mock_tmdb_service_for_cineprox, mock_storage_service_for_cineprox
+    ):
+        """Test _find_movies_for_chain handles network errors gracefully."""
+        scraper = MagicMock(spec=CineproxScraperAndHTMLParser)
+        scraper.download_cartelera_html.side_effect = Exception("Network error")
+
+        saver = CineproxShowtimeSaver(scraper, mock_tmdb_service_for_cineprox, mock_storage_service_for_cineprox)
+        initial_count = OperationalIssue.objects.count()
+
+        movies = saver._find_movies_for_chain()
+
+        assert movies == []
+        assert OperationalIssue.objects.count() == initial_count + 1
+        issue = OperationalIssue.objects.latest("created_at")
+        assert issue.name == "Cineprox Homepage Download Failed"
+
+    def test_creates_operational_issue_when_no_movies_found(
+        self, mock_tmdb_service_for_cineprox, mock_storage_service_for_cineprox
+    ):
+        """Test _find_movies_for_chain logs issue when no movies found."""
+        scraper = MagicMock(spec=CineproxScraperAndHTMLParser)
+        scraper.download_cartelera_html.return_value = "<html></html>"
+        scraper.parse_movies_from_cartelera_html.return_value = []
+
+        saver = CineproxShowtimeSaver(scraper, mock_tmdb_service_for_cineprox, mock_storage_service_for_cineprox)
+        initial_count = OperationalIssue.objects.count()
+
+        movies = saver._find_movies_for_chain()
+
+        assert movies == []
+        assert OperationalIssue.objects.count() == initial_count + 1
+        issue = OperationalIssue.objects.latest("created_at")
+        assert issue.name == "Cineprox No Movies on Homepage"
+
+    def test_caches_movie_cards(
+        self, mock_tmdb_service_for_cineprox, mock_storage_service_for_cineprox
+    ):
+        """Test _find_movies_for_chain populates the movie card cache."""
+        scraper = MagicMock(spec=CineproxScraperAndHTMLParser)
+        scraper.download_cartelera_html.return_value = "<html></html>"
+        scraper.parse_movies_from_cartelera_html.return_value = [
+            CineproxMovieCard(movie_id="1", title="Movie", slug="movie", poster_url="/poster.jpg", category="estrenos"),
+        ]
+        scraper.generate_movie_source_url.return_value = "https://cineprox.com/1-movie"
+
+        saver = CineproxShowtimeSaver(scraper, mock_tmdb_service_for_cineprox, mock_storage_service_for_cineprox)
+
+        saver._find_movies_for_chain()
+
+        assert "https://cineprox.com/1-movie" in saver._movie_cards_cache
+        cached_card = saver._movie_cards_cache["https://cineprox.com/1-movie"]
+        assert cached_card.title == "Movie"
+        assert cached_card.poster_url == "/poster.jpg"
+
+
+@pytest.mark.django_db
 class TestCineproxShowtimeSaverExtractMetadata:
     def test_extracts_metadata_from_html(
         self, mock_tmdb_service_for_cineprox, mock_storage_service_for_cineprox
