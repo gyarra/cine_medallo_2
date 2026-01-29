@@ -269,7 +269,7 @@ class CinepolisScraperAndHTMLParser:
             logger.warning("Could not find cartelera list on home page")
             return movies
 
-        movie_items = cartelera_list.find_all("li", class_="item")
+        movie_items = cartelera_list.find_all("li", recursive=False)
 
         for item in movie_items:
             cartelera_link = item.find("a", class_="lnkCartelera")
