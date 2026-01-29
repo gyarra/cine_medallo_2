@@ -132,6 +132,7 @@ async def fetch_page_html_async(
     url: str,
     wait_selector: str | None = None,
     sleep_seconds_after_wait: float = 0,
+    ignore_https_errors: bool = False,
 ) -> str:
     """
     Fetch HTML content from a URL using Camoufox headless browser.
@@ -145,11 +146,12 @@ async def fetch_page_html_async(
         wait_selector: Optional CSS selector to wait for before returning HTML.
             Useful for React/SPA pages that render content after JavaScript executes.
         sleep_seconds_after_wait: Optional delay after page load before capturing HTML.
+        ignore_https_errors: If True, ignore SSL certificate errors.
     """
     logger.info(f"Scraping page: {url}")
 
     async with AsyncCamoufox(headless=True) as browser:
-        context = await browser.new_context()  # pyright: ignore[reportAttributeAccessIssue]
+        context = await browser.new_context(ignore_https_errors=ignore_https_errors)  # pyright: ignore[reportAttributeAccessIssue]
         page = await context.new_page()
 
         try:
@@ -179,9 +181,10 @@ def fetch_page_html(
     url: str,
     wait_selector: str | None = None,
     sleep_seconds_after_wait: float = 0,
+    ignore_https_errors: bool = False,
 ) -> str:
     """Synchronous wrapper to fetch HTML using async Camoufox."""
-    return asyncio.run(fetch_page_html_async(url, wait_selector, sleep_seconds_after_wait))
+    return asyncio.run(fetch_page_html_async(url, wait_selector, sleep_seconds_after_wait, ignore_https_errors))
 
 
 @dataclass
