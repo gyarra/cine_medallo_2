@@ -17,6 +17,7 @@ import datetime
 import logging
 import re
 import traceback
+import unicodedata
 from dataclasses import dataclass
 
 from bs4 import BeautifulSoup
@@ -566,9 +567,6 @@ class CinepolisShowtimeSaver(MovieAndShowtimeSaverTemplate):
     @staticmethod
     def _generate_slug_from_title(title: str) -> str:
         """Generate a URL slug from a movie title."""
-        import re
-        import unicodedata
-
         # Normalize unicode and convert to lowercase
         slug = title.lower().strip()
         # Remove accents

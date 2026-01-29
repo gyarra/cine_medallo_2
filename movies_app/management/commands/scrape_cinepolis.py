@@ -27,7 +27,7 @@ import logging
 
 from django.core.management.base import BaseCommand, CommandParser
 
-from movies_app.models import Theater
+from movies_app.models import Movie, Theater
 from movies_app.services.supabase_storage_service import SupabaseStorageService
 from movies_app.services.tmdb_service import TMDBService
 from movies_app.tasks.cinepolis_download_task import (
@@ -87,7 +87,7 @@ class Command(BaseCommand):
                 return
 
             self.stdout.write(f"Scraping theater: {theater.name}...")
-            movies_cache: dict = {}
+            movies_cache: dict[str, Movie | None] = {}
 
             # First get movies from chain
             movies = saver._find_movies_for_chain()
